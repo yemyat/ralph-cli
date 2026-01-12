@@ -14,10 +14,11 @@
     "test": "bun test",
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
-    "format": "ultracite fix"
+    "format": "ultracite fix",
+    "prepublishOnly": "bun run build"
   },
   "files": [
-    "src",
+    "dist",
     "bin"
   ],
   "keywords": [
