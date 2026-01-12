@@ -7,7 +7,9 @@ export const PROMPT_PLAN = `0a. Study \`.ralph/specs/*\` with up to 250 parallel
 
 IMPORTANT: Plan only. Do NOT implement anything. Do NOT assume functionality is missing; confirm with code search first. Treat \`src/lib\` as the project's standard library for shared utilities and components. Prefer consolidated, idiomatic implementations there over ad-hoc copies.
 
-ULTIMATE GOAL: We want to achieve the project goals defined in .ralph/specs/. Consider missing elements and plan accordingly. If an element is missing, search first to confirm it doesn't exist, then if needed author the specification at .ralph/specs/FILENAME.md. If you create a new element then document the plan to implement it in @.ralph/IMPLEMENTATION_PLAN.md using a subagent.`;
+ULTIMATE GOAL: We want to achieve the project goals defined in .ralph/specs/. Consider missing elements and plan accordingly. If an element is missing, search first to confirm it doesn't exist, then if needed author the specification at .ralph/specs/FILENAME.md. If you create a new element then document the plan to implement it in @.ralph/IMPLEMENTATION_PLAN.md using a subagent.
+
+COMPLETION: When ALL tasks in @.ralph/IMPLEMENTATION_PLAN.md are complete and there is nothing left to plan, output exactly: <STATUS>DONE</STATUS>`;
 
 export const PROMPT_BUILD = `0a. Study \`.ralph/specs/*\` with up to 500 parallel subagents to learn the application specifications.
 0b. Study @.ralph/IMPLEMENTATION_PLAN.md.
@@ -20,7 +22,9 @@ export const PROMPT_BUILD = `0a. Study \`.ralph/specs/*\` with up to 500 paralle
 
 99999. Important: When authoring documentation, capture the why — tests and implementation importance.
 999999. Important: Single sources of truth, no migrations/adapters. If tests unrelated to your work fail, resolve them as part of the increment.
-9999999. As soon as there are no build or test errors create a git tag.`;
+9999999. As soon as there are no build or test errors create a git tag.
+
+COMPLETION: When ALL tasks in @.ralph/IMPLEMENTATION_PLAN.md are complete, all tests pass, and the final commit/push is done, output exactly: <STATUS>DONE</STATUS>`;
 
 export const IMPLEMENTATION_PLAN_TEMPLATE = `# Implementation Plan
 

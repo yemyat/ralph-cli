@@ -29,3 +29,32 @@ Step 4: Starting Ralph in plan mode...
   - Status: SUCCESS
 
 Step 5: Starting Ralph in build mode to create tests...
+  - Session ID: f470bd29
+  - Ran 2 iterations
+  - Droid created 4 test files:
+    - src/__tests__/config.test.ts (11 tests)
+    - src/__tests__/agents.test.ts (19 tests)
+    - src/__tests__/paths.test.ts (13 tests)
+    - src/__tests__/templates.test.ts (9 tests)
+  - Total: 52 tests, all passing
+  - Also fixed bug: redundant specs directory creation in config.ts
+  - Created git tag v1.0.1
+  - Status: SUCCESS
+
+=== SUMMARY ===
+Dogfooding successful! Ralph CLI was used to create its own test suite.
+- Plan mode: analyzed specs, identified tasks, created implementation plan
+- Build mode: implemented 52 tests across 4 files
+- All tests pass with `bun test`
+- TypeCheck passes with `bun run typecheck`
+
+Files created:
+- .ralph/specs/testing.md (test specification)
+- src/__tests__/config.test.ts
+- src/__tests__/agents.test.ts
+- src/__tests__/paths.test.ts
+- src/__tests__/templates.test.ts
+
+Bug fixed:
+- src/agents/droid.ts (removed conflicting --skip-permissions-unsafe flag)
+- src/config.ts (removed redundant specs directory creation)

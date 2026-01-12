@@ -97,6 +97,8 @@ export async function startCommand(
   await runRalphLoop(session, promptPath, agentInstance, maxIterations, options.verbose);
 }
 
+const DONE_MARKER = "<STATUS>DONE</STATUS>";
+
 async function runRalphLoop(
   session: RalphSession,
   promptPath: string,
@@ -105,6 +107,7 @@ async function runRalphLoop(
   verbose?: boolean
 ): Promise<void> {
   let iteration = 0;
+  let doneDetected = false;
   const logStream = fse.createWriteStream(session.logFile, { flags: "a" });
 
   const log = (msg: string) => {
@@ -170,6 +173,10 @@ async function runRalphLoop(
             if (verbose) {
               process.stdout.write(output);
             }
+            if (output.includes(DONE_MARKER)) {
+              doneDetected = true;
+              log("Detected DONE marker in output");
+            }
           });
 
           child.stderr.on("data", (data) => {
@@ -199,6 +206,11 @@ async function runRalphLoop(
         });
 
         spinner.succeed(`Iteration ${iteration} completed`);
+
+        if (doneDetected) {
+          console.log(chalk.green(`\n✓ All tasks completed! Agent signaled DONE.`));
+          break;
+        }
 
         // Git push after each iteration (if in build mode)
         if (session.mode === "build") {
