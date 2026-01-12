@@ -68,10 +68,6 @@ export async function initProject(
 
   await saveProjectConfig(projectConfig);
 
-  // Create project-specific directories
-  const specsDir = join(projectPath, "specs");
-  await fse.ensureDir(specsDir);
-
   return projectConfig;
 }
 

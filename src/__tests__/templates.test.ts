@@ -1,0 +1,93 @@
+import { describe, it, expect } from "bun:test";
+import {
+  PROMPT_PLAN,
+  PROMPT_BUILD,
+  IMPLEMENTATION_PLAN_TEMPLATE,
+} from "../templates/prompts.js";
+
+describe("Template Constants", () => {
+  describe("PROMPT_PLAN", () => {
+    it("is a non-empty string", () => {
+      expect(typeof PROMPT_PLAN).toBe("string");
+      expect(PROMPT_PLAN.length).toBeGreaterThan(0);
+    });
+
+    it("contains expected sections for planning mode", () => {
+      // Should reference specs directory
+      expect(PROMPT_PLAN).toContain(".ralph/specs");
+
+      // Should reference IMPLEMENTATION_PLAN.md
+      expect(PROMPT_PLAN).toContain("IMPLEMENTATION_PLAN.md");
+
+      // Should mention parallel subagents
+      expect(PROMPT_PLAN).toContain("subagent");
+
+      // Should emphasize planning only, no implementation
+      expect(PROMPT_PLAN).toContain("Plan only");
+      expect(PROMPT_PLAN).toContain("Do NOT implement");
+    });
+
+    it("includes guidance about checking before assuming", () => {
+      expect(PROMPT_PLAN).toContain("Do NOT assume");
+    });
+  });
+
+  describe("PROMPT_BUILD", () => {
+    it("is a non-empty string", () => {
+      expect(typeof PROMPT_BUILD).toBe("string");
+      expect(PROMPT_BUILD.length).toBeGreaterThan(0);
+    });
+
+    it("contains expected sections for build mode", () => {
+      // Should reference specs directory
+      expect(PROMPT_BUILD).toContain(".ralph/specs");
+
+      // Should reference IMPLEMENTATION_PLAN.md
+      expect(PROMPT_BUILD).toContain("IMPLEMENTATION_PLAN.md");
+
+      // Should mention parallel subagents
+      expect(PROMPT_BUILD).toContain("subagent");
+
+      // Should mention testing
+      expect(PROMPT_BUILD).toContain("tests");
+
+      // Should mention git operations
+      expect(PROMPT_BUILD).toContain("git commit");
+      expect(PROMPT_BUILD).toContain("git push");
+    });
+
+    it("includes guidance about git tagging on success", () => {
+      expect(PROMPT_BUILD).toContain("git tag");
+    });
+  });
+
+  describe("IMPLEMENTATION_PLAN_TEMPLATE", () => {
+    it("is a non-empty string", () => {
+      expect(typeof IMPLEMENTATION_PLAN_TEMPLATE).toBe("string");
+      expect(IMPLEMENTATION_PLAN_TEMPLATE.length).toBeGreaterThan(0);
+    });
+
+    it("contains expected markdown structure", () => {
+      // Should have main title
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("# Implementation Plan");
+
+      // Should have current status section
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("## Current Status");
+
+      // Should have task priority sections
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("### High Priority");
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("### Medium Priority");
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("### Low Priority");
+
+      // Should have completed section
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("## Completed");
+
+      // Should have discovered issues section
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("## Discovered Issues");
+    });
+
+    it("uses markdown checkbox syntax", () => {
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("- [ ]");
+    });
+  });
+});

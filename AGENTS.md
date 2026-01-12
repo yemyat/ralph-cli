@@ -80,8 +80,8 @@ amp --execute --stream-json --mode <smart|rush>
 ### Factory Droid
 
 ```bash
-# CLI command format
-droid exec --skip-permissions-unsafe --auto high -o stream-json -m <model>
+# CLI command format (--auto and --skip-permissions-unsafe are mutually exclusive)
+droid exec --auto high -o stream-json -m <model>
 
 # Autonomy levels: low, medium, high
 # Docs: https://docs.factory.ai/reference/cli-reference

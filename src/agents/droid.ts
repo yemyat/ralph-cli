@@ -9,9 +9,9 @@ export class DroidAgent extends BaseAgent {
   buildCommand(options: AgentOptions): AgentCommand {
     const args = [
       "exec", // non-interactive execution
-      "--skip-permissions-unsafe", // auto-approve (equivalent to dangerously-skip-permissions)
-      "--auto", "high", // high autonomy for full automation
-      "-o", "stream-json", // structured output
+      "--skip-permissions-unsafe", // highest and the most dangerous autonomy
+      "-o",
+      "stream-json", // structured output
     ];
 
     if (options.model) {

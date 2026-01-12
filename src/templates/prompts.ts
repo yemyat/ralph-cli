@@ -22,32 +22,6 @@ export const PROMPT_BUILD = `0a. Study \`.ralph/specs/*\` with up to 500 paralle
 999999. Important: Single sources of truth, no migrations/adapters. If tests unrelated to your work fail, resolve them as part of the increment.
 9999999. As soon as there are no build or test errors create a git tag.`;
 
-export const AGENTS_MD = `# AGENTS.md
-
-This file contains operational guidance for the AI agents working on this project.
-
-## Project Overview
-<!-- Describe your project here -->
-
-## Build & Test Commands
-\`\`\`bash
-# Add your build commands
-npm run build
-
-# Add your test commands
-npm test
-\`\`\`
-
-## Code Conventions
-- Follow existing code style
-- Use TypeScript strict mode
-- Write tests for new functionality
-
-## Important Notes
-- Always run tests before committing
-- Keep commits atomic and well-described
-`;
-
 export const IMPLEMENTATION_PLAN_TEMPLATE = `# Implementation Plan
 
 ## Current Status
