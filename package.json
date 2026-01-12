@@ -1,0 +1,36 @@
+{
+  "name": "ralph-cli",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ralph": "./bin/ralph.js"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "files": [
+    "src",
+    "bin"
+  ],
+  "keywords": ["ralph", "ai", "agent", "claude", "amp", "droid"],
+  "author": "",
+  "license": "MIT",
+  "description": "CLI tool for managing Ralph Wiggum AI development workflows",
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "fs-extra": "^11.3.3",
+    "inquirer": "^13.2.0",
+    "ora": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^25.0.6",
+    "typescript": "^5.9.3"
+  }
+}
