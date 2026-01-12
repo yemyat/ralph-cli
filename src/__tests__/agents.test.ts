@@ -7,9 +7,9 @@ import {
   CursorAgent,
   DroidAgent,
   GeminiAgent,
-  OpenCodeAgent,
   getAgent,
   getAllAgents,
+  OpenCodeAgent,
 } from "../agents/index.js";
 
 describe("Agent Module", () => {
@@ -284,7 +284,9 @@ describe("Agent Module", () => {
         expect(cmd.command).toBe("codex");
         expect(cmd.args).toContain("exec");
         expect(cmd.args).toContain("--json");
-        expect(cmd.args).toContain("--dangerously-bypass-approvals-and-sandbox");
+        expect(cmd.args).toContain(
+          "--dangerously-bypass-approvals-and-sandbox"
+        );
       });
 
       it("includes model flag when specified", () => {

@@ -42,32 +42,32 @@ cp -r .claude/skills/ralph ~/.claude/skills/
 ```bash
 # Initialize Ralph in your project
 cd your-project
-ralph init
+ralph-wiggum-cli init
 
 # Start planning mode (generates IMPLEMENTATION_PLAN.md)
-ralph start plan
+ralph-wiggum-cli start plan
 
 # Start building mode (implements from plan)
-ralph start build
+ralph-wiggum-cli start build
 
 # View status
-ralph status
+ralph-wiggum-cli status
 
 # Stop the loop
-ralph stop
+ralph-wiggum-cli stop
 ```
 
 ## Commands
 
-| Command                     | Description                             |
-| --------------------------- | --------------------------------------- |
-| `ralph init`                | Initialize Ralph in the current project |
-| `ralph start [plan\|build]` | Start the Ralph loop                    |
-| `ralph stop`                | Stop the running Ralph session          |
-| `ralph status`              | Show project status and sessions        |
-| `ralph list`                | List all Ralph projects                 |
-| `ralph logs`                | View session logs                       |
-| `ralph agents`              | List available AI agents                |
+| Command                                | Description                             |
+| -------------------------------------- | --------------------------------------- |
+| `ralph-wiggum-cli init`                | Initialize Ralph in the current project |
+| `ralph-wiggum-cli start [plan\|build]` | Start the Ralph loop                    |
+| `ralph-wiggum-cli stop`                | Stop the running Ralph session          |
+| `ralph-wiggum-cli status`              | Show project status and sessions        |
+| `ralph-wiggum-cli list`                | List all Ralph projects                 |
+| `ralph-wiggum-cli logs`                | View session logs                       |
+| `ralph-wiggum-cli agents`              | List available AI agents                |
 
 ## Options
 
@@ -91,7 +91,7 @@ ralph stop
 
 ## Project Structure
 
-After `ralph init`, your project will have:
+After `ralph-wiggum-cli init`, your project will have:
 
 ```
 your-project/

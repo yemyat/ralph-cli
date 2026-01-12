@@ -9,7 +9,7 @@ export async function listCommand(): Promise<void> {
   if (projects.length === 0) {
     console.log(chalk.yellow("\nNo Ralph projects found."));
     console.log(
-      `Run ${chalk.cyan("ralph init")} in a project directory to get started.`
+      `Run ${chalk.cyan("ralph-wiggum-cli init")} in a project directory to get started.`
     );
     return;
   }

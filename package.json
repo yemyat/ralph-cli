@@ -1,10 +1,10 @@
 {
   "name": "ralph-wiggum-cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "ralph": "./bin/ralph.js"
+    "ralph-wiggum-cli": "./bin/ralph-wiggum-cli.js"
   },
   "scripts": {
     "dev": "bun run src/index.ts",

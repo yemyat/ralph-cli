@@ -55,7 +55,9 @@ export async function initCommand(options: InitOptions): Promise<void> {
   if (!isInstalled) {
     console.log(chalk.red(`\n${agentInstance.name} is not installed.\n`));
     console.log(agentInstance.getInstallInstructions());
-    console.log(chalk.gray("\nAfter installing, run `ralph init` again."));
+    console.log(
+      chalk.gray("\nAfter installing, run `ralph-wiggum-cli init` again.")
+    );
     return;
   }
 
@@ -120,7 +122,9 @@ export async function initCommand(options: InitOptions): Promise<void> {
     `  1. Add specifications to ${chalk.cyan(".ralph/specs/")} directory`
   );
   console.log(
-    `  2. Run ${chalk.cyan("ralph start plan")} to generate implementation plan`
+    `  2. Run ${chalk.cyan("ralph-wiggum-cli start plan")} to generate implementation plan`
   );
-  console.log(`  3. Run ${chalk.cyan("ralph start build")} to start building`);
+  console.log(
+    `  3. Run ${chalk.cyan("ralph-wiggum-cli start build")} to start building`
+  );
 }

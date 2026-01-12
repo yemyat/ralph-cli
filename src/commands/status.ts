@@ -25,7 +25,7 @@ export async function statusCommand(): Promise<void> {
 
   if (!config) {
     console.log(chalk.red("Ralph is not initialized for this project."));
-    console.log(`Run ${chalk.cyan("ralph init")} first.`);
+    console.log(`Run ${chalk.cyan("ralph-wiggum-cli init")} first.`);
     return;
   }
 

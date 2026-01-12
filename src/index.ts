@@ -13,9 +13,9 @@ import type { AgentType } from "./types.js";
 const program = new Command();
 
 program
-  .name("ralph")
+  .name("ralph-wiggum-cli")
   .description("CLI for managing Ralph Wiggum AI development workflows")
-  .version("1.0.0");
+  .version("1.0.2");
 
 program
   .command("init")

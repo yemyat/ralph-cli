@@ -29,7 +29,7 @@ export async function startCommand(
 
   if (!config) {
     console.log(chalk.red("Ralph is not initialized for this project."));
-    console.log(`Run ${chalk.cyan("ralph init")} first.`);
+    console.log(`Run ${chalk.cyan("ralph-wiggum-cli init")} first.`);
     return;
   }
 
@@ -43,7 +43,9 @@ export async function startCommand(
     );
     console.log(`  Session ID: ${chalk.cyan(runningSessions[0].id)}`);
     console.log(`  Mode: ${chalk.cyan(runningSessions[0].mode)}`);
-    console.log(`\nUse ${chalk.cyan("ralph stop")} to stop it first.`);
+    console.log(
+      `\nUse ${chalk.cyan("ralph-wiggum-cli stop")} to stop it first.`
+    );
     return;
   }
 
@@ -67,7 +69,7 @@ export async function startCommand(
 
   if (!(await fse.pathExists(promptPath))) {
     console.log(chalk.red(`Prompt file not found: ${promptFile}`));
-    console.log(`Run ${chalk.cyan("ralph init")} to create it.`);
+    console.log(`Run ${chalk.cyan("ralph-wiggum-cli init")} to create it.`);
     return;
   }
 

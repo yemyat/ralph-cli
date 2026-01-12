@@ -43,12 +43,12 @@ src/
 │   ├── droid.ts      # Factory Droid agent
 │   └── index.ts      # Agent registry
 ├── commands/         # CLI command implementations
-│   ├── init.ts       # ralph init
-│   ├── start.ts      # ralph start [plan|build]
-│   ├── stop.ts       # ralph stop
-│   ├── status.ts     # ralph status
-│   ├── list.ts       # ralph list
-│   └── logs.ts       # ralph logs
+│   ├── init.ts       # ralph-wiggum-cli init
+│   ├── start.ts      # ralph-wiggum-cli start [plan|build]
+│   ├── stop.ts       # ralph-wiggum-cli stop
+│   ├── status.ts     # ralph-wiggum-cli status
+│   ├── list.ts       # ralph-wiggum-cli list
+│   └── logs.ts       # ralph-wiggum-cli logs
 ├── templates/        # Prompt templates
 │   └── prompts.ts    # PROMPT_plan.md, PROMPT_build.md templates
 └── utils/
