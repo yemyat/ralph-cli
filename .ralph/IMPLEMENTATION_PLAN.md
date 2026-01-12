@@ -7,6 +7,7 @@
 - [x] Configuration and session management working
 - [x] Test suite implemented (per testing.md spec) - 52 tests passing
 - [x] Ultracite/Biome linting integration (per ultracite.md spec) - COMPLETE
+- [x] **Git tag v1.2.0 created** - Stable release with all specs implemented
 
 ## Tasks (Priority Order)
 
