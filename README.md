@@ -4,6 +4,8 @@ A command-line tool for managing **Ralph Wiggum** AI development workflows acros
 
 Based on the [Ralph Wiggum Technique](https://github.com/ghuntley/how-to-ralph-wiggum) - an AI development methodology that uses autonomous coding loops with AI agents.
 
+> **Meta**: This CLI was built by pointing an AI agent at the Ralph Wiggum technique repo, then using Ralph itself to implement and refine the tool. Recursive AI development in action.
+
 ## Installation
 
 ```bash
@@ -17,6 +19,16 @@ git clone <repo>
 cd ralph-cli
 bun install
 bun link
+```
+
+## AI Agent Skills
+
+Ralph includes a skill file that teaches AI agents how to use the CLI.
+
+### Claude Code
+
+```bash
+cp -r .claude/skills/ralph ~/.claude/skills/
 ```
 
 ## Quick Start
@@ -41,15 +53,15 @@ ralph stop
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `ralph init` | Initialize Ralph in the current project |
-| `ralph start [plan\|build]` | Start the Ralph loop |
-| `ralph stop` | Stop the running Ralph session |
-| `ralph status` | Show project status and sessions |
-| `ralph list` | List all Ralph projects |
-| `ralph logs` | View session logs |
-| `ralph agents` | List available AI agents |
+| Command                     | Description                             |
+| --------------------------- | --------------------------------------- |
+| `ralph init`                | Initialize Ralph in the current project |
+| `ralph start [plan\|build]` | Start the Ralph loop                    |
+| `ralph stop`                | Stop the running Ralph session          |
+| `ralph status`              | Show project status and sessions        |
+| `ralph list`                | List all Ralph projects                 |
+| `ralph logs`                | View session logs                       |
+| `ralph agents`              | List available AI agents                |
 
 ## Options
 
@@ -65,11 +77,11 @@ ralph stop
 
 ## Supported Agents
 
-| Agent | Description |
-|-------|-------------|
+| Agent    | Description                                         |
+| -------- | --------------------------------------------------- |
 | `claude` | [Claude Code](https://code.claude.com) by Anthropic |
-| `amp` | [Amp Code](https://ampcode.com) by Sourcegraph |
-| `droid` | [Factory Droid](https://factory.ai) CLI |
+| `amp`    | [Amp Code](https://ampcode.com) by Sourcegraph      |
+| `droid`  | [Factory Droid](https://factory.ai) CLI             |
 
 ## Project Structure
 
@@ -78,7 +90,6 @@ After `ralph init`, your project will have:
 ```
 your-project/
 └── .ralph/
-    ├── AGENTS.md              # Agent configuration and project guidance
     ├── PROMPT_plan.md         # Planning mode prompt
     ├── PROMPT_build.md        # Building mode prompt
     ├── IMPLEMENTATION_PLAN.md # Auto-generated implementation plan
@@ -104,6 +115,7 @@ Ralph implements the "Ralph Wiggum" technique:
 4. **Git Integration**: Commits after each successful iteration
 
 Each iteration:
+
 1. Reads specs and current plan
 2. Selects the most important task
 3. Implements the task
