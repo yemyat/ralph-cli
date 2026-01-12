@@ -8,6 +8,7 @@ export class AmpAgent extends BaseAgent {
 
   buildCommand(options: AgentOptions): AgentCommand {
     const args = [
+      "--dangerously-allow-all",
       "--execute", // non-interactive execution
       "--stream-json", // structured output
     ];
