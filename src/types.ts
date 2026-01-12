@@ -1,4 +1,11 @@
-export type AgentType = "claude" | "amp" | "droid";
+export type AgentType =
+  | "claude"
+  | "amp"
+  | "droid"
+  | "opencode"
+  | "cursor"
+  | "codex"
+  | "gemini";
 
 export interface RalphConfig {
   projectId: string;
