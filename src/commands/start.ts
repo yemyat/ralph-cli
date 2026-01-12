@@ -173,6 +173,8 @@ async function runRalphLoop(
         });
 
         await new Promise<void>((resolve, reject) => {
+          let stdoutBuffer = "";
+
           const child = spawn(cmdOptions.command, cmdOptions.args, {
             cwd: process.cwd(),
             stdio: ["pipe", "pipe", "pipe"],
@@ -189,10 +191,7 @@ async function runRalphLoop(
             if (verbose) {
               process.stdout.write(output);
             }
-            if (output.includes(DONE_MARKER)) {
-              doneDetected = true;
-              log("Detected DONE marker in output");
-            }
+            stdoutBuffer += output;
           });
 
           child.stderr.on("data", (data) => {
@@ -210,6 +209,15 @@ async function runRalphLoop(
 
           child.on("close", (code) => {
             log(`Iteration ${iteration} completed with exit code ${code}`);
+
+            // Check only the last 2000 chars for DONE marker to avoid false positives
+            // from prompt instructions being echoed at the start of output
+            const tailOutput = stdoutBuffer.slice(-2000);
+            if (tailOutput.includes(DONE_MARKER)) {
+              doneDetected = true;
+              log("Detected DONE marker in output tail");
+            }
+
             if (code === 0) {
               resolve();
             } else {
