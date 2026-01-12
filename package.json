@@ -1,5 +1,5 @@
 {
-  "name": "ralph-cli",
+  "name": "ralph-wiggum-cli",
   "version": "1.0.0",
   "type": "module",
   "main": "dist/index.js",
