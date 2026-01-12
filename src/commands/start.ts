@@ -1,13 +1,17 @@
-import { spawn } from "child_process";
-import { join } from "path";
-import { randomUUID } from "crypto";
-import fse from "fs-extra";
+import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { join } from "node:path";
 import chalk from "chalk";
+import fse from "fs-extra";
 import ora from "ora";
-import { getProjectConfig, saveSession, getProjectSessions } from "../config.js";
 import { getAgent } from "../agents/index.js";
-import { getSessionLogFile, getProjectId } from "../utils/paths.js";
-import type { RalphSession, AgentType } from "../types.js";
+import {
+  getProjectConfig,
+  getProjectSessions,
+  saveSession,
+} from "../config.js";
+import type { AgentType, RalphSession } from "../types.js";
+import { getSessionLogFile } from "../utils/paths.js";
 
 interface StartOptions {
   agent?: AgentType;
@@ -17,7 +21,7 @@ interface StartOptions {
 }
 
 export async function startCommand(
-  mode: "plan" | "build" = "build",
+  mode: "plan" | "build",
   options: StartOptions
 ): Promise<void> {
   const projectPath = process.cwd();
@@ -34,7 +38,9 @@ export async function startCommand(
   const runningSessions = sessions.filter((s) => s.status === "running");
 
   if (runningSessions.length > 0) {
-    console.log(chalk.yellow("There's already a running Ralph session for this project."));
+    console.log(
+      chalk.yellow("There's already a running Ralph session for this project.")
+    );
     console.log(`  Session ID: ${chalk.cyan(runningSessions[0].id)}`);
     console.log(`  Mode: ${chalk.cyan(runningSessions[0].mode)}`);
     console.log(`\nUse ${chalk.cyan("ralph stop")} to stop it first.`);
@@ -94,7 +100,13 @@ export async function startCommand(
   console.log(chalk.gray("Press Ctrl+C to stop the loop.\n"));
 
   // Start the loop
-  await runRalphLoop(session, promptPath, agentInstance, maxIterations, options.verbose);
+  await runRalphLoop(
+    session,
+    promptPath,
+    agentInstance,
+    maxIterations,
+    options.verbose
+  );
 }
 
 const DONE_MARKER = "<STATUS>DONE</STATUS>";
@@ -136,7 +148,9 @@ async function runRalphLoop(
   try {
     while (true) {
       if (maxIterations > 0 && iteration >= maxIterations) {
-        console.log(chalk.green(`\n✓ Reached max iterations: ${maxIterations}`));
+        console.log(
+          chalk.green(`\n✓ Reached max iterations: ${maxIterations}`)
+        );
         break;
       }
 
@@ -208,15 +222,19 @@ async function runRalphLoop(
         spinner.succeed(`Iteration ${iteration} completed`);
 
         if (doneDetected) {
-          console.log(chalk.green(`\n✓ All tasks completed! Agent signaled DONE.`));
+          console.log(
+            chalk.green("\n✓ All tasks completed! Agent signaled DONE.")
+          );
           break;
         }
 
         // Git push after each iteration (if in build mode)
         if (session.mode === "build") {
           try {
-            const { execSync } = await import("child_process");
-            const branch = execSync("git branch --show-current", { encoding: "utf-8" }).trim();
+            const { execSync } = await import("node:child_process");
+            const branch = execSync("git branch --show-current", {
+              encoding: "utf-8",
+            }).trim();
             execSync(`git push origin ${branch}`, { stdio: "pipe" });
             log(`Pushed to origin/${branch}`);
           } catch (e) {
@@ -229,7 +247,9 @@ async function runRalphLoop(
         // Continue to next iteration
       }
 
-      console.log(chalk.gray(`\n${"=".repeat(20)} LOOP ${iteration} ${"=".repeat(20)}\n`));
+      console.log(
+        chalk.gray(`\n${"=".repeat(20)} LOOP ${iteration} ${"=".repeat(20)}\n`)
+      );
     }
 
     session.status = "completed";

@@ -1,6 +1,6 @@
-import { execSync } from "child_process";
+import { execSync } from "node:child_process";
 import type { AgentCommand } from "../types.js";
-import { BaseAgent, type AgentOptions } from "./base.js";
+import { type AgentOptions, BaseAgent } from "./base.js";
 
 export class ClaudeAgent extends BaseAgent {
   readonly type = "claude" as const;
@@ -27,12 +27,12 @@ export class ClaudeAgent extends BaseAgent {
     };
   }
 
-  async checkInstalled(): Promise<boolean> {
+  checkInstalled(): Promise<boolean> {
     try {
       execSync("which claude", { stdio: "pipe" });
-      return true;
+      return Promise.resolve(true);
     } catch {
-      return false;
+      return Promise.resolve(false);
     }
   }
 

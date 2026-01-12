@@ -1,6 +1,23 @@
 import chalk from "chalk";
-import { getProjectConfig, getProjectSessions } from "../config.js";
 import { getAgent } from "../agents/index.js";
+import { getProjectConfig, getProjectSessions } from "../config.js";
+import type { RalphSession } from "../types.js";
+
+/**
+ * Returns the appropriate chalk color function for a session status
+ */
+function getStatusColor(status: RalphSession["status"]): typeof chalk.green {
+  switch (status) {
+    case "running":
+      return chalk.green;
+    case "paused":
+      return chalk.yellow;
+    case "completed":
+      return chalk.blue;
+    default:
+      return chalk.gray;
+  }
+}
 
 export async function statusCommand(): Promise<void> {
   const projectPath = process.cwd();
@@ -29,26 +46,22 @@ export async function statusCommand(): Promise<void> {
     console.log(chalk.bold("\n📊 Sessions:\n"));
 
     const sortedSessions = sessions.sort(
-      (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+      (a, b) =>
+        new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
     );
 
     for (const session of sortedSessions.slice(0, 5)) {
-      const statusColor =
-        session.status === "running"
-          ? chalk.green
-          : session.status === "paused"
-          ? chalk.yellow
-          : session.status === "completed"
-          ? chalk.blue
-          : chalk.gray;
+      const statusColor = getStatusColor(session.status);
 
       console.log(
-        `  ${chalk.cyan(session.id)} | ${statusColor(session.status.padEnd(10))} | ${session.mode.padEnd(5)} | ${chalk.gray(session.iteration + " iter")} | ${chalk.gray(new Date(session.startedAt).toLocaleString())}`
+        `  ${chalk.cyan(session.id)} | ${statusColor(session.status.padEnd(10))} | ${session.mode.padEnd(5)} | ${chalk.gray(`${session.iteration} iter`)} | ${chalk.gray(new Date(session.startedAt).toLocaleString())}`
       );
     }
 
     if (sortedSessions.length > 5) {
-      console.log(chalk.gray(`\n  ... and ${sortedSessions.length - 5} more sessions.`));
+      console.log(
+        chalk.gray(`\n  ... and ${sortedSessions.length - 5} more sessions.`)
+      );
     }
   }
 

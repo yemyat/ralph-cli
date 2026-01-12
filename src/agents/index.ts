@@ -1,7 +1,7 @@
 import type { AgentType } from "../types.js";
-import { BaseAgent } from "./base.js";
-import { ClaudeAgent } from "./claude.js";
 import { AmpAgent } from "./amp.js";
+import type { BaseAgent } from "./base.js";
+import { ClaudeAgent } from "./claude.js";
 import { DroidAgent } from "./droid.js";
 
 const agents: Record<AgentType, BaseAgent> = {
@@ -18,4 +18,9 @@ export function getAllAgents(): BaseAgent[] {
   return Object.values(agents);
 }
 
-export { BaseAgent, ClaudeAgent, AmpAgent, DroidAgent };
+// Re-export agent classes for direct usage by consumers and tests
+// biome-ignore lint/performance/noBarrelFile: This is a legitimate barrel file for the agents module
+export { AmpAgent } from "./amp.js";
+export { BaseAgent } from "./base.js";
+export { ClaudeAgent } from "./claude.js";
+export { DroidAgent } from "./droid.js";

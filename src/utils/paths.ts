@@ -1,6 +1,6 @@
-import { homedir } from "os";
-import { join } from "path";
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export const RALPH_HOME = join(homedir(), ".ralph");
 export const RALPH_CONFIG_FILE = join(RALPH_HOME, "config.json");

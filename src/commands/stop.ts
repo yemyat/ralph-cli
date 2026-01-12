@@ -1,5 +1,9 @@
 import chalk from "chalk";
-import { getProjectConfig, getProjectSessions, saveSession } from "../config.js";
+import {
+  getProjectConfig,
+  getProjectSessions,
+  saveSession,
+} from "../config.js";
 
 export async function stopCommand(): Promise<void> {
   const projectPath = process.cwd();
@@ -14,7 +18,9 @@ export async function stopCommand(): Promise<void> {
   const runningSessions = sessions.filter((s) => s.status === "running");
 
   if (runningSessions.length === 0) {
-    console.log(chalk.yellow("No running Ralph sessions found for this project."));
+    console.log(
+      chalk.yellow("No running Ralph sessions found for this project.")
+    );
     return;
   }
 
@@ -22,8 +28,12 @@ export async function stopCommand(): Promise<void> {
     if (session.pid) {
       try {
         process.kill(session.pid, "SIGTERM");
-        console.log(chalk.green(`✓ Sent stop signal to session ${session.id} (PID: ${session.pid})`));
-      } catch (err) {
+        console.log(
+          chalk.green(
+            `✓ Sent stop signal to session ${session.id} (PID: ${session.pid})`
+          )
+        );
+      } catch (_err) {
         console.log(chalk.gray(`Process ${session.pid} already terminated.`));
       }
     }

@@ -1,15 +1,18 @@
-import { describe, it, expect } from "bun:test";
-import { join } from "path";
-import { homedir } from "os";
+import { describe, expect, it } from "bun:test";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import {
-  RALPH_HOME,
-  RALPH_CONFIG_FILE,
-  RALPH_PROJECTS_DIR,
-  RALPH_LOGS_DIR,
-  getProjectId,
   getProjectDir,
+  getProjectId,
   getSessionLogFile,
+  RALPH_CONFIG_FILE,
+  RALPH_HOME,
+  RALPH_LOGS_DIR,
+  RALPH_PROJECTS_DIR,
 } from "../utils/paths.js";
+
+// Top-level regex for hex string validation to satisfy biome's performance rule
+const HEX_STRING_REGEX = /^[a-f0-9]+$/;
 
 describe("Path Utilities", () => {
   describe("Constants", () => {
@@ -50,21 +53,21 @@ describe("Path Utilities", () => {
       const id = getProjectId("/some/random/path");
 
       expect(id.length).toBe(12);
-      expect(/^[a-f0-9]+$/.test(id)).toBe(true);
+      expect(HEX_STRING_REGEX.test(id)).toBe(true);
     });
 
     it("handles paths with special characters", () => {
       const id = getProjectId("/Users/test/my project with spaces");
 
       expect(id.length).toBe(12);
-      expect(/^[a-f0-9]+$/.test(id)).toBe(true);
+      expect(HEX_STRING_REGEX.test(id)).toBe(true);
     });
 
     it("handles empty path", () => {
       const id = getProjectId("");
 
       expect(id.length).toBe(12);
-      expect(/^[a-f0-9]+$/.test(id)).toBe(true);
+      expect(HEX_STRING_REGEX.test(id)).toBe(true);
     });
 
     it("is case-sensitive", () => {
@@ -89,7 +92,9 @@ describe("Path Utilities", () => {
       const sessionId = "session-12345";
       const logFile = getSessionLogFile(sessionId);
 
-      expect(logFile).toBe(join(homedir(), ".ralph", "logs", "session-12345.log"));
+      expect(logFile).toBe(
+        join(homedir(), ".ralph", "logs", "session-12345.log")
+      );
     });
 
     it("appends .log extension", () => {

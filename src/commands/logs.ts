@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import fse from "fs-extra";
 import { getProjectConfig, getProjectSessions, getSession } from "../config.js";
+import type { RalphSession } from "../types.js";
 
 interface LogsOptions {
   sessionId?: string;
@@ -9,7 +10,7 @@ interface LogsOptions {
 }
 
 export async function logsCommand(options: LogsOptions): Promise<void> {
-  let session;
+  let session: RalphSession | null | undefined;
 
   if (options.sessionId) {
     session = await getSession(options.sessionId);
@@ -28,7 +29,8 @@ export async function logsCommand(options: LogsOptions): Promise<void> {
 
     const sessions = await getProjectSessions(config.projectId);
     const sortedSessions = sessions.sort(
-      (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+      (a, b) =>
+        new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
     );
 
     if (sortedSessions.length === 0) {
@@ -50,7 +52,7 @@ export async function logsCommand(options: LogsOptions): Promise<void> {
     console.log(chalk.gray(`Following logs for session ${session.id}...`));
     console.log(chalk.gray("Press Ctrl+C to stop.\n"));
 
-    const { spawn } = await import("child_process");
+    const { spawn } = await import("node:child_process");
     const tail = spawn("tail", ["-f", "-n", String(lines), session.logFile], {
       stdio: "inherit",
     });

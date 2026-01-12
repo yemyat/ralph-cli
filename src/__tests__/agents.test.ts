@@ -1,7 +1,12 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { execSync } from "child_process";
-import { getAgent, getAllAgents, ClaudeAgent, AmpAgent, DroidAgent } from "../agents/index.js";
+import { describe, expect, it } from "bun:test";
 import type { AgentOptions } from "../agents/base.js";
+import {
+  AmpAgent,
+  ClaudeAgent,
+  DroidAgent,
+  getAgent,
+  getAllAgents,
+} from "../agents/index.js";
 
 describe("Agent Module", () => {
   describe("Agent Registry", () => {
@@ -142,7 +147,10 @@ describe("Agent Module", () => {
       });
 
       it("includes model flag when specified", () => {
-        const cmd = agent.buildCommand({ ...baseOptions, model: "claude-opus-4" });
+        const cmd = agent.buildCommand({
+          ...baseOptions,
+          model: "claude-opus-4",
+        });
 
         expect(cmd.args).toContain("-m");
         expect(cmd.args).toContain("claude-opus-4");

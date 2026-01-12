@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-import { Command } from "commander";
 import chalk from "chalk";
+import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
-import { startCommand } from "./commands/start.js";
-import { stopCommand } from "./commands/stop.js";
-import { statusCommand } from "./commands/status.js";
 import { listCommand } from "./commands/list.js";
 import { logsCommand } from "./commands/logs.js";
+import { startCommand } from "./commands/start.js";
+import { statusCommand } from "./commands/status.js";
+import { stopCommand } from "./commands/stop.js";
 import type { AgentType } from "./types.js";
 
 const program = new Command();
@@ -20,7 +20,11 @@ program
 program
   .command("init")
   .description("Initialize Ralph in the current project")
-  .option("-a, --agent <agent>", "AI agent to use (claude, amp, droid)", "claude")
+  .option(
+    "-a, --agent <agent>",
+    "AI agent to use (claude, amp, droid)",
+    "claude"
+  )
   .option("-m, --model <model>", "Model to use")
   .option("-f, --force", "Force reinitialization")
   .action(async (options) => {
@@ -36,9 +40,9 @@ program
   .description("Start the Ralph loop (plan or build)")
   .option("-a, --agent <agent>", "Override agent (claude, amp, droid)")
   .option("-m, --model <model>", "Override model")
-  .option("-n, --max-iterations <n>", "Maximum iterations", parseInt)
+  .option("-n, --max-iterations <n>", "Maximum iterations", Number.parseInt)
   .option("-v, --verbose", "Verbose output")
-  .action(async (mode: string = "build", options) => {
+  .action(async (mode, options) => {
     const validModes = ["plan", "build"];
     if (!validModes.includes(mode)) {
       console.log(chalk.red(`Invalid mode: ${mode}. Use 'plan' or 'build'.`));
@@ -78,7 +82,7 @@ program
   .command("logs")
   .description("View logs for a session")
   .option("-s, --session-id <id>", "Session ID (defaults to latest)")
-  .option("-n, --lines <n>", "Number of lines to show", parseInt, 50)
+  .option("-n, --lines <n>", "Number of lines to show", Number.parseInt, 50)
   .option("-f, --follow", "Follow log output")
   .action(async (options) => {
     await logsCommand({
@@ -96,8 +100,12 @@ program
     console.log(chalk.bold("\n🤖 Available Agents\n"));
     for (const agent of getAllAgents()) {
       const installed = await agent.checkInstalled();
-      const status = installed ? chalk.green("✓ installed") : chalk.red("✗ not installed");
-      console.log(`  ${chalk.cyan(agent.type.padEnd(8))} ${agent.name.padEnd(15)} ${status}`);
+      const status = installed
+        ? chalk.green("✓ installed")
+        : chalk.red("✗ not installed");
+      console.log(
+        `  ${chalk.cyan(agent.type.padEnd(8))} ${agent.name.padEnd(15)} ${status}`
+      );
     }
     console.log();
   });

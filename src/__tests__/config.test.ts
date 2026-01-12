@@ -1,22 +1,25 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import fse from "fs-extra";
-import { join } from "path";
-import { tmpdir } from "os";
 import {
-  initProject,
-  getProjectConfig,
-  saveSession,
-  getProjectSessions,
-  loadGlobalConfig,
-  saveGlobalConfig,
+  deleteSession,
   getAllProjects,
   getAllSessions,
-  deleteSession,
+  getProjectConfig,
+  getProjectSessions,
+  initProject,
+  loadGlobalConfig,
+  saveGlobalConfig,
+  saveSession,
 } from "../config.js";
 import type { RalphSession } from "../types.js";
 
 // Use a unique temp directory for each test run to avoid conflicts
-const TEST_DIR = join(tmpdir(), `ralph-config-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+const TEST_DIR = join(
+  tmpdir(),
+  `ralph-config-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+);
 
 // Track project IDs created in tests for cleanup
 const createdProjectIds: string[] = [];
@@ -69,7 +72,9 @@ describe("Config Module", () => {
 
       const globalConfig = await loadGlobalConfig();
       expect(globalConfig.projects[config.projectId]).toBeDefined();
-      expect(globalConfig.projects[config.projectId].projectPath).toBe(projectPath);
+      expect(globalConfig.projects[config.projectId].projectPath).toBe(
+        projectPath
+      );
     });
 
     it("does not create redundant specs directory at project root", async () => {
@@ -179,7 +184,9 @@ describe("Config Module", () => {
       await saveSession(session2);
 
       const allSessions = await getAllSessions();
-      const ourSessions = allSessions.filter((s) => s.id === sessionId1 || s.id === sessionId2);
+      const ourSessions = allSessions.filter(
+        (s) => s.id === sessionId1 || s.id === sessionId2
+      );
 
       expect(ourSessions.length).toBe(2);
     });
@@ -228,7 +235,8 @@ describe("Config Module", () => {
 
       const projects = await getAllProjects();
       const ourProjects = projects.filter(
-        (p) => p.projectId === config1.projectId || p.projectId === config2.projectId
+        (p) =>
+          p.projectId === config1.projectId || p.projectId === config2.projectId
       );
 
       expect(ourProjects.length).toBe(2);

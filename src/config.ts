@@ -1,14 +1,19 @@
+import { basename } from "node:path";
 import fse from "fs-extra";
-import { join, basename } from "path";
+import type {
+  AgentType,
+  GlobalConfig,
+  RalphConfig,
+  RalphSession,
+} from "./types.js";
 import {
-  RALPH_HOME,
-  RALPH_CONFIG_FILE,
-  RALPH_PROJECTS_DIR,
-  RALPH_LOGS_DIR,
-  getProjectId,
   getProjectDir,
+  getProjectId,
+  RALPH_CONFIG_FILE,
+  RALPH_HOME,
+  RALPH_LOGS_DIR,
+  RALPH_PROJECTS_DIR,
 } from "./utils/paths.js";
-import type { GlobalConfig, RalphConfig, RalphSession, AgentType } from "./types.js";
 
 const DEFAULT_CONFIG: GlobalConfig = {
   defaultAgent: "claude",
@@ -35,13 +40,17 @@ export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
   await fse.writeJson(RALPH_CONFIG_FILE, config, { spaces: 2 });
 }
 
-export async function getProjectConfig(projectPath: string): Promise<RalphConfig | null> {
+export async function getProjectConfig(
+  projectPath: string
+): Promise<RalphConfig | null> {
   const config = await loadGlobalConfig();
   const projectId = getProjectId(projectPath);
   return config.projects[projectId] || null;
 }
 
-export async function saveProjectConfig(projectConfig: RalphConfig): Promise<void> {
+export async function saveProjectConfig(
+  projectConfig: RalphConfig
+): Promise<void> {
   const config = await loadGlobalConfig();
   config.projects[projectConfig.projectId] = projectConfig;
   await saveGlobalConfig(config);
@@ -71,7 +80,9 @@ export async function initProject(
   return projectConfig;
 }
 
-export async function getSession(sessionId: string): Promise<RalphSession | null> {
+export async function getSession(
+  sessionId: string
+): Promise<RalphSession | null> {
   const config = await loadGlobalConfig();
   return config.sessions[sessionId] || null;
 }
@@ -88,9 +99,13 @@ export async function deleteSession(sessionId: string): Promise<void> {
   await saveGlobalConfig(config);
 }
 
-export async function getProjectSessions(projectId: string): Promise<RalphSession[]> {
+export async function getProjectSessions(
+  projectId: string
+): Promise<RalphSession[]> {
   const config = await loadGlobalConfig();
-  return Object.values(config.sessions).filter((s) => s.projectId === projectId);
+  return Object.values(config.sessions).filter(
+    (s) => s.projectId === projectId
+  );
 }
 
 export async function getAllProjects(): Promise<RalphConfig[]> {

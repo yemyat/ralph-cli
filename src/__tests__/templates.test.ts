@@ -1,8 +1,8 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
-  PROMPT_PLAN,
-  PROMPT_BUILD,
   IMPLEMENTATION_PLAN_TEMPLATE,
+  PROMPT_BUILD,
+  PROMPT_PLAN,
 } from "../templates/prompts.js";
 
 describe("Template Constants", () => {

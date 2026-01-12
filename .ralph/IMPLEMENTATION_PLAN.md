@@ -6,15 +6,13 @@
 - [x] Agent implementations complete (Claude, Amp, Droid)
 - [x] Configuration and session management working
 - [x] Test suite implemented (per testing.md spec) - 52 tests passing
+- [x] Ultracite/Biome linting integration (per ultracite.md spec) - COMPLETE
 
 ## Tasks (Priority Order)
 
-### High Priority
-*(No high priority tasks remaining)*
-
 ### Medium Priority
 
-#### Integration Tests (Optional per spec)
+#### Integration Tests (Optional per testing.md spec)
 - [ ] Test `ralph init` creates expected file structure
 - [ ] Test `ralph status` shows correct information
 
@@ -22,9 +20,26 @@
 
 #### Documentation Improvements
 - [ ] Update example.md spec with actual project-specific content
-- [ ] Consider creating src/lib/ for shared utilities if needed
+- [ ] Consider creating src/lib/ for shared utilities if needed (currently not required - utilities are in src/utils/)
 
 ## Completed
+
+### Ultracite/Biome Integration ✅ (2026-01-12)
+- [x] Installed Ultracite with Biome via `npx ultracite init --linter biome --pm bun --quiet`
+- [x] Verified biome.jsonc created with Ultracite config
+- [x] Added devDependencies: `@biomejs/biome` and `ultracite`
+- [x] Added npm scripts: `lint`, `lint:fix`, `format`
+- [x] Fixed all lint issues:
+  - Updated Node.js imports to use `node:` protocol
+  - Removed async from sync functions returning Promise.resolve()
+  - Fixed barrel file exports with biome-ignore comment
+  - Replaced nested ternary with helper function in status.ts
+  - Fixed implicit any type in logs.ts
+  - Moved regex literals to top level in paths.test.ts
+- [x] All checks pass: `bun run lint`, `bun run typecheck`, `bun test` (52 tests)
+
+### Cleanup ✅ (2026-01-12)
+- [x] Removed stale empty `specs/` directory at project root
 
 ### Test Suite ✅ (2026-01-12)
 - [x] Created `src/__tests__/` directory structure
@@ -82,7 +97,11 @@
 
 ## Discovered Issues
 
-*(All discovered issues have been resolved)*
+### Resolved: Issue #1 - Stale empty `specs/` directory at project root
+- **Location:** `/Users/yemyat/src/tries/2026-01-12-ralph-cli/specs/`
+- **Status:** RESOLVED (2026-01-12)
+- **Description:** Empty directory leftover from the old redundant specs creation bug
+- **Resolution:** Removed the empty directory with `rmdir specs`
 
 ### Resolved: Bug #1 - Redundant specs directory
 - **Location:** `src/config.ts:72-73` (removed)

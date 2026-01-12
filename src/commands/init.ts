@@ -1,15 +1,15 @@
-import { join } from "path";
-import fse from "fs-extra";
+import { join } from "node:path";
 import chalk from "chalk";
+import fse from "fs-extra";
 import inquirer from "inquirer";
-import { initProject, getProjectConfig } from "../config.js";
 import { getAgent, getAllAgents } from "../agents/index.js";
-import type { AgentType } from "../types.js";
+import { getProjectConfig, initProject } from "../config.js";
 import {
-  PROMPT_PLAN,
-  PROMPT_BUILD,
   IMPLEMENTATION_PLAN_TEMPLATE,
+  PROMPT_BUILD,
+  PROMPT_PLAN,
 } from "../templates/prompts.js";
+import type { AgentType } from "../types.js";
 
 interface InitOptions {
   agent?: AgentType;
@@ -116,7 +116,11 @@ export async function initCommand(options: InitOptions): Promise<void> {
   console.log(chalk.gray("  - specs/            (specification files)"));
   console.log();
   console.log("Next steps:");
-  console.log(`  1. Add specifications to ${chalk.cyan(".ralph/specs/")} directory`);
-  console.log(`  2. Run ${chalk.cyan("ralph start plan")} to generate implementation plan`);
+  console.log(
+    `  1. Add specifications to ${chalk.cyan(".ralph/specs/")} directory`
+  );
+  console.log(
+    `  2. Run ${chalk.cyan("ralph start plan")} to generate implementation plan`
+  );
   console.log(`  3. Run ${chalk.cyan("ralph start build")} to start building`);
 }
