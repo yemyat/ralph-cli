@@ -9,10 +9,16 @@ Based on the [Ralph Wiggum Technique](https://github.com/ghuntley/how-to-ralph-w
 ## Installation
 
 ```bash
-bun install -g ralph-cli
+bun install -g ralph-wiggum-cli
 ```
 
-Or clone and link locally:
+Or with npm:
+
+```bash
+npm install -g ralph-wiggum-cli
+```
+
+For local development:
 
 ```bash
 git clone <repo>

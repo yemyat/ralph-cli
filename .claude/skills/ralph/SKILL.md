@@ -7,6 +7,18 @@ description: Use the Ralph CLI for autonomous AI coding loops. Use when running 
 
 Ralph runs AI agents (Claude Code, Amp, Droid) in continuous loops until tasks are complete.
 
+## Installation
+
+```bash
+bun install -g ralph-wiggum-cli
+```
+
+Or with npm:
+
+```bash
+npm install -g ralph-wiggum-cli
+```
+
 ## Core Commands
 
 ```bash
