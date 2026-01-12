@@ -28,8 +28,16 @@
     "amp",
     "droid"
   ],
-  "author": "",
+  "author": "Ye Myat Min (Jeff)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yemyat/ralph-cli.git"
+  },
+  "homepage": "https://github.com/yemyat/ralph-cli#readme",
+  "bugs": {
+    "url": "https://github.com/yemyat/ralph-cli/issues"
+  },
   "description": "CLI tool for managing Ralph Wiggum AI development workflows",
   "dependencies": {
     "chalk": "^5.6.2",
