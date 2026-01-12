@@ -4,7 +4,7 @@ A command-line tool for managing **Ralph Wiggum** AI development workflows acros
 
 Based on the [Ralph Wiggum Technique](https://github.com/ghuntley/how-to-ralph-wiggum) - an AI development methodology that uses autonomous coding loops with AI agents.
 
-> **Meta**: This CLI was built by pointing an AI agent at the Ralph Wiggum technique repo, then using Ralph itself to implement and refine the tool. Recursive AI development in action.
+> **Meta**: This CLI was built by pointing an AI agent at the [Ralph Wiggum technique repo](https://github.com/ghuntley/how-to-ralph-wiggum), then using Ralph itself to implement and refine the tool. Recursive AI development in action.
 
 ## Installation
 
