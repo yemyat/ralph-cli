@@ -77,12 +77,13 @@ After `ralph init`, your project will have:
 
 ```
 your-project/
-├── AGENTS.md              # Agent configuration and project guidance
-├── PROMPT_plan.md         # Planning mode prompt
-├── PROMPT_build.md        # Building mode prompt
-├── IMPLEMENTATION_PLAN.md # Auto-generated implementation plan
-└── specs/                 # Specification files
-    └── example.md
+└── .ralph/
+    ├── AGENTS.md              # Agent configuration and project guidance
+    ├── PROMPT_plan.md         # Planning mode prompt
+    ├── PROMPT_build.md        # Building mode prompt
+    ├── IMPLEMENTATION_PLAN.md # Auto-generated implementation plan
+    └── specs/                 # Specification files
+        └── example.md
 ```
 
 ## Configuration

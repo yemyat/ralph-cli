@@ -56,7 +56,8 @@ export async function startCommand(
 
   // Determine prompt file
   const promptFile = mode === "plan" ? "PROMPT_plan.md" : "PROMPT_build.md";
-  const promptPath = join(projectPath, promptFile);
+  const ralphDir = join(projectPath, ".ralph");
+  const promptPath = join(ralphDir, promptFile);
 
   if (!(await fse.pathExists(promptPath))) {
     console.log(chalk.red(`Prompt file not found: ${promptFile}`));

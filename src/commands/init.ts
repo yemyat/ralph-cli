@@ -63,15 +63,17 @@ export async function initCommand(options: InitOptions): Promise<void> {
   // Initialize project config
   const config = await initProject(projectPath, agent, options.model);
 
-  // Create project files
-  const specsDir = join(projectPath, "specs");
+  // Create project files in .ralph directory
+  const ralphDir = join(projectPath, ".ralph");
+  const specsDir = join(ralphDir, "specs");
+  await fse.ensureDir(ralphDir);
   await fse.ensureDir(specsDir);
 
   // Create prompt files if they don't exist
-  const promptPlanPath = join(projectPath, "PROMPT_plan.md");
-  const promptBuildPath = join(projectPath, "PROMPT_build.md");
-  const agentsPath = join(projectPath, "AGENTS.md");
-  const implPlanPath = join(projectPath, "IMPLEMENTATION_PLAN.md");
+  const promptPlanPath = join(ralphDir, "PROMPT_plan.md");
+  const promptBuildPath = join(ralphDir, "PROMPT_build.md");
+  const agentsPath = join(ralphDir, "AGENTS.md");
+  const implPlanPath = join(ralphDir, "IMPLEMENTATION_PLAN.md");
 
   if (!(await fse.pathExists(promptPlanPath))) {
     await fse.writeFile(promptPlanPath, PROMPT_PLAN);
@@ -113,7 +115,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
   console.log(`  Agent:   ${chalk.cyan(agentInstance.name)}`);
   console.log(`  Model:   ${chalk.cyan(config.model || "default")}`);
   console.log();
-  console.log(chalk.gray("Created files:"));
+  console.log(chalk.gray("Created .ralph/ directory with:"));
   console.log(chalk.gray("  - PROMPT_plan.md    (planning mode prompt)"));
   console.log(chalk.gray("  - PROMPT_build.md   (building mode prompt)"));
   console.log(chalk.gray("  - AGENTS.md         (agent configuration)"));
@@ -121,8 +123,8 @@ export async function initCommand(options: InitOptions): Promise<void> {
   console.log(chalk.gray("  - specs/            (specification files)"));
   console.log();
   console.log("Next steps:");
-  console.log(`  1. Edit ${chalk.cyan("AGENTS.md")} with your project's build/test commands`);
-  console.log(`  2. Add specifications to ${chalk.cyan("specs/")} directory`);
+  console.log(`  1. Edit ${chalk.cyan(".ralph/AGENTS.md")} with your project's build/test commands`);
+  console.log(`  2. Add specifications to ${chalk.cyan(".ralph/specs/")} directory`);
   console.log(`  3. Run ${chalk.cyan("ralph start plan")} to generate implementation plan`);
   console.log(`  4. Run ${chalk.cyan("ralph start build")} to start building`);
 }

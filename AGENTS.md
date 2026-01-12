@@ -99,4 +99,4 @@ droid exec --skip-permissions-unsafe --auto high -o stream-json -m <model>
 - `~/.ralph/config.json` - Global config, project registry, sessions
 - `~/.ralph/projects/<id>/` - Per-project data
 - `~/.ralph/logs/<session>.log` - Session logs
-- Project files: `PROMPT_plan.md`, `PROMPT_build.md`, `AGENTS.md`, `IMPLEMENTATION_PLAN.md`, `specs/`
+- Project `.ralph/` folder: `PROMPT_plan.md`, `PROMPT_build.md`, `AGENTS.md`, `IMPLEMENTATION_PLAN.md`, `specs/`
