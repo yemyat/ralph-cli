@@ -73,7 +73,7 @@ ralph-wiggum-cli stop
 
 ### Global Options
 
-- `--agent <claude|amp|droid>` - Switch between AI agents
+- `--agent <claude|amp|droid|opencode|cursor|codex|gemini>` - Switch between AI agents
 - `--model <model>` - Specify the model to use
 
 ### Start Options
@@ -83,11 +83,15 @@ ralph-wiggum-cli stop
 
 ## Supported Agents
 
-| Agent    | Description                                         |
-| -------- | --------------------------------------------------- |
-| `claude` | [Claude Code](https://code.claude.com) by Anthropic |
-| `amp`    | [Amp Code](https://ampcode.com) by Sourcegraph      |
-| `droid`  | [Factory Droid](https://factory.ai) CLI             |
+| Agent      | Description                                            |
+| ---------- | ------------------------------------------------------ |
+| `claude`   | [Claude Code](https://code.claude.com) by Anthropic    |
+| `amp`      | [Amp Code](https://ampcode.com) by Sourcegraph         |
+| `droid`    | [Factory Droid](https://factory.ai) CLI                |
+| `opencode` | [OpenCode](https://opencode.ai) CLI                    |
+| `cursor`   | [Cursor Agent](https://cursor.com) CLI                 |
+| `codex`    | [OpenAI Codex](https://openai.com/codex) CLI           |
+| `gemini`   | [Gemini CLI](https://ai.google.dev/gemini-api) by Google |
 
 ## Project Structure
 
