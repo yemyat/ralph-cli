@@ -1,6 +1,6 @@
 {
   "name": "ralph-wiggum-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -27,7 +27,11 @@
     "agent",
     "claude",
     "amp",
-    "droid"
+    "droid",
+    "opencode",
+    "cursor",
+    "codex",
+    "gemini"
   ],
   "author": "Ye Myat Min (Jeff)",
   "license": "MIT",
