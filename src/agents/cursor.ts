@@ -10,7 +10,9 @@ export class CursorAgent extends BaseAgent {
     const args = [
       "-p", // print mode (non-interactive)
       "--output-format",
-      "json", // structured JSON output
+      "stream-json", // structured JSON output
+      "-f", // force allow commands unless explicitly denied
+      "--approve-mcps", // auto-approve MCP servers
     ];
 
     if (options.model) {

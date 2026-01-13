@@ -249,7 +249,9 @@ describe("Agent Module", () => {
         expect(cmd.command).toBe("agent");
         expect(cmd.args).toContain("-p");
         expect(cmd.args).toContain("--output-format");
-        expect(cmd.args).toContain("json");
+        expect(cmd.args).toContain("stream-json");
+        expect(cmd.args).toContain("-f");
+        expect(cmd.args).toContain("--approve-mcps");
       });
 
       it("includes model flag when specified", () => {
