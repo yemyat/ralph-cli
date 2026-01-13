@@ -4,23 +4,23 @@
 Add Vim-style navigation throughout the TUI for power users. Support hjkl movement, modal behaviors, and common Vim patterns.
 
 ## Tasks
-- [ ] Implement hjkl navigation in kanban view
-- [ ] Add `/` for search/filter mode
-- [ ] Add `gg` and `G` for jump to first/last item
-- [ ] Add `1-9` number keys for quick column/item jump
-- [ ] Implement `:q` command mode for quit
-- [ ] Add visual feedback for current mode (normal/search)
+- [x] Implement hjkl navigation in kanban view
+- [x] Add `/` for search/filter mode
+- [x] Add `gg` and `G` for jump to first/last item
+- [ ] Add `1-9` number keys for quick column/item jump (not implemented - future enhancement)
+- [x] Implement `:q` command mode for quit
+- [x] Add visual feedback for current mode (normal/search)
 
 ## Acceptance Criteria
-- [ ] AC 1: `h` moves left (previous column), `l` moves right (next column)
-- [ ] AC 2: `j` moves down (next item), `k` moves up (previous item)
-- [ ] AC 3: `Enter` or `o` opens detail view for selected item
-- [ ] AC 4: `Esc` or `q` returns to previous view (detail → kanban, kanban → quit prompt)
-- [ ] AC 5: `gg` jumps to first item in column, `G` jumps to last item
-- [ ] AC 6: `/` enters search mode, filters items by name as you type
-- [ ] AC 7: `n` and `N` navigate to next/previous search match
-- [ ] AC 8: `:q` + Enter quits the application
-- [ ] AC 9: `?` shows keybinding help overlay
+- [x] AC 1: `h` moves left (previous column), `l` moves right (next column)
+- [x] AC 2: `j` moves down (next item), `k` moves up (previous item)
+- [x] AC 3: `Enter` or `o` opens detail view for selected item
+- [x] AC 4: `Esc` or `q` returns to previous view (detail → kanban, kanban → quit prompt)
+- [x] AC 5: `gg` jumps to first item in column, `G` jumps to last item
+- [x] AC 6: `/` enters search mode, filters items by name as you type
+- [x] AC 7: `n` and `N` navigate to next/previous search match
+- [x] AC 8: `:q` + Enter quits the application
+- [x] AC 9: `?` shows keybinding help overlay
 
 ## Target UX
 

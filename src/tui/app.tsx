@@ -1,8 +1,9 @@
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import Spinner from "ink-spinner";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DetailView } from "./detail-view.js";
+import { HelpOverlay } from "./help-overlay.js";
 import { Kanban } from "./kanban.js";
 import {
   getLatestSessionLog,
@@ -15,10 +16,14 @@ import {
 } from "./utils.js";
 
 type View = "kanban" | "detail";
+type Mode = "normal" | "search" | "command";
 
 interface AppProps {
   projectPath: string;
 }
+
+// Timeout for detecting double-tap (gg)
+const DOUBLE_TAP_TIMEOUT = 300;
 
 const COLUMN_ORDER: TaskStatus[] = ["backlog", "in_progress", "completed"];
 
@@ -42,6 +47,18 @@ export function App({ projectPath }: AppProps): React.ReactElement {
   const [logContent, setLogContent] = useState("");
   const [logPath, setLogPath] = useState<string | null>(null);
 
+  // Vim keybindings state
+  const [mode, setMode] = useState<Mode>("normal");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchMatches, setSearchMatches] = useState<Task[]>([]);
+  const [searchMatchIndex, setSearchMatchIndex] = useState(0);
+  const [commandBuffer, setCommandBuffer] = useState("");
+  const [showHelp, setShowHelp] = useState(false);
+  const lastKeyRef = useRef<{ key: string; time: number }>({
+    key: "",
+    time: 0,
+  });
+
   // Get tasks for current column
   const getTasksForColumn = useCallback(
     (column: TaskStatus): Task[] => {
@@ -58,6 +75,26 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     },
     [plan]
   );
+
+  // Get all tasks flattened
+  const getAllTasks = useCallback((): Task[] => {
+    return [...plan.backlog, ...plan.inProgress, ...plan.completed];
+  }, [plan]);
+
+  // Update search matches when query changes
+  useEffect(() => {
+    if (searchQuery.length > 0) {
+      const allTasks = getAllTasks();
+      const matches = allTasks.filter((task) =>
+        task.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setSearchMatches(matches);
+      setSearchMatchIndex(0);
+    } else {
+      setSearchMatches([]);
+      setSearchMatchIndex(0);
+    }
+  }, [searchQuery, getAllTasks]);
 
   // Load implementation plan
   useEffect(() => {
@@ -149,7 +186,327 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     [activeColumn]
   );
 
-  // Handle kanban view navigation
+  // Navigate to a specific task
+  const navigateToTask = useCallback(
+    (task: Task) => {
+      setActiveColumn(task.status);
+      const tasks = getTasksForColumn(task.status);
+      const index = tasks.findIndex((t) => t.id === task.id);
+      if (index !== -1) {
+        setSelectedIndex(index);
+      }
+    },
+    [getTasksForColumn]
+  );
+
+  // Select current search match
+  const selectSearchMatch = useCallback(() => {
+    if (searchMatches.length > 0 && searchMatchIndex < searchMatches.length) {
+      const match = searchMatches[searchMatchIndex];
+      navigateToTask(match);
+      setMode("normal");
+      setSearchQuery("");
+    }
+  }, [searchMatches, searchMatchIndex, navigateToTask]);
+
+  // Jump to first/last item in current column
+  const jumpToFirst = useCallback(() => {
+    setSelectedIndex(0);
+  }, []);
+
+  const jumpToLast = useCallback(() => {
+    const tasks = getTasksForColumn(activeColumn);
+    if (tasks.length > 0) {
+      setSelectedIndex(tasks.length - 1);
+    }
+  }, [getTasksForColumn, activeColumn]);
+
+  // Handle gg double-tap detection
+  const handleDoubleTapG = useCallback((): boolean => {
+    const now = Date.now();
+    const lastKey = lastKeyRef.current;
+    if (lastKey.key === "g" && now - lastKey.time < DOUBLE_TAP_TIMEOUT) {
+      jumpToFirst();
+      lastKeyRef.current = { key: "", time: 0 };
+      return true;
+    }
+    lastKeyRef.current = { key: "g", time: now };
+    return true;
+  }, [jumpToFirst]);
+
+  // Handle search match navigation
+  const handleSearchMatchNav = useCallback(
+    (direction: "next" | "prev"): boolean => {
+      if (searchMatches.length === 0) {
+        return false;
+      }
+      const newIndex =
+        direction === "next"
+          ? (searchMatchIndex + 1) % searchMatches.length
+          : (searchMatchIndex - 1 + searchMatches.length) %
+            searchMatches.length;
+      setSearchMatchIndex(newIndex);
+      navigateToTask(searchMatches[newIndex]);
+      return true;
+    },
+    [searchMatches, searchMatchIndex, navigateToTask]
+  );
+
+  // Handle vertical navigation
+  const handleVerticalNav = useCallback(
+    (direction: "up" | "down", tasks: Task[]): boolean => {
+      if (direction === "up" && selectedIndex > 0) {
+        setSelectedIndex(selectedIndex - 1);
+        return true;
+      }
+      if (direction === "down" && selectedIndex < tasks.length - 1) {
+        setSelectedIndex(selectedIndex + 1);
+        return true;
+      }
+      return false;
+    },
+    [selectedIndex]
+  );
+
+  // Handle opening a task
+  const handleOpenTask = useCallback(
+    (tasks: Task[]): boolean => {
+      if (tasks.length > 0 && selectedIndex < tasks.length) {
+        setSelectedTask(tasks[selectedIndex]);
+        setView("detail");
+        return true;
+      }
+      return false;
+    },
+    [selectedIndex]
+  );
+
+  // Handle single-character mode/action keys
+  const handleSingleCharKey = useCallback(
+    (input: string): boolean => {
+      switch (input) {
+        case "?":
+          setShowHelp(true);
+          return true;
+        case "/":
+          setMode("search");
+          setSearchQuery("");
+          return true;
+        case ":":
+          setMode("command");
+          setCommandBuffer(":");
+          return true;
+        case "G":
+          jumpToLast();
+          return true;
+        case "n":
+          handleSearchMatchNav("next");
+          return true;
+        case "N":
+          handleSearchMatchNav("prev");
+          return true;
+        default:
+          return false;
+      }
+    },
+    [jumpToLast, handleSearchMatchNav]
+  );
+
+  // Handle column navigation
+  const handleColumnNav = useCallback(
+    (input: string, leftArrow?: boolean, rightArrow?: boolean): boolean => {
+      if (leftArrow || input === "h") {
+        navigateColumn(-1);
+        return true;
+      }
+      if (rightArrow || input === "l") {
+        navigateColumn(1);
+        return true;
+      }
+      return false;
+    },
+    [navigateColumn]
+  );
+
+  // Handle movement/action keys (arrows, hjkl, Enter, o)
+  const handleMovementKeys = useCallback(
+    (
+      input: string,
+      key: {
+        leftArrow?: boolean;
+        rightArrow?: boolean;
+        upArrow?: boolean;
+        downArrow?: boolean;
+        return?: boolean;
+      },
+      tasks: Task[]
+    ): boolean => {
+      // Column navigation
+      if (handleColumnNav(input, key.leftArrow, key.rightArrow)) {
+        return true;
+      }
+
+      // Vertical navigation
+      if (key.upArrow || input === "k") {
+        return handleVerticalNav("up", tasks);
+      }
+      if (key.downArrow || input === "j") {
+        return handleVerticalNav("down", tasks);
+      }
+
+      // Open task
+      if (key.return || input === "o") {
+        return handleOpenTask(tasks);
+      }
+
+      return false;
+    },
+    [handleColumnNav, handleVerticalNav, handleOpenTask]
+  );
+
+  // Handle kanban view navigation in normal mode
+  const handleNormalModeInput = useCallback(
+    (
+      input: string,
+      key: {
+        leftArrow?: boolean;
+        rightArrow?: boolean;
+        upArrow?: boolean;
+        downArrow?: boolean;
+        return?: boolean;
+        ctrl?: boolean;
+        escape?: boolean;
+      }
+    ) => {
+      const tasks = getTasksForColumn(activeColumn);
+
+      // Check for gg (double-tap g)
+      if (input === "g") {
+        handleDoubleTapG();
+        return;
+      }
+
+      // Clear last key on any other input
+      lastKeyRef.current = { key: "", time: 0 };
+
+      // Single-character mode/action keys
+      if (handleSingleCharKey(input)) {
+        return;
+      }
+
+      // Ctrl+C to quit
+      if (key.ctrl && input === "c") {
+        exit();
+        return;
+      }
+
+      // Movement/action keys
+      if (handleMovementKeys(input, key, tasks)) {
+        return;
+      }
+
+      // Quit (only if no search matches)
+      if (input === "q" && searchMatches.length === 0) {
+        exit();
+      }
+    },
+    [
+      exit,
+      getTasksForColumn,
+      activeColumn,
+      searchMatches,
+      handleDoubleTapG,
+      handleSingleCharKey,
+      handleMovementKeys,
+    ]
+  );
+
+  // Handle search mode input
+  const handleSearchModeInput = useCallback(
+    (
+      input: string,
+      key: {
+        return?: boolean;
+        escape?: boolean;
+        backspace?: boolean;
+        delete?: boolean;
+      }
+    ) => {
+      // Cancel search
+      if (key.escape) {
+        setMode("normal");
+        setSearchQuery("");
+        return;
+      }
+
+      // Select current match
+      if (key.return) {
+        selectSearchMatch();
+        return;
+      }
+
+      // Backspace
+      if (key.backspace || key.delete) {
+        setSearchQuery((prev) => prev.slice(0, -1));
+        return;
+      }
+
+      // Add character to search query
+      if (input.length === 1 && input.charCodeAt(0) >= 32) {
+        setSearchQuery((prev) => prev + input);
+      }
+    },
+    [selectSearchMatch]
+  );
+
+  // Handle command mode input
+  const handleCommandModeInput = useCallback(
+    (
+      input: string,
+      key: {
+        return?: boolean;
+        escape?: boolean;
+        backspace?: boolean;
+        delete?: boolean;
+      }
+    ) => {
+      // Cancel command
+      if (key.escape) {
+        setMode("normal");
+        setCommandBuffer("");
+        return;
+      }
+
+      // Execute command
+      if (key.return) {
+        if (commandBuffer === ":q" || commandBuffer === ":quit") {
+          exit();
+        }
+        setMode("normal");
+        setCommandBuffer("");
+        return;
+      }
+
+      // Backspace
+      if (key.backspace || key.delete) {
+        if (commandBuffer.length > 1) {
+          setCommandBuffer((prev) => prev.slice(0, -1));
+        } else {
+          setMode("normal");
+          setCommandBuffer("");
+        }
+        return;
+      }
+
+      // Add character to command
+      if (input.length === 1 && input.charCodeAt(0) >= 32) {
+        setCommandBuffer((prev) => prev + input);
+      }
+    },
+    [exit, commandBuffer]
+  );
+
+  // Handle kanban view navigation (routes to mode-specific handlers)
   const handleKanbanInput = useCallback(
     (
       input: string,
@@ -160,46 +517,38 @@ export function App({ projectPath }: AppProps): React.ReactElement {
         downArrow?: boolean;
         return?: boolean;
         ctrl?: boolean;
+        escape?: boolean;
+        backspace?: boolean;
+        delete?: boolean;
       }
     ) => {
-      // Quit on q or Ctrl+C
-      const shouldQuit = input === "q" || (key.ctrl && input === "c");
-      if (shouldQuit) {
-        exit();
+      // Close help overlay
+      if (showHelp) {
+        if (key.escape || input === "?" || input === "q") {
+          setShowHelp(false);
+        }
         return;
       }
 
-      // Navigate columns
-      if (key.leftArrow) {
-        navigateColumn(-1);
-        return;
-      }
-      if (key.rightArrow) {
-        navigateColumn(1);
-        return;
-      }
-
-      // Navigate items vertically
-      if (key.upArrow && selectedIndex > 0) {
-        setSelectedIndex(selectedIndex - 1);
-        return;
-      }
-
-      const tasks = getTasksForColumn(activeColumn);
-      if (key.downArrow && selectedIndex < tasks.length - 1) {
-        setSelectedIndex(selectedIndex + 1);
-        return;
-      }
-
-      // Enter to drill into a task
-      const canEnter =
-        key.return && tasks.length > 0 && selectedIndex < tasks.length;
-      if (canEnter) {
-        setSelectedTask(tasks[selectedIndex]);
-        setView("detail");
+      // Route to mode-specific handler
+      switch (mode) {
+        case "search":
+          handleSearchModeInput(input, key);
+          break;
+        case "command":
+          handleCommandModeInput(input, key);
+          break;
+        default:
+          handleNormalModeInput(input, key);
       }
     },
-    [exit, navigateColumn, selectedIndex, getTasksForColumn, activeColumn]
+    [
+      mode,
+      showHelp,
+      handleNormalModeInput,
+      handleSearchModeInput,
+      handleCommandModeInput,
+    ]
   );
 
   // Handle detail view navigation
@@ -274,6 +623,47 @@ export function App({ projectPath }: AppProps): React.ReactElement {
   const totalTasks =
     plan.backlog.length + plan.inProgress.length + plan.completed.length;
 
+  // Build status bar text based on mode
+  const getStatusBarText = (): React.ReactElement => {
+    if (mode === "search") {
+      return (
+        <Text>
+          <Text color="yellow">/</Text>
+          <Text color="white">{searchQuery}</Text>
+          <Text color="gray">_</Text>
+          {searchMatches.length > 0 && (
+            <Text color="gray">
+              {" "}
+              ({searchMatchIndex + 1}/{searchMatches.length})
+            </Text>
+          )}
+        </Text>
+      );
+    }
+    if (mode === "command") {
+      return (
+        <Text>
+          <Text color="yellow">{commandBuffer}</Text>
+          <Text color="gray">_</Text>
+        </Text>
+      );
+    }
+    return (
+      <Text color="gray">
+        [hjkl] move [o] open [/] search [?] help [:q] quit
+      </Text>
+    );
+  };
+
+  // Show help overlay
+  if (showHelp) {
+    return (
+      <Box flexDirection="column" height={terminalHeight} width="100%">
+        <HelpOverlay height={terminalHeight} width={stdout?.columns || 80} />
+      </Box>
+    );
+  }
+
   return (
     <Box flexDirection="column" height={terminalHeight} width="100%">
       {/* Header */}
@@ -281,7 +671,7 @@ export function App({ projectPath }: AppProps): React.ReactElement {
         <Text bold color="cyan">
           🧑‍🚀 Ralph Wiggum CLI
         </Text>
-        <Text color="gray">[←→] columns [↑↓] select [Enter] open [q] quit</Text>
+        {getStatusBarText()}
       </Box>
 
       {/* Kanban Board */}

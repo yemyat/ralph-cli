@@ -4,6 +4,46 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-13 16:45] - Vim Key Bindings
+
+**Commit:** `8de0f66` feat: add vim keybindings to TUI
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS
+- `bun run build` → PASS
+
+**Files changed:**
+- src/tui/app.tsx (added vim keybindings, search mode, command mode, help overlay)
+- src/tui/help-overlay.tsx (new component for keybinding help)
+- .ralph-wiggum/specs/002-vim-keybindings.md (marked tasks complete)
+- .ralph-wiggum/IMPLEMENTATION_PLAN.md (moved spec to Completed)
+
+**What was done:**
+1. Implemented hjkl navigation (h/l for columns, j/k for items)
+2. Added `gg` double-tap detection to jump to first item (300ms timeout)
+3. Added `G` to jump to last item in current column
+4. Implemented `/` search mode with real-time filtering
+5. Added `n`/`N` navigation between search matches
+6. Implemented `:q` command mode for quitting
+7. Added `?` help overlay showing all keybindings
+8. Added `o` as alternative to Enter for opening tasks
+9. Status bar updates to show current mode (normal/search/command)
+
+**Learnings:**
+- Cognitive complexity limits require aggressive function extraction
+- useCallback with multiple helpers keeps complexity under 20
+- Switch statements for single-char handlers reduce branching complexity
+- Double-tap detection needs useRef to persist across renders
+- 1-9 number keys for quick jump not implemented (marked as future enhancement)
+
+---
+
 ## [2026-01-13 14:30] - Interactive TUI with Kanban Board
 
 **Commit:** `85592e6` feat: add interactive TUI with kanban board

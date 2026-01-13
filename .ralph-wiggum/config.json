@@ -10,7 +10,7 @@
       }
     },
     "createdAt": "2026-01-13T03:30:22.033Z",
-    "updatedAt": "2026-01-13T04:22:06.339Z"
+    "updatedAt": "2026-01-13T05:20:04.936Z"
   },
   "sessions": [
     {
@@ -31,6 +31,15 @@
       "startedAt": "2026-01-13T04:09:01.631Z",
       "agent": "droid",
       "pid": 24936
+    },
+    {
+      "id": "8fa2b3db",
+      "mode": "build",
+      "status": "running",
+      "iteration": 1,
+      "startedAt": "2026-01-13T05:20:04.926Z",
+      "agent": "droid",
+      "pid": 38572
     }
   ]
 }
