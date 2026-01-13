@@ -100,10 +100,12 @@ All Ralph data is stored in the project's `.ralph-wiggum/` folder:
 
 ```
 .ralph-wiggum/
-├── config.json           # Project config and session history
-├── PROMPT_plan.md        # Planning mode prompt
-├── PROMPT_build.md       # Building mode prompt
-├── IMPLEMENTATION_PLAN.md
-├── specs/                # Specification files
-└── logs/                 # Session logs (gitignored)
+├── config.json            # Project config and session history
+├── PROMPT_plan.md         # Planning mode prompt
+├── PROMPT_build.md        # Building mode prompt
+├── GUARDRAILS.md          # Compliance rules (before/after checks)
+├── IMPLEMENTATION_PLAN.md # Progress orchestrator (which specs are done)
+├── PROGRESS.md            # Audit trail (what happened)
+├── specs/                 # Specs with tasks + acceptance criteria
+└── logs/                  # Session logs (gitignored)
 ```

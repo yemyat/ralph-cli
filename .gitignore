@@ -4,3 +4,6 @@ dist/
 .DS_Store
 .env.*
 .env
+
+# Ralph Wiggum logs
+.ralph-wiggum/logs/

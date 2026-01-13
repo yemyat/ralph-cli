@@ -1,0 +1,16 @@
+{
+  "config": {
+    "projectName": "2026-01-12-ralph-cli",
+    "agents": {
+      "plan": {
+        "agent": "codex"
+      },
+      "build": {
+        "agent": "droid"
+      }
+    },
+    "createdAt": "2026-01-13T03:30:22.033Z",
+    "updatedAt": "2026-01-13T03:30:22.034Z"
+  },
+  "sessions": []
+}

@@ -5,9 +5,12 @@ import inquirer from "inquirer";
 import { getAgent, getAllAgents } from "../agents/index.js";
 import { getProjectConfig, initProject } from "../config.js";
 import {
+  GUARDRAILS_TEMPLATE,
   IMPLEMENTATION_PLAN_TEMPLATE,
+  PROGRESS_TEMPLATE,
   PROMPT_BUILD,
   PROMPT_PLAN,
+  SPEC_TEMPLATE,
 } from "../templates/prompts.js";
 import type { AgentType } from "../types.js";
 import { getRalphDir, getSpecsDir, RALPH_LOGS_DIR } from "../utils/paths.js";
@@ -125,6 +128,8 @@ export async function initCommand(options: InitOptions): Promise<void> {
   const promptPlanPath = join(ralphDir, "PROMPT_plan.md");
   const promptBuildPath = join(ralphDir, "PROMPT_build.md");
   const implPlanPath = join(ralphDir, "IMPLEMENTATION_PLAN.md");
+  const progressPath = join(ralphDir, "PROGRESS.md");
+  const guardrailsPath = join(ralphDir, "GUARDRAILS.md");
 
   if (!(await fse.pathExists(promptPlanPath))) {
     await fse.writeFile(promptPlanPath, PROMPT_PLAN);
@@ -138,22 +143,17 @@ export async function initCommand(options: InitOptions): Promise<void> {
     await fse.writeFile(implPlanPath, IMPLEMENTATION_PLAN_TEMPLATE);
   }
 
+  if (!(await fse.pathExists(progressPath))) {
+    await fse.writeFile(progressPath, PROGRESS_TEMPLATE);
+  }
+
+  if (!(await fse.pathExists(guardrailsPath))) {
+    await fse.writeFile(guardrailsPath, GUARDRAILS_TEMPLATE);
+  }
+
   const specsFiles = await fse.readdir(specsDir);
   if (specsFiles.length === 0) {
-    const exampleSpec = `# Example Specification
-
-## Overview
-<!-- Describe the feature/component here -->
-
-## Requirements
-- [ ] Requirement 1
-- [ ] Requirement 2
-
-## Acceptance Criteria
-- Feature should...
-- User can...
-`;
-    await fse.writeFile(join(specsDir, "example.md"), exampleSpec);
+    await fse.writeFile(join(specsDir, "example.md"), SPEC_TEMPLATE);
   }
 
   await addLogsToGitignore(projectPath);
@@ -164,11 +164,13 @@ export async function initCommand(options: InitOptions): Promise<void> {
   console.log(`  Build Agent: ${chalk.cyan(buildAgentInstance.name)} ${chalk.gray(`(model: ${config.agents.build.model || "default"})`)}`);
   console.log();
   console.log(chalk.gray("Created .ralph-wiggum/ directory with:"));
-  console.log(chalk.gray("  - PROMPT_plan.md    (planning mode prompt)"));
-  console.log(chalk.gray("  - PROMPT_build.md   (building mode prompt)"));
-  console.log(chalk.gray("  - IMPLEMENTATION_PLAN.md"));
-  console.log(chalk.gray("  - specs/            (specification files)"));
-  console.log(chalk.gray("  - logs/             (session logs, gitignored)"));
+  console.log(chalk.gray("  - PROMPT_plan.md         (planning mode prompt)"));
+  console.log(chalk.gray("  - PROMPT_build.md        (building mode prompt)"));
+  console.log(chalk.gray("  - GUARDRAILS.md          (compliance rules)"));
+  console.log(chalk.gray("  - IMPLEMENTATION_PLAN.md (progress orchestrator)"));
+  console.log(chalk.gray("  - PROGRESS.md            (audit trail)"));
+  console.log(chalk.gray("  - specs/                 (specs with tasks + acceptance criteria)"));
+  console.log(chalk.gray("  - logs/                  (session logs, gitignored)"));
   console.log();
   console.log("Next steps:");
   console.log(
