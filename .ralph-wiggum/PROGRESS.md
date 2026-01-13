@@ -6,7 +6,7 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ## [2026-01-13 12:10] - Fix Template Test Failures
 
-**Commit:** `dd5713b` feat: fix template tests to match .ralph-wiggum directory structure
+**Commit:** `423c6e4` feat: fix template tests to match .ralph-wiggum directory structure
 
 **Guardrails:**
 - Pre-flight: ✓
