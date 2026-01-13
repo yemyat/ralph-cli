@@ -10,7 +10,18 @@
       }
     },
     "createdAt": "2026-01-13T03:30:22.033Z",
-    "updatedAt": "2026-01-13T03:30:22.034Z"
+    "updatedAt": "2026-01-13T04:05:20.568Z"
   },
-  "sessions": []
+  "sessions": [
+    {
+      "id": "be1fe199",
+      "mode": "plan",
+      "status": "stopped",
+      "iteration": 2,
+      "startedAt": "2026-01-13T04:03:31.663Z",
+      "agent": "droid",
+      "pid": 16414,
+      "stoppedAt": "2026-01-13T04:05:20.568Z"
+    }
+  ]
 }

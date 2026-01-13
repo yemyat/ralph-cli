@@ -16,4 +16,9 @@ Compliance rules to verify before and after making changes.
 - [ ] No regressions in unrelated functionality
 
 ## Project-Specific Rules
-<!-- Add project-specific guardrails here -->
+- Use Bun for all scripts: `bun run test`, `bun run build`, `bun run typecheck`
+- Follow existing patterns: Commander for CLI, chalk for colors
+- When adding new dependencies, verify they work with Bun bundler
+- For TUI work: Use `ink` for React-based TUI, `@clack/prompts` only for init flow
+- TypeScript strict mode is enabled - all types must be explicit
+- Test files go in `src/__tests__/` with `.test.ts` extension

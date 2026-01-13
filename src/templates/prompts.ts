@@ -55,7 +55,7 @@ If functionality is needed but no spec exists:
 ### 5. Update Guardrails (if needed)
 If you discover project-specific rules that should be enforced, add them to the "Project-Specific Rules" section of @.ralph-wiggum/GUARDRAILS.md.
 
-COMPLETION: When all specs are complete and in "Completed" section, output exactly: <STATUS>DONE</STATUS>`;
+COMPLETION: When all specs are audited, have clear tasks/acceptance criteria, and are organized in the Backlog, output exactly: <STATUS>DONE</STATUS>`;
 
 export const PROMPT_BUILD = `# Build Mode
 
