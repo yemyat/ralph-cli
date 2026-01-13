@@ -4,23 +4,23 @@
 Enable scrolling within the spec and logs panels in detail view. Long content should be navigable without leaving the detail view.
 
 ## Tasks
-- [ ] Add scroll state to spec panel (track scroll offset)
-- [ ] Add scroll state to logs panel (track scroll offset)
-- [ ] Implement panel focus switching (Tab to toggle between spec/logs)
-- [ ] Add scroll indicators (e.g., ▲▼ or "more above/below")
-- [ ] Auto-scroll logs panel to bottom on new output (with option to pause)
-- [ ] Add scroll position indicator (e.g., "23/150 lines" or percentage)
+- [x] Add scroll state to spec panel (track scroll offset)
+- [x] Add scroll state to logs panel (track scroll offset)
+- [x] Implement panel focus switching (Tab to toggle between spec/logs)
+- [x] Add scroll indicators (e.g., ▲▼ or "more above/below")
+- [x] Auto-scroll logs panel to bottom on new output (with option to pause)
+- [x] Add scroll position indicator (e.g., "23/150 lines" or percentage)
 
 ## Acceptance Criteria
-- [ ] AC 1: `Tab` switches focus between spec and logs panels
-- [ ] AC 2: Focused panel has visible border highlight
-- [ ] AC 3: `j`/`k` or `↓`/`↑` scrolls content within focused panel
-- [ ] AC 4: `gg` scrolls to top, `G` scrolls to bottom of focused panel
-- [ ] AC 5: `ctrl+d` / `ctrl+u` scrolls half-page down/up
-- [ ] AC 6: Logs panel auto-scrolls to bottom when new content arrives
-- [ ] AC 7: `f` toggles auto-follow mode on/off for logs panel
-- [ ] AC 8: Scroll indicators show when content exists above/below viewport
-- [ ] AC 9: `Esc` exits detail view (not consumed by scroll)
+- [x] AC 1: `Tab` switches focus between spec and logs panels
+- [x] AC 2: Focused panel has visible border highlight
+- [x] AC 3: `j`/`k` or `↓`/`↑` scrolls content within focused panel
+- [x] AC 4: `gg` scrolls to top, `G` scrolls to bottom of focused panel
+- [x] AC 5: `ctrl+d` / `ctrl+u` scrolls half-page down/up
+- [x] AC 6: Logs panel auto-scrolls to bottom when new content arrives
+- [x] AC 7: `f` toggles auto-follow mode on/off for logs panel
+- [x] AC 8: Scroll indicators show when content exists above/below viewport
+- [x] AC 9: `Esc` exits detail view (not consumed by scroll)
 
 ## Target UX
 

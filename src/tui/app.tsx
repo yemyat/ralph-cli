@@ -2,7 +2,7 @@ import { Box, Text, useApp, useInput, useStdout } from "ink";
 import Spinner from "ink-spinner";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DetailView } from "./detail-view.js";
+import { DetailView, type FocusedPanel } from "./detail-view.js";
 import { HelpOverlay } from "./help-overlay.js";
 import { Kanban } from "./kanban.js";
 import {
@@ -58,6 +58,12 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     key: "",
     time: 0,
   });
+
+  // Detail view scroll state
+  const [focusedPanel, setFocusedPanel] = useState<FocusedPanel>("spec");
+  const [specScrollOffset, setSpecScrollOffset] = useState(0);
+  const [logsScrollOffset, setLogsScrollOffset] = useState(0);
+  const [autoFollow, setAutoFollow] = useState(true);
 
   // Get tasks for current column
   const getTasksForColumn = useCallback(
@@ -551,17 +557,208 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     ]
   );
 
-  // Handle detail view navigation
-  const handleDetailInput = useCallback(
-    (input: string, key: { escape?: boolean }) => {
-      if (key.escape || input === "q") {
-        setView("kanban");
-        setSelectedTask(null);
-        setSpecContent("");
-        setLogContent("");
+  // Calculate content line counts for scroll bounds
+  const getSpecLineCount = useCallback((): number => {
+    return specContent.split("\n").length;
+  }, [specContent]);
+
+  const getLogsLineCount = useCallback((): number => {
+    return logContent.split("\n").length;
+  }, [logContent]);
+
+  // Calculate viewport height for panels (terminal height minus chrome)
+  const getPanelViewportHeight = useCallback((): number => {
+    const termHeight = stdout?.rows || 24;
+    // Account for header, borders, padding
+    return Math.max(1, termHeight - 7);
+  }, [stdout]);
+
+  // Scroll the focused panel by a given amount
+  const scrollFocusedPanel = useCallback(
+    (delta: number) => {
+      const viewportHeight = getPanelViewportHeight();
+      if (focusedPanel === "spec") {
+        const maxOffset = Math.max(0, getSpecLineCount() - viewportHeight);
+        setSpecScrollOffset((prev) =>
+          Math.min(maxOffset, Math.max(0, prev + delta))
+        );
+      } else {
+        // When manually scrolling logs, disable auto-follow
+        if (delta < 0) {
+          setAutoFollow(false);
+        }
+        const maxOffset = Math.max(0, getLogsLineCount() - viewportHeight);
+        setLogsScrollOffset((prev) =>
+          Math.min(maxOffset, Math.max(0, prev + delta))
+        );
       }
     },
-    []
+    [focusedPanel, getSpecLineCount, getLogsLineCount, getPanelViewportHeight]
+  );
+
+  // Jump to top of focused panel
+  const scrollToTop = useCallback(() => {
+    if (focusedPanel === "spec") {
+      setSpecScrollOffset(0);
+    } else {
+      setAutoFollow(false);
+      setLogsScrollOffset(0);
+    }
+  }, [focusedPanel]);
+
+  // Jump to bottom of focused panel
+  const scrollToBottom = useCallback(() => {
+    const viewportHeight = getPanelViewportHeight();
+    if (focusedPanel === "spec") {
+      const maxOffset = Math.max(0, getSpecLineCount() - viewportHeight);
+      setSpecScrollOffset(maxOffset);
+    } else {
+      // Jumping to bottom re-enables auto-follow
+      setAutoFollow(true);
+      const maxOffset = Math.max(0, getLogsLineCount() - viewportHeight);
+      setLogsScrollOffset(maxOffset);
+    }
+  }, [
+    focusedPanel,
+    getSpecLineCount,
+    getLogsLineCount,
+    getPanelViewportHeight,
+  ]);
+
+  // Toggle auto-follow for logs panel
+  const toggleAutoFollow = useCallback(() => {
+    setAutoFollow((prev) => !prev);
+  }, []);
+
+  // Switch focus between panels
+  const togglePanelFocus = useCallback(() => {
+    // Only toggle if we're in split view (not backlog)
+    if (selectedTask && selectedTask.status !== "backlog") {
+      setFocusedPanel((prev) => (prev === "spec" ? "logs" : "spec"));
+    }
+  }, [selectedTask]);
+
+  // Reset scroll state when exiting detail view
+  const exitDetailView = useCallback(() => {
+    setView("kanban");
+    setSelectedTask(null);
+    setSpecContent("");
+    setLogContent("");
+    setFocusedPanel("spec");
+    setSpecScrollOffset(0);
+    setLogsScrollOffset(0);
+    setAutoFollow(true);
+  }, []);
+
+  // Handle detail view scroll keys
+  const handleDetailScrollKeys = useCallback(
+    (
+      input: string,
+      key: {
+        upArrow?: boolean;
+        downArrow?: boolean;
+        ctrl?: boolean;
+      }
+    ): boolean => {
+      // Ctrl+U - half page up
+      if (key.ctrl && input === "u") {
+        const halfPage = Math.floor(getPanelViewportHeight() / 2);
+        scrollFocusedPanel(-halfPage);
+        return true;
+      }
+
+      // Ctrl+D - half page down
+      if (key.ctrl && input === "d") {
+        const halfPage = Math.floor(getPanelViewportHeight() / 2);
+        scrollFocusedPanel(halfPage);
+        return true;
+      }
+
+      // j or down arrow - scroll down one line
+      if (key.downArrow || input === "j") {
+        scrollFocusedPanel(1);
+        return true;
+      }
+
+      // k or up arrow - scroll up one line
+      if (key.upArrow || input === "k") {
+        scrollFocusedPanel(-1);
+        return true;
+      }
+
+      return false;
+    },
+    [scrollFocusedPanel, getPanelViewportHeight]
+  );
+
+  // Handle gg double-tap for detail view
+  const handleDetailDoubleTapG = useCallback((): boolean => {
+    const now = Date.now();
+    const lastKey = lastKeyRef.current;
+    if (lastKey.key === "g" && now - lastKey.time < DOUBLE_TAP_TIMEOUT) {
+      scrollToTop();
+      lastKeyRef.current = { key: "", time: 0 };
+      return true;
+    }
+    lastKeyRef.current = { key: "g", time: now };
+    return false;
+  }, [scrollToTop]);
+
+  // Handle detail view navigation
+  const handleDetailInput = useCallback(
+    (
+      input: string,
+      key: {
+        escape?: boolean;
+        tab?: boolean;
+        upArrow?: boolean;
+        downArrow?: boolean;
+        ctrl?: boolean;
+      }
+    ) => {
+      // Escape or q to exit detail view
+      if (key.escape || input === "q") {
+        exitDetailView();
+        return;
+      }
+
+      // Tab to switch panel focus
+      if (key.tab) {
+        togglePanelFocus();
+        return;
+      }
+
+      // f to toggle auto-follow
+      if (input === "f") {
+        toggleAutoFollow();
+        return;
+      }
+
+      // G to jump to bottom
+      if (input === "G") {
+        scrollToBottom();
+        return;
+      }
+
+      // g for gg detection
+      if (input === "g") {
+        handleDetailDoubleTapG();
+        return;
+      }
+
+      // Handle scroll keys (j/k, arrows, ctrl+u/d)
+      if (handleDetailScrollKeys(input, key)) {
+        return;
+      }
+    },
+    [
+      exitDetailView,
+      togglePanelFocus,
+      toggleAutoFollow,
+      scrollToBottom,
+      handleDetailDoubleTapG,
+      handleDetailScrollKeys,
+    ]
   );
 
   // Keyboard input handling
@@ -608,10 +805,14 @@ export function App({ projectPath }: AppProps): React.ReactElement {
         </Box>
         <Box flexGrow={1} paddingX={1}>
           <DetailView
+            autoFollow={autoFollow}
+            focusedPanel={focusedPanel}
             height={terminalHeight - 4}
             isStreaming={selectedTask.status === "in_progress"}
             logContent={logContent}
+            logsScrollOffset={logsScrollOffset}
             specContent={specContent}
+            specScrollOffset={specScrollOffset}
             task={selectedTask}
           />
         </Box>
