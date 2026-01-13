@@ -3,9 +3,6 @@ import { getAgent } from "../agents/index.js";
 import { getProjectConfig, getProjectSessions } from "../config.js";
 import type { RalphSession } from "../types.js";
 
-/**
- * Returns the appropriate chalk color function for a session status
- */
 function getStatusColor(status: RalphSession["status"]): typeof chalk.green {
   switch (status) {
     case "running":
@@ -33,12 +30,11 @@ export async function statusCommand(): Promise<void> {
 
   console.log(chalk.bold("\n📋 Project Status\n"));
   console.log(`  Project:    ${chalk.cyan(config.projectName)}`);
-  console.log(`  Path:       ${chalk.gray(config.projectPath)}`);
   console.log(`  Agent:      ${chalk.cyan(agent.name)}`);
   console.log(`  Model:      ${chalk.cyan(config.model || "default")}`);
   console.log(`  Created:    ${chalk.gray(config.createdAt)}`);
 
-  const sessions = await getProjectSessions(config.projectId);
+  const sessions = await getProjectSessions(projectPath);
 
   if (sessions.length === 0) {
     console.log(chalk.gray("\n  No sessions yet."));

@@ -35,7 +35,7 @@ bun link
 src/
 ├── index.ts          # CLI entry point (commander setup)
 ├── types.ts          # TypeScript type definitions
-├── config.ts         # Configuration management (~/.ralph/)
+├── config.ts         # Configuration management (.ralph-wiggum/)
 ├── agents/           # Agent implementations
 │   ├── base.ts       # Abstract base agent class
 │   ├── claude.ts     # Claude Code agent
@@ -52,7 +52,7 @@ src/
 ├── templates/        # Prompt templates
 │   └── prompts.ts    # PROMPT_plan.md, PROMPT_build.md templates
 └── utils/
-    └── paths.ts      # Path utilities (~/.ralph/, project dirs)
+    └── paths.ts      # Path utilities (.ralph-wiggum/ project dir)
 ```
 
 ## Supported AI Agents
@@ -94,9 +94,16 @@ droid exec --auto high -o stream-json -m <model>
 3. Register in `src/agents/index.ts`
 4. Add to `AgentType` union in `src/types.ts`
 
-## Key Files
+## Project Directory Structure
 
-- `~/.ralph/config.json` - Global config, project registry, sessions
-- `~/.ralph/projects/<id>/` - Per-project data
-- `~/.ralph/logs/<session>.log` - Session logs
-- Project `.ralph/` folder: `PROMPT_plan.md`, `PROMPT_build.md`, `AGENTS.md`, `IMPLEMENTATION_PLAN.md`, `specs/`
+All Ralph data is stored in the project's `.ralph-wiggum/` folder:
+
+```
+.ralph-wiggum/
+├── config.json           # Project config and session history
+├── PROMPT_plan.md        # Planning mode prompt
+├── PROMPT_build.md       # Building mode prompt
+├── IMPLEMENTATION_PLAN.md
+├── specs/                # Specification files
+└── logs/                 # Session logs (gitignored)
+```

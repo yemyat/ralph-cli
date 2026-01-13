@@ -5,13 +5,9 @@ import chalk from "chalk";
 import fse from "fs-extra";
 import ora from "ora";
 import { getAgent } from "../agents/index.js";
-import {
-  getProjectConfig,
-  getProjectSessions,
-  saveSession,
-} from "../config.js";
+import { getProjectConfig, getProjectSessions, saveSession } from "../config.js";
 import type { AgentType, RalphSession } from "../types.js";
-import { getSessionLogFile } from "../utils/paths.js";
+import { getRalphDir, getSessionLogFile } from "../utils/paths.js";
 
 interface StartOptions {
   agent?: AgentType;
@@ -33,8 +29,7 @@ export async function startCommand(
     return;
   }
 
-  // Check for existing running sessions
-  const sessions = await getProjectSessions(config.projectId);
+  const sessions = await getProjectSessions(projectPath);
   const runningSessions = sessions.filter((s) => s.status === "running");
 
   if (runningSessions.length > 0) {
@@ -62,9 +57,8 @@ export async function startCommand(
     return;
   }
 
-  // Determine prompt file
   const promptFile = mode === "plan" ? "PROMPT_plan.md" : "PROMPT_build.md";
-  const ralphDir = join(projectPath, ".ralph");
+  const ralphDir = getRalphDir(projectPath);
   const promptPath = join(ralphDir, promptFile);
 
   if (!(await fse.pathExists(promptPath))) {
@@ -73,20 +67,17 @@ export async function startCommand(
     return;
   }
 
-  // Create session
   const sessionId = randomUUID().slice(0, 8);
-  const logFile = getSessionLogFile(sessionId);
+  const logFile = getSessionLogFile(projectPath, sessionId);
 
   const session: RalphSession = {
     id: sessionId,
-    projectId: config.projectId,
     mode,
     status: "running",
     iteration: 0,
     startedAt: new Date().toISOString(),
     agent,
     model,
-    logFile,
   };
 
   console.log(chalk.green(`\n🚀 Starting Ralph in ${mode} mode...\n`));
@@ -101,9 +92,10 @@ export async function startCommand(
   console.log();
   console.log(chalk.gray("Press Ctrl+C to stop the loop.\n"));
 
-  // Start the loop
   await runRalphLoop(
+    projectPath,
     session,
+    logFile,
     promptPath,
     agentInstance,
     maxIterations,
@@ -114,7 +106,9 @@ export async function startCommand(
 const DONE_MARKER = "<STATUS>DONE</STATUS>";
 
 async function runRalphLoop(
+  projectPath: string,
   session: RalphSession,
+  logFile: string,
   promptPath: string,
   agentInstance: ReturnType<typeof getAgent>,
   maxIterations: number,
@@ -122,7 +116,7 @@ async function runRalphLoop(
 ): Promise<void> {
   let iteration = 0;
   let doneDetected = false;
-  const logStream = fse.createWriteStream(session.logFile, { flags: "a" });
+  const logStream = fse.createWriteStream(logFile, { flags: "a" });
 
   const log = (msg: string) => {
     const timestamp = new Date().toISOString();
@@ -138,7 +132,7 @@ async function runRalphLoop(
     console.log(chalk.yellow("\n\nStopping Ralph loop..."));
     session.status = "stopped";
     session.stoppedAt = new Date().toISOString();
-    await saveSession(session);
+    await saveSession(projectPath, session);
     log(`Loop stopped by user after ${iteration} iterations`);
     logStream.close();
     process.exit(0);
@@ -158,7 +152,7 @@ async function runRalphLoop(
 
       iteration++;
       session.iteration = iteration;
-      await saveSession(session);
+      await saveSession(projectPath, session);
 
       const spinner = ora(`Iteration ${iteration}`).start();
       log(`Starting iteration ${iteration}`);
@@ -181,7 +175,6 @@ async function runRalphLoop(
             env: { ...process.env, ...cmdOptions.env },
           });
 
-          // Feed prompt via stdin
           child.stdin.write(promptContent);
           child.stdin.end();
 
@@ -210,8 +203,6 @@ async function runRalphLoop(
           child.on("close", (code) => {
             log(`Iteration ${iteration} completed with exit code ${code}`);
 
-            // Check only the last 2000 chars for DONE marker to avoid false positives
-            // from prompt instructions being echoed at the start of output
             const tailOutput = stdoutBuffer.slice(-2000);
             if (tailOutput.includes(DONE_MARKER)) {
               doneDetected = true;
@@ -226,7 +217,7 @@ async function runRalphLoop(
           });
 
           session.pid = child.pid;
-          saveSession(session);
+          saveSession(projectPath, session);
         });
 
         spinner.succeed(`Iteration ${iteration} completed`);
@@ -238,7 +229,6 @@ async function runRalphLoop(
           break;
         }
 
-        // Git push after each iteration (if in build mode)
         if (session.mode === "build") {
           try {
             const { execSync } = await import("node:child_process");
@@ -254,7 +244,6 @@ async function runRalphLoop(
       } catch (err) {
         spinner.fail(`Iteration ${iteration} failed`);
         log(`Iteration ${iteration} failed: ${err}`);
-        // Continue to next iteration
       }
 
       console.log(
@@ -263,7 +252,7 @@ async function runRalphLoop(
     }
 
     session.status = "completed";
-    await saveSession(session);
+    await saveSession(projectPath, session);
     log(`Loop completed after ${iteration} iterations`);
   } finally {
     logStream.close();

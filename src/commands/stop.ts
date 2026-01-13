@@ -1,9 +1,5 @@
 import chalk from "chalk";
-import {
-  getProjectConfig,
-  getProjectSessions,
-  saveSession,
-} from "../config.js";
+import { getProjectConfig, getProjectSessions, saveSession } from "../config.js";
 
 export async function stopCommand(): Promise<void> {
   const projectPath = process.cwd();
@@ -14,7 +10,7 @@ export async function stopCommand(): Promise<void> {
     return;
   }
 
-  const sessions = await getProjectSessions(config.projectId);
+  const sessions = await getProjectSessions(projectPath);
   const runningSessions = sessions.filter((s) => s.status === "running");
 
   if (runningSessions.length === 0) {
@@ -40,7 +36,7 @@ export async function stopCommand(): Promise<void> {
 
     session.status = "stopped";
     session.stoppedAt = new Date().toISOString();
-    await saveSession(session);
+    await saveSession(projectPath, session);
   }
 
   console.log(chalk.green(`\n✓ Stopped ${runningSessions.length} session(s).`));

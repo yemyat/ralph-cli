@@ -10,11 +10,31 @@ import {
   PROMPT_PLAN,
 } from "../templates/prompts.js";
 import type { AgentType } from "../types.js";
+import { getRalphDir, getSpecsDir, RALPH_LOGS_DIR } from "../utils/paths.js";
 
 interface InitOptions {
   agent?: AgentType;
   model?: string;
   force?: boolean;
+}
+
+async function addLogsToGitignore(projectPath: string): Promise<void> {
+  const gitignorePath = join(projectPath, ".gitignore");
+  const logsPattern = `.ralph-wiggum/${RALPH_LOGS_DIR}/`;
+
+  let content = "";
+  if (await fse.pathExists(gitignorePath)) {
+    content = await fse.readFile(gitignorePath, "utf-8");
+    if (content.includes(logsPattern)) {
+      return;
+    }
+    if (!content.endsWith("\n")) {
+      content += "\n";
+    }
+  }
+
+  content += `\n# Ralph Wiggum logs\n${logsPattern}\n`;
+  await fse.writeFile(gitignorePath, content);
 }
 
 export async function initCommand(options: InitOptions): Promise<void> {
@@ -29,7 +49,6 @@ export async function initCommand(options: InitOptions): Promise<void> {
     return;
   }
 
-  // Determine agent to use
   let agent: AgentType = options.agent || "claude";
 
   if (!options.agent) {
@@ -48,7 +67,6 @@ export async function initCommand(options: InitOptions): Promise<void> {
     agent = answers.agent;
   }
 
-  // Check if agent is installed
   const agentInstance = getAgent(agent);
   const isInstalled = await agentInstance.checkInstalled();
 
@@ -61,16 +79,11 @@ export async function initCommand(options: InitOptions): Promise<void> {
     return;
   }
 
-  // Initialize project config
   const config = await initProject(projectPath, agent, options.model);
 
-  // Create project files in .ralph directory
-  const ralphDir = join(projectPath, ".ralph");
-  const specsDir = join(ralphDir, "specs");
-  await fse.ensureDir(ralphDir);
-  await fse.ensureDir(specsDir);
+  const ralphDir = getRalphDir(projectPath);
+  const specsDir = getSpecsDir(projectPath);
 
-  // Create prompt files if they don't exist
   const promptPlanPath = join(ralphDir, "PROMPT_plan.md");
   const promptBuildPath = join(ralphDir, "PROMPT_build.md");
   const implPlanPath = join(ralphDir, "IMPLEMENTATION_PLAN.md");
@@ -87,7 +100,6 @@ export async function initCommand(options: InitOptions): Promise<void> {
     await fse.writeFile(implPlanPath, IMPLEMENTATION_PLAN_TEMPLATE);
   }
 
-  // Create example spec if specs dir is empty
   const specsFiles = await fse.readdir(specsDir);
   if (specsFiles.length === 0) {
     const exampleSpec = `# Example Specification
@@ -106,20 +118,23 @@ export async function initCommand(options: InitOptions): Promise<void> {
     await fse.writeFile(join(specsDir, "example.md"), exampleSpec);
   }
 
+  await addLogsToGitignore(projectPath);
+
   console.log(chalk.green("\n✓ Ralph initialized successfully!\n"));
   console.log(`  Project: ${chalk.cyan(config.projectName)}`);
   console.log(`  Agent:   ${chalk.cyan(agentInstance.name)}`);
   console.log(`  Model:   ${chalk.cyan(config.model || "default")}`);
   console.log();
-  console.log(chalk.gray("Created .ralph/ directory with:"));
+  console.log(chalk.gray("Created .ralph-wiggum/ directory with:"));
   console.log(chalk.gray("  - PROMPT_plan.md    (planning mode prompt)"));
   console.log(chalk.gray("  - PROMPT_build.md   (building mode prompt)"));
   console.log(chalk.gray("  - IMPLEMENTATION_PLAN.md"));
   console.log(chalk.gray("  - specs/            (specification files)"));
+  console.log(chalk.gray("  - logs/             (session logs, gitignored)"));
   console.log();
   console.log("Next steps:");
   console.log(
-    `  1. Add specifications to ${chalk.cyan(".ralph/specs/")} directory`
+    `  1. Add specifications to ${chalk.cyan(".ralph-wiggum/specs/")} directory`
   );
   console.log(
     `  2. Run ${chalk.cyan("ralph-wiggum-cli start plan")} to generate implementation plan`

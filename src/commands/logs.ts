@@ -2,6 +2,7 @@ import chalk from "chalk";
 import fse from "fs-extra";
 import { getProjectConfig, getProjectSessions, getSession } from "../config.js";
 import type { RalphSession } from "../types.js";
+import { getSessionLogFile } from "../utils/paths.js";
 
 interface LogsOptions {
   sessionId?: string;
@@ -10,16 +11,16 @@ interface LogsOptions {
 }
 
 export async function logsCommand(options: LogsOptions): Promise<void> {
+  const projectPath = process.cwd();
   let session: RalphSession | null | undefined;
 
   if (options.sessionId) {
-    session = await getSession(options.sessionId);
+    session = await getSession(projectPath, options.sessionId);
     if (!session) {
       console.log(chalk.red(`Session not found: ${options.sessionId}`));
       return;
     }
   } else {
-    const projectPath = process.cwd();
     const config = await getProjectConfig(projectPath);
 
     if (!config) {
@@ -27,7 +28,7 @@ export async function logsCommand(options: LogsOptions): Promise<void> {
       return;
     }
 
-    const sessions = await getProjectSessions(config.projectId);
+    const sessions = await getProjectSessions(projectPath);
     const sortedSessions = sessions.sort(
       (a, b) =>
         new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
@@ -41,8 +42,10 @@ export async function logsCommand(options: LogsOptions): Promise<void> {
     session = sortedSessions[0];
   }
 
-  if (!(await fse.pathExists(session.logFile))) {
-    console.log(chalk.yellow(`Log file not found: ${session.logFile}`));
+  const logFile = getSessionLogFile(projectPath, session.id);
+
+  if (!(await fse.pathExists(logFile))) {
+    console.log(chalk.yellow(`Log file not found: ${logFile}`));
     return;
   }
 
@@ -53,7 +56,7 @@ export async function logsCommand(options: LogsOptions): Promise<void> {
     console.log(chalk.gray("Press Ctrl+C to stop.\n"));
 
     const { spawn } = await import("node:child_process");
-    const tail = spawn("tail", ["-f", "-n", String(lines), session.logFile], {
+    const tail = spawn("tail", ["-f", "-n", String(lines), logFile], {
       stdio: "inherit",
     });
 
@@ -62,7 +65,7 @@ export async function logsCommand(options: LogsOptions): Promise<void> {
       process.exit(0);
     });
   } else {
-    const content = await fse.readFile(session.logFile, "utf-8");
+    const content = await fse.readFile(logFile, "utf-8");
     const allLines = content.split("\n");
     const lastLines = allLines.slice(-lines);
 

@@ -8,8 +8,6 @@ export type AgentType =
   | "gemini";
 
 export interface RalphConfig {
-  projectId: string;
-  projectPath: string;
   projectName: string;
   agent: AgentType;
   model?: string;
@@ -20,7 +18,6 @@ export interface RalphConfig {
 
 export interface RalphSession {
   id: string;
-  projectId: string;
   mode: "plan" | "build";
   status: "running" | "paused" | "stopped" | "completed";
   pid?: number;
@@ -30,14 +27,11 @@ export interface RalphSession {
   stoppedAt?: string;
   agent: AgentType;
   model?: string;
-  logFile: string;
 }
 
-export interface GlobalConfig {
-  defaultAgent: AgentType;
-  defaultModel?: string;
-  projects: Record<string, RalphConfig>;
-  sessions: Record<string, RalphSession>;
+export interface ProjectState {
+  config: RalphConfig;
+  sessions: RalphSession[];
 }
 
 export interface AgentCommand {

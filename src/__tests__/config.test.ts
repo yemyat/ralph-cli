@@ -4,46 +4,28 @@ import { join } from "node:path";
 import fse from "fs-extra";
 import {
   deleteSession,
-  getAllProjects,
-  getAllSessions,
   getProjectConfig,
   getProjectSessions,
+  getSession,
   initProject,
-  loadGlobalConfig,
-  saveGlobalConfig,
+  loadProjectState,
   saveSession,
 } from "../config.js";
 import type { RalphSession } from "../types.js";
+import { getRalphDir } from "../utils/paths.js";
 
-// Use a unique temp directory for each test run to avoid conflicts
 const TEST_DIR = join(
   tmpdir(),
   `ralph-config-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
 );
 
-// Track project IDs created in tests for cleanup
-const createdProjectIds: string[] = [];
-const createdSessionIds: string[] = [];
-
 describe("Config Module", () => {
   beforeAll(async () => {
-    // Create test directory for project paths
     await fse.ensureDir(TEST_DIR);
   });
 
   afterAll(async () => {
-    // Clean up test directories
     await fse.remove(TEST_DIR);
-
-    // Clean up projects and sessions from global config
-    const config = await loadGlobalConfig();
-    for (const id of createdProjectIds) {
-      delete config.projects[id];
-    }
-    for (const id of createdSessionIds) {
-      delete config.sessions[id];
-    }
-    await saveGlobalConfig(config);
   });
 
   describe("initProject()", () => {
@@ -52,41 +34,37 @@ describe("Config Module", () => {
       await fse.ensureDir(projectPath);
 
       const config = await initProject(projectPath, "claude", "sonnet");
-      createdProjectIds.push(config.projectId);
 
-      expect(config.projectPath).toBe(projectPath);
       expect(config.agent).toBe("claude");
       expect(config.model).toBe("sonnet");
       expect(config.projectName).toBe("test-project");
-      expect(config.projectId).toBeDefined();
       expect(config.createdAt).toBeDefined();
       expect(config.updatedAt).toBeDefined();
     });
 
-    it("saves project to global config", async () => {
+    it("creates .ralph-wiggum directory", async () => {
       const projectPath = join(TEST_DIR, "test-project-2");
       await fse.ensureDir(projectPath);
 
-      const config = await initProject(projectPath, "amp");
-      createdProjectIds.push(config.projectId);
+      await initProject(projectPath, "amp");
 
-      const globalConfig = await loadGlobalConfig();
-      expect(globalConfig.projects[config.projectId]).toBeDefined();
-      expect(globalConfig.projects[config.projectId].projectPath).toBe(
-        projectPath
-      );
+      const ralphDir = getRalphDir(projectPath);
+      const exists = await fse.pathExists(ralphDir);
+      expect(exists).toBe(true);
     });
 
-    it("does not create redundant specs directory at project root", async () => {
+    it("creates logs and specs directories", async () => {
       const projectPath = join(TEST_DIR, "test-project-3");
       await fse.ensureDir(projectPath);
 
-      const config = await initProject(projectPath, "droid");
-      createdProjectIds.push(config.projectId);
+      await initProject(projectPath, "droid");
 
-      // Should NOT create specs/ at project root (that's init.ts's job to create .ralph/specs/)
-      const specsExists = await fse.pathExists(join(projectPath, "specs"));
-      expect(specsExists).toBe(false);
+      const ralphDir = getRalphDir(projectPath);
+      const logsExists = await fse.pathExists(join(ralphDir, "logs"));
+      const specsExists = await fse.pathExists(join(ralphDir, "specs"));
+
+      expect(logsExists).toBe(true);
+      expect(specsExists).toBe(true);
     });
   });
 
@@ -104,8 +82,7 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "initialized-project");
       await fse.ensureDir(projectPath);
 
-      const initConfig = await initProject(projectPath, "claude", "opus");
-      createdProjectIds.push(initConfig.projectId);
+      await initProject(projectPath, "claude", "opus");
 
       const config = await getProjectConfig(projectPath);
 
@@ -120,26 +97,22 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "session-project");
       await fse.ensureDir(projectPath);
 
-      const projectConfig = await initProject(projectPath, "claude");
-      createdProjectIds.push(projectConfig.projectId);
+      await initProject(projectPath, "claude");
 
       const sessionId = `test-session-${Date.now()}`;
-      createdSessionIds.push(sessionId);
 
       const session: RalphSession = {
         id: sessionId,
-        projectId: projectConfig.projectId,
         mode: "plan",
         status: "running",
         iteration: 1,
         startedAt: new Date().toISOString(),
         agent: "claude",
-        logFile: "/tmp/test.log",
       };
 
-      await saveSession(session);
+      await saveSession(projectPath, session);
 
-      const sessions = await getProjectSessions(projectConfig.projectId);
+      const sessions = await getProjectSessions(projectPath);
 
       expect(sessions.length).toBe(1);
       expect(sessions[0].id).toBe(sessionId);
@@ -147,125 +120,107 @@ describe("Config Module", () => {
       expect(sessions[0].status).toBe("running");
     });
 
-    it("getAllSessions() includes saved sessions", async () => {
-      const projectPath = join(TEST_DIR, "multi-session-project");
+    it("getSession() retrieves specific session", async () => {
+      const projectPath = join(TEST_DIR, "get-session-project");
       await fse.ensureDir(projectPath);
 
-      const projectConfig = await initProject(projectPath, "amp");
-      createdProjectIds.push(projectConfig.projectId);
+      await initProject(projectPath, "amp");
 
-      const sessionId1 = `session-a-${Date.now()}`;
-      const sessionId2 = `session-b-${Date.now()}`;
-      createdSessionIds.push(sessionId1, sessionId2);
-
-      const session1: RalphSession = {
-        id: sessionId1,
-        projectId: projectConfig.projectId,
-        mode: "plan",
+      const sessionId = `session-${Date.now()}`;
+      const session: RalphSession = {
+        id: sessionId,
+        mode: "build",
         status: "completed",
         iteration: 5,
         startedAt: new Date().toISOString(),
         agent: "amp",
-        logFile: "/tmp/a.log",
       };
 
-      const session2: RalphSession = {
-        id: sessionId2,
-        projectId: projectConfig.projectId,
-        mode: "build",
-        status: "running",
-        iteration: 2,
-        startedAt: new Date().toISOString(),
-        agent: "amp",
-        logFile: "/tmp/b.log",
-      };
+      await saveSession(projectPath, session);
 
-      await saveSession(session1);
-      await saveSession(session2);
+      const retrieved = await getSession(projectPath, sessionId);
 
-      const allSessions = await getAllSessions();
-      const ourSessions = allSessions.filter(
-        (s) => s.id === sessionId1 || s.id === sessionId2
-      );
-
-      expect(ourSessions.length).toBe(2);
+      expect(retrieved).not.toBeNull();
+      expect(retrieved?.id).toBe(sessionId);
+      expect(retrieved?.mode).toBe("build");
     });
 
-    it("deleteSession() removes session from config", async () => {
+    it("deleteSession() removes session", async () => {
       const projectPath = join(TEST_DIR, "delete-session-project");
       await fse.ensureDir(projectPath);
 
-      const projectConfig = await initProject(projectPath, "droid");
-      createdProjectIds.push(projectConfig.projectId);
+      await initProject(projectPath, "droid");
 
       const sessionId = `to-delete-${Date.now()}`;
-      // Don't add to createdSessionIds since we're deleting it
-
       const session: RalphSession = {
         id: sessionId,
-        projectId: projectConfig.projectId,
         mode: "build",
         status: "stopped",
         iteration: 3,
         startedAt: new Date().toISOString(),
         agent: "droid",
-        logFile: "/tmp/delete.log",
       };
 
-      await saveSession(session);
-      let sessions = await getProjectSessions(projectConfig.projectId);
+      await saveSession(projectPath, session);
+      let sessions = await getProjectSessions(projectPath);
       expect(sessions.length).toBe(1);
 
-      await deleteSession(sessionId);
-      sessions = await getProjectSessions(projectConfig.projectId);
+      await deleteSession(projectPath, sessionId);
+      sessions = await getProjectSessions(projectPath);
       expect(sessions.length).toBe(0);
     });
-  });
 
-  describe("getAllProjects()", () => {
-    it("includes registered projects", async () => {
-      const projectPath1 = join(TEST_DIR, "project-1");
-      const projectPath2 = join(TEST_DIR, "project-2");
-      await fse.ensureDir(projectPath1);
-      await fse.ensureDir(projectPath2);
+    it("saveSession() updates existing session", async () => {
+      const projectPath = join(TEST_DIR, "update-session-project");
+      await fse.ensureDir(projectPath);
 
-      const config1 = await initProject(projectPath1, "claude");
-      const config2 = await initProject(projectPath2, "amp");
-      createdProjectIds.push(config1.projectId, config2.projectId);
+      await initProject(projectPath, "claude");
 
-      const projects = await getAllProjects();
-      const ourProjects = projects.filter(
-        (p) =>
-          p.projectId === config1.projectId || p.projectId === config2.projectId
-      );
+      const sessionId = `update-${Date.now()}`;
+      const session: RalphSession = {
+        id: sessionId,
+        mode: "plan",
+        status: "running",
+        iteration: 1,
+        startedAt: new Date().toISOString(),
+        agent: "claude",
+      };
 
-      expect(ourProjects.length).toBe(2);
+      await saveSession(projectPath, session);
+
+      session.iteration = 5;
+      session.status = "completed";
+      await saveSession(projectPath, session);
+
+      const sessions = await getProjectSessions(projectPath);
+      expect(sessions.length).toBe(1);
+      expect(sessions[0].iteration).toBe(5);
+      expect(sessions[0].status).toBe("completed");
     });
   });
 
-  describe("loadGlobalConfig() and saveGlobalConfig()", () => {
-    it("returns config with expected structure", async () => {
-      const config = await loadGlobalConfig();
+  describe("loadProjectState()", () => {
+    it("returns null for uninitialized project", async () => {
+      const projectPath = join(TEST_DIR, "no-state-project");
+      await fse.ensureDir(projectPath);
 
-      expect(config.defaultAgent).toBeDefined();
-      expect(config.projects).toBeDefined();
-      expect(config.sessions).toBeDefined();
+      const state = await loadProjectState(projectPath);
+
+      expect(state).toBeNull();
     });
 
-    it("persists config changes", async () => {
-      const config = await loadGlobalConfig();
-      const originalAgent = config.defaultAgent;
+    it("returns state with config and sessions", async () => {
+      const projectPath = join(TEST_DIR, "state-project");
+      await fse.ensureDir(projectPath);
 
-      // Toggle the default agent
-      config.defaultAgent = originalAgent === "droid" ? "claude" : "droid";
-      await saveGlobalConfig(config);
+      await initProject(projectPath, "claude");
 
-      const loadedConfig = await loadGlobalConfig();
-      expect(loadedConfig.defaultAgent).not.toBe(originalAgent);
+      const state = await loadProjectState(projectPath);
 
-      // Restore original value
-      loadedConfig.defaultAgent = originalAgent;
-      await saveGlobalConfig(loadedConfig);
+      expect(state).not.toBeNull();
+      expect(state?.config).toBeDefined();
+      expect(state?.sessions).toBeDefined();
+      expect(Array.isArray(state?.sessions)).toBe(true);
     });
   });
 });

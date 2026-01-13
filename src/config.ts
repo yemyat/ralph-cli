@@ -1,59 +1,43 @@
 import { basename } from "node:path";
 import fse from "fs-extra";
-import type {
-  AgentType,
-  GlobalConfig,
-  RalphConfig,
-  RalphSession,
-} from "./types.js";
+import type { AgentType, ProjectState, RalphConfig, RalphSession } from "./types.js";
 import {
-  getProjectDir,
-  getProjectId,
-  RALPH_CONFIG_FILE,
-  RALPH_HOME,
-  RALPH_LOGS_DIR,
-  RALPH_PROJECTS_DIR,
+  getConfigFile,
+  getLogsDir,
+  getRalphDir,
+  getSpecsDir,
 } from "./utils/paths.js";
 
-const DEFAULT_CONFIG: GlobalConfig = {
-  defaultAgent: "claude",
-  projects: {},
-  sessions: {},
-};
-
-export async function ensureRalphDirs(): Promise<void> {
-  await fse.ensureDir(RALPH_HOME);
-  await fse.ensureDir(RALPH_PROJECTS_DIR);
-  await fse.ensureDir(RALPH_LOGS_DIR);
+export async function ensureRalphDirs(projectPath: string): Promise<void> {
+  await fse.ensureDir(getRalphDir(projectPath));
+  await fse.ensureDir(getLogsDir(projectPath));
+  await fse.ensureDir(getSpecsDir(projectPath));
 }
 
-export async function loadGlobalConfig(): Promise<GlobalConfig> {
-  await ensureRalphDirs();
-  if (await fse.pathExists(RALPH_CONFIG_FILE)) {
-    return fse.readJson(RALPH_CONFIG_FILE);
+export async function loadProjectState(
+  projectPath: string
+): Promise<ProjectState | null> {
+  const configFile = getConfigFile(projectPath);
+  if (await fse.pathExists(configFile)) {
+    return fse.readJson(configFile);
   }
-  return { ...DEFAULT_CONFIG };
+  return null;
 }
 
-export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
-  await ensureRalphDirs();
-  await fse.writeJson(RALPH_CONFIG_FILE, config, { spaces: 2 });
+export async function saveProjectState(
+  projectPath: string,
+  state: ProjectState
+): Promise<void> {
+  await ensureRalphDirs(projectPath);
+  state.config.updatedAt = new Date().toISOString();
+  await fse.writeJson(getConfigFile(projectPath), state, { spaces: 2 });
 }
 
 export async function getProjectConfig(
   projectPath: string
 ): Promise<RalphConfig | null> {
-  const config = await loadGlobalConfig();
-  const projectId = getProjectId(projectPath);
-  return config.projects[projectId] || null;
-}
-
-export async function saveProjectConfig(
-  projectConfig: RalphConfig
-): Promise<void> {
-  const config = await loadGlobalConfig();
-  config.projects[projectConfig.projectId] = projectConfig;
-  await saveGlobalConfig(config);
+  const state = await loadProjectState(projectPath);
+  return state?.config || null;
 }
 
 export async function initProject(
@@ -61,13 +45,9 @@ export async function initProject(
   agent: AgentType,
   model?: string
 ): Promise<RalphConfig> {
-  const projectId = getProjectId(projectPath);
-  const projectDir = getProjectDir(projectId);
-  await fse.ensureDir(projectDir);
+  await ensureRalphDirs(projectPath);
 
-  const projectConfig: RalphConfig = {
-    projectId,
-    projectPath,
+  const config: RalphConfig = {
     projectName: basename(projectPath),
     agent,
     model,
@@ -75,45 +55,56 @@ export async function initProject(
     updatedAt: new Date().toISOString(),
   };
 
-  await saveProjectConfig(projectConfig);
+  const state: ProjectState = {
+    config,
+    sessions: [],
+  };
 
-  return projectConfig;
+  await saveProjectState(projectPath, state);
+  return config;
 }
 
 export async function getSession(
+  projectPath: string,
   sessionId: string
 ): Promise<RalphSession | null> {
-  const config = await loadGlobalConfig();
-  return config.sessions[sessionId] || null;
+  const state = await loadProjectState(projectPath);
+  return state?.sessions.find((s) => s.id === sessionId) || null;
 }
 
-export async function saveSession(session: RalphSession): Promise<void> {
-  const config = await loadGlobalConfig();
-  config.sessions[session.id] = session;
-  await saveGlobalConfig(config);
+export async function saveSession(
+  projectPath: string,
+  session: RalphSession
+): Promise<void> {
+  const state = await loadProjectState(projectPath);
+  if (!state) {
+    throw new Error("Project not initialized");
+  }
+
+  const idx = state.sessions.findIndex((s) => s.id === session.id);
+  if (idx >= 0) {
+    state.sessions[idx] = session;
+  } else {
+    state.sessions.push(session);
+  }
+
+  await saveProjectState(projectPath, state);
 }
 
-export async function deleteSession(sessionId: string): Promise<void> {
-  const config = await loadGlobalConfig();
-  delete config.sessions[sessionId];
-  await saveGlobalConfig(config);
+export async function deleteSession(
+  projectPath: string,
+  sessionId: string
+): Promise<void> {
+  const state = await loadProjectState(projectPath);
+  if (!state) return;
+
+  state.sessions = state.sessions.filter((s) => s.id !== sessionId);
+  await saveProjectState(projectPath, state);
 }
 
 export async function getProjectSessions(
-  projectId: string
+  projectPath: string
 ): Promise<RalphSession[]> {
-  const config = await loadGlobalConfig();
-  return Object.values(config.sessions).filter(
-    (s) => s.projectId === projectId
-  );
-}
-
-export async function getAllProjects(): Promise<RalphConfig[]> {
-  const config = await loadGlobalConfig();
-  return Object.values(config.projects);
-}
-
-export async function getAllSessions(): Promise<RalphSession[]> {
-  const config = await loadGlobalConfig();
-  return Object.values(config.sessions);
+  const state = await loadProjectState(projectPath);
+  return state?.sessions || [];
 }

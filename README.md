@@ -65,7 +65,7 @@ ralph-wiggum-cli stop
 | `ralph-wiggum-cli start [plan\|build]` | Start the Ralph loop                    |
 | `ralph-wiggum-cli stop`                | Stop the running Ralph session          |
 | `ralph-wiggum-cli status`              | Show project status and sessions        |
-| `ralph-wiggum-cli list`                | List all Ralph projects                 |
+| `ralph-wiggum-cli list`                | Show project info                       |
 | `ralph-wiggum-cli logs`                | View session logs                       |
 | `ralph-wiggum-cli agents`              | List available AI agents                |
 
@@ -99,21 +99,15 @@ After `ralph-wiggum-cli init`, your project will have:
 
 ```
 your-project/
-└── .ralph/
+└── .ralph-wiggum/
+    ├── config.json            # Project config and session history
     ├── PROMPT_plan.md         # Planning mode prompt
     ├── PROMPT_build.md        # Building mode prompt
     ├── IMPLEMENTATION_PLAN.md # Auto-generated implementation plan
-    └── specs/                 # Specification files
-        └── example.md
+    ├── specs/                 # Specification files
+    │   └── example.md
+    └── logs/                  # Session logs (gitignored)
 ```
-
-## Configuration
-
-Ralph stores configuration in `~/.ralph/`:
-
-- `config.json` - Global configuration and project registry
-- `projects/` - Per-project configuration
-- `logs/` - Session logs
 
 ## How It Works
 
