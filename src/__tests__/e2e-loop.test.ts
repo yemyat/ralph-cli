@@ -1,8 +1,8 @@
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile, mkdir, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { getAllAgents } from "../agents/index.js";
 
 const MOCK_AGENT_SCRIPT = `#!/usr/bin/env node
@@ -81,12 +81,7 @@ describe("E2E Loop Tests", () => {
     });
 
     it("respects maxIterations limit", async () => {
-      const result = await runMockLoop(
-        testDir,
-        mockAgentPath,
-        counterFile,
-        2
-      );
+      const result = await runMockLoop(testDir, mockAgentPath, counterFile, 2);
 
       expect(result.iterations).toBe(2);
       expect(result.doneDetected).toBe(false);
@@ -177,7 +172,7 @@ describe("E2E Loop Tests", () => {
   });
 });
 
-async function runMockLoop(
+function runMockLoop(
   projectDir: string,
   mockAgentPath: string,
   counterFile: string,

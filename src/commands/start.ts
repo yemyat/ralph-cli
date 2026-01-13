@@ -5,7 +5,11 @@ import chalk from "chalk";
 import fse from "fs-extra";
 import ora from "ora";
 import { getAgent } from "../agents/index.js";
-import { getProjectConfig, getProjectSessions, saveSession } from "../config.js";
+import {
+  getProjectConfig,
+  getProjectSessions,
+  saveSession,
+} from "../config.js";
 import type { AgentType, RalphSession } from "../types.js";
 import { getRalphDir, getSessionLogFile } from "../utils/paths.js";
 

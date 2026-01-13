@@ -1,7 +1,16 @@
 import { join } from "node:path";
+import {
+  cancel,
+  intro,
+  isCancel,
+  log,
+  note,
+  outro,
+  select,
+  spinner,
+} from "@clack/prompts";
 import chalk from "chalk";
 import fse from "fs-extra";
-import inquirer from "inquirer";
 import { getAgent, getAllAgents } from "../agents/index.js";
 import { getProjectConfig, initProject } from "../config.js";
 import {
@@ -44,76 +53,124 @@ async function addLogsToGitignore(projectPath: string): Promise<void> {
   await fse.writeFile(gitignorePath, content);
 }
 
+async function ensureFile(path: string, content: string): Promise<void> {
+  if (!(await fse.pathExists(path))) {
+    await fse.writeFile(path, content);
+  }
+}
+
+async function createProjectFiles(projectPath: string): Promise<void> {
+  const ralphDir = getRalphDir(projectPath);
+  const specsDir = getSpecsDir(projectPath);
+
+  await ensureFile(join(ralphDir, "PROMPT_plan.md"), PROMPT_PLAN);
+  await ensureFile(join(ralphDir, "PROMPT_build.md"), PROMPT_BUILD);
+  await ensureFile(
+    join(ralphDir, "IMPLEMENTATION_PLAN.md"),
+    IMPLEMENTATION_PLAN_TEMPLATE
+  );
+  await ensureFile(join(ralphDir, "PROGRESS.md"), PROGRESS_TEMPLATE);
+  await ensureFile(join(ralphDir, "GUARDRAILS.md"), GUARDRAILS_TEMPLATE);
+
+  const specsFiles = await fse.readdir(specsDir);
+  if (specsFiles.length === 0) {
+    await fse.writeFile(join(specsDir, "example.md"), SPEC_TEMPLATE);
+  }
+
+  await addLogsToGitignore(projectPath);
+}
+
 export async function initCommand(options: InitOptions): Promise<void> {
   const projectPath = process.cwd();
   const existingConfig = await getProjectConfig(projectPath);
 
+  intro(chalk.cyan("🧑‍🚀 Ralph Wiggum CLI Setup"));
+
   if (existingConfig && !options.force) {
-    console.log(chalk.yellow("Ralph is already initialized for this project."));
-    console.log(`  Plan Agent:  ${chalk.cyan(existingConfig.agents.plan.agent)}`);
-    console.log(`  Plan Model:  ${chalk.cyan(existingConfig.agents.plan.model || "default")}`);
-    console.log(`  Build Agent: ${chalk.cyan(existingConfig.agents.build.agent)}`);
-    console.log(`  Build Model: ${chalk.cyan(existingConfig.agents.build.model || "default")}`);
-    console.log(chalk.gray("\nUse --force to reinitialize."));
+    note(
+      `Plan Agent:  ${existingConfig.agents.plan.agent}\n` +
+        `Plan Model:  ${existingConfig.agents.plan.model || "default"}\n` +
+        `Build Agent: ${existingConfig.agents.build.agent}\n` +
+        `Build Model: ${existingConfig.agents.build.model || "default"}`,
+      "Ralph is already initialized"
+    );
+    log.warning("Use --force to reinitialize.");
+    outro("Setup cancelled");
     return;
   }
 
-  const agentChoices = getAllAgents().map((a) => ({
-    name: `${a.name} (${a.type})`,
+  const agents = getAllAgents();
+  const agentOptions = agents.map((a) => ({
+    label: `${a.name} (${a.type})`,
     value: a.type,
   }));
 
   let planAgent: AgentType = options.planAgent || options.agent || "claude";
   let buildAgent: AgentType = options.buildAgent || options.agent || "claude";
 
-  if (!options.planAgent && !options.agent) {
-    const answers = await inquirer.prompt([
-      {
-        type: "list",
-        name: "planAgent",
-        message: "Select an AI agent for PLANNING:",
-        choices: agentChoices,
-        default: "claude",
-      },
-    ]);
-    planAgent = answers.planAgent;
+  if (!(options.planAgent || options.agent)) {
+    const result = await select({
+      message: "Select an AI agent for PLANNING:",
+      options: agentOptions,
+      initialValue: "claude",
+    });
+
+    if (isCancel(result)) {
+      cancel("Setup cancelled");
+      process.exit(0);
+    }
+    planAgent = result as AgentType;
   }
 
-  if (!options.buildAgent && !options.agent) {
-    const answers = await inquirer.prompt([
-      {
-        type: "list",
-        name: "buildAgent",
-        message: "Select an AI agent for BUILDING:",
-        choices: agentChoices,
-        default: planAgent,
-      },
-    ]);
-    buildAgent = answers.buildAgent;
+  if (!(options.buildAgent || options.agent)) {
+    const result = await select({
+      message: "Select an AI agent for BUILDING:",
+      options: agentOptions,
+      initialValue: planAgent,
+    });
+
+    if (isCancel(result)) {
+      cancel("Setup cancelled");
+      process.exit(0);
+    }
+    buildAgent = result as AgentType;
   }
 
   const planAgentInstance = getAgent(planAgent);
   const buildAgentInstance = getAgent(buildAgent);
 
+  const s = spinner();
+
+  // Check if agents are installed
+  s.start("Checking agent installations...");
+
   const planInstalled = await planAgentInstance.checkInstalled();
   if (!planInstalled) {
-    console.log(chalk.red(`\n${planAgentInstance.name} (plan agent) is not installed.\n`));
-    console.log(planAgentInstance.getInstallInstructions());
-    console.log(
-      chalk.gray("\nAfter installing, run `ralph-wiggum-cli init` again.")
+    s.stop("Agent check failed");
+    log.error(`${planAgentInstance.name} (plan agent) is not installed.`);
+    note(
+      planAgentInstance.getInstallInstructions(),
+      "Installation instructions"
     );
+    log.info("After installing, run `ralph-wiggum-cli init` again.");
+    outro("Setup incomplete");
     return;
   }
 
   const buildInstalled = await buildAgentInstance.checkInstalled();
   if (!buildInstalled) {
-    console.log(chalk.red(`\n${buildAgentInstance.name} (build agent) is not installed.\n`));
-    console.log(buildAgentInstance.getInstallInstructions());
-    console.log(
-      chalk.gray("\nAfter installing, run `ralph-wiggum-cli init` again.")
+    s.stop("Agent check failed");
+    log.error(`${buildAgentInstance.name} (build agent) is not installed.`);
+    note(
+      buildAgentInstance.getInstallInstructions(),
+      "Installation instructions"
     );
+    log.info("After installing, run `ralph-wiggum-cli init` again.");
+    outro("Setup incomplete");
     return;
   }
+
+  s.message("Creating project configuration...");
 
   const config = await initProject(projectPath, {
     planAgent,
@@ -122,64 +179,34 @@ export async function initCommand(options: InitOptions): Promise<void> {
     buildModel: options.buildModel || options.model,
   });
 
-  const ralphDir = getRalphDir(projectPath);
-  const specsDir = getSpecsDir(projectPath);
+  await createProjectFiles(projectPath);
 
-  const promptPlanPath = join(ralphDir, "PROMPT_plan.md");
-  const promptBuildPath = join(ralphDir, "PROMPT_build.md");
-  const implPlanPath = join(ralphDir, "IMPLEMENTATION_PLAN.md");
-  const progressPath = join(ralphDir, "PROGRESS.md");
-  const guardrailsPath = join(ralphDir, "GUARDRAILS.md");
+  s.stop("Project configured");
 
-  if (!(await fse.pathExists(promptPlanPath))) {
-    await fse.writeFile(promptPlanPath, PROMPT_PLAN);
-  }
+  log.success("Ralph initialized successfully!");
 
-  if (!(await fse.pathExists(promptBuildPath))) {
-    await fse.writeFile(promptBuildPath, PROMPT_BUILD);
-  }
-
-  if (!(await fse.pathExists(implPlanPath))) {
-    await fse.writeFile(implPlanPath, IMPLEMENTATION_PLAN_TEMPLATE);
-  }
-
-  if (!(await fse.pathExists(progressPath))) {
-    await fse.writeFile(progressPath, PROGRESS_TEMPLATE);
-  }
-
-  if (!(await fse.pathExists(guardrailsPath))) {
-    await fse.writeFile(guardrailsPath, GUARDRAILS_TEMPLATE);
-  }
-
-  const specsFiles = await fse.readdir(specsDir);
-  if (specsFiles.length === 0) {
-    await fse.writeFile(join(specsDir, "example.md"), SPEC_TEMPLATE);
-  }
-
-  await addLogsToGitignore(projectPath);
-
-  console.log(chalk.green("\n✓ Ralph initialized successfully!\n"));
-  console.log(`  Project:     ${chalk.cyan(config.projectName)}`);
-  console.log(`  Plan Agent:  ${chalk.cyan(planAgentInstance.name)} ${chalk.gray(`(model: ${config.agents.plan.model || "default"})`)}`);
-  console.log(`  Build Agent: ${chalk.cyan(buildAgentInstance.name)} ${chalk.gray(`(model: ${config.agents.build.model || "default"})`)}`);
-  console.log();
-  console.log(chalk.gray("Created .ralph-wiggum/ directory with:"));
-  console.log(chalk.gray("  - PROMPT_plan.md         (planning mode prompt)"));
-  console.log(chalk.gray("  - PROMPT_build.md        (building mode prompt)"));
-  console.log(chalk.gray("  - GUARDRAILS.md          (compliance rules)"));
-  console.log(chalk.gray("  - IMPLEMENTATION_PLAN.md (progress orchestrator)"));
-  console.log(chalk.gray("  - PROGRESS.md            (audit trail)"));
-  console.log(chalk.gray("  - specs/                 (specs with tasks + acceptance criteria)"));
-  console.log(chalk.gray("  - logs/                  (session logs, gitignored)"));
-  console.log();
-  console.log("Next steps:");
-  console.log(
-    `  1. Add specifications to ${chalk.cyan(".ralph-wiggum/specs/")} directory`
+  note(
+    `Project:     ${config.projectName}\n` +
+      `Plan Agent:  ${planAgentInstance.name} (model: ${config.agents.plan.model || "default"})\n` +
+      `Build Agent: ${buildAgentInstance.name} (model: ${config.agents.build.model || "default"})`,
+    "Configuration"
   );
-  console.log(
-    `  2. Run ${chalk.cyan("ralph-wiggum-cli start plan")} to generate implementation plan`
+
+  note(
+    "- PROMPT_plan.md         (planning mode prompt)\n" +
+      "- PROMPT_build.md        (building mode prompt)\n" +
+      "- GUARDRAILS.md          (compliance rules)\n" +
+      "- IMPLEMENTATION_PLAN.md (progress orchestrator)\n" +
+      "- PROGRESS.md            (audit trail)\n" +
+      "- specs/                 (specs with tasks + acceptance criteria)\n" +
+      "- logs/                  (session logs, gitignored)",
+    "Created .ralph-wiggum/ directory"
   );
-  console.log(
-    `  3. Run ${chalk.cyan("ralph-wiggum-cli start build")} to start building`
+
+  outro(
+    "Next steps:\n" +
+      `  1. Add specifications to ${chalk.cyan(".ralph-wiggum/specs/")} directory\n` +
+      `  2. Run ${chalk.cyan("ralph-wiggum-cli start plan")} to generate implementation plan\n` +
+      `  3. Run ${chalk.cyan("ralph-wiggum-cli start build")} to start building`
   );
 }

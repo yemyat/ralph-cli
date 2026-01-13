@@ -8,6 +8,7 @@ import { logsCommand } from "./commands/logs.js";
 import { startCommand } from "./commands/start.js";
 import { statusCommand } from "./commands/status.js";
 import { stopCommand } from "./commands/stop.js";
+import { tuiCommand } from "./commands/tui.js";
 import type { AgentType } from "./types.js";
 
 const program = new Command();
@@ -15,7 +16,11 @@ const program = new Command();
 program
   .name("ralph-wiggum-cli")
   .description("CLI for managing Ralph Wiggum AI development workflows")
-  .version("1.0.2");
+  .version("1.0.2")
+  .action(async () => {
+    // Default action: launch TUI
+    await tuiCommand();
+  });
 
 program
   .command("init")

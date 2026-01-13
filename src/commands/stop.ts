@@ -1,5 +1,9 @@
 import chalk from "chalk";
-import { getProjectConfig, getProjectSessions, saveSession } from "../config.js";
+import {
+  getProjectConfig,
+  getProjectSessions,
+  saveSession,
+} from "../config.js";
 
 export async function stopCommand(): Promise<void> {
   const projectPath = process.cwd();

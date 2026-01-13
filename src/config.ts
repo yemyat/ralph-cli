@@ -1,6 +1,11 @@
 import { basename } from "node:path";
 import fse from "fs-extra";
-import type { AgentType, ProjectState, RalphConfig, RalphSession } from "./types.js";
+import type {
+  AgentType,
+  ProjectState,
+  RalphConfig,
+  RalphSession,
+} from "./types.js";
 import {
   getConfigFile,
   getLogsDir,
@@ -110,7 +115,9 @@ export async function deleteSession(
   sessionId: string
 ): Promise<void> {
   const state = await loadProjectState(projectPath);
-  if (!state) return;
+  if (!state) {
+    return;
+  }
 
   state.sessions = state.sessions.filter((s) => s.id !== sessionId);
   await saveProjectState(projectPath, state);

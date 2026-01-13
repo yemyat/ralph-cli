@@ -24,8 +24,12 @@ export async function listCommand(): Promise<void> {
 
   console.log(chalk.bold("\n📁 Ralph Project\n"));
   console.log(`${statusIndicator} ${chalk.cyan(config.projectName)}`);
-  console.log(`    Plan:     ${chalk.gray(planAgent.name)} ${chalk.gray(`(${config.agents.plan.model || "default"})`)}`);
-  console.log(`    Build:    ${chalk.gray(buildAgent.name)} ${chalk.gray(`(${config.agents.build.model || "default"})`)}`);
+  console.log(
+    `    Plan:     ${chalk.gray(planAgent.name)} ${chalk.gray(`(${config.agents.plan.model || "default"})`)}`
+  );
+  console.log(
+    `    Build:    ${chalk.gray(buildAgent.name)} ${chalk.gray(`(${config.agents.build.model || "default"})`)}`
+  );
   console.log(
     `    Sessions: ${chalk.gray(sessions.length)} total, ${chalk.green(runningSessions.length)} running`
   );

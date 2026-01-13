@@ -4,6 +4,51 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-13 14:30] - Interactive TUI with Kanban Board
+
+**Commit:** `e097cdb` feat: add interactive TUI with kanban board
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS
+- `bun run build` → PASS
+
+**Files changed:**
+- src/commands/init.ts (refactored to use @clack/prompts)
+- src/commands/tui.ts (new TUI command)
+- src/index.ts (default TUI action)
+- src/tui/app.tsx (main TUI app component)
+- src/tui/kanban.tsx (kanban board component)
+- src/tui/card.tsx (task card component)
+- src/tui/detail-view.tsx (spec+log split view)
+- src/tui/spec-viewer.tsx (markdown spec viewer)
+- src/tui/log-viewer.tsx (log streaming viewer)
+- src/tui/utils.ts (plan parsing utilities)
+- tsconfig.json (added JSX support)
+- package.json (added ink, react, @clack/prompts deps)
+
+**What was done:**
+1. Added Ink-based TUI that launches when running `ralph-wiggum-cli` with no args
+2. Implemented Kanban board with 3 columns (Backlog, In Progress, Completed)
+3. Refactored init command to use @clack/prompts for better interactive UX
+4. Created spec viewer with basic markdown rendering (headers, tasks, lists)
+5. Created log viewer with real-time streaming for in-progress tasks
+6. Implemented keyboard navigation (←→ columns, ↑↓ items, Enter, Esc)
+7. Task cards show status icons (○ backlog, ● in progress, ✓ completed)
+
+**Learnings:**
+- Ink requires `react-devtools-core` as a dev dependency for Bun builds
+- Biome lint requires kebab-case filenames for tsx files
+- Cognitive complexity limits (20) require extracting helper functions
+- @clack/prompts functions should be imported individually, not as namespace
+
+---
+
 ## [2026-01-13 12:10] - Fix Template Test Failures
 
 **Commit:** `423c6e4` feat: fix template tests to match .ralph-wiggum directory structure
