@@ -4,7 +4,6 @@ Progress orchestrator tracking spec completion status.
 
 ## In Progress
 <!-- Specs currently being worked on -->
-- specs/002-fix-template-tests.md
 
 ## Backlog
 <!-- Specs not yet started, in priority order -->
@@ -12,3 +11,4 @@ Progress orchestrator tracking spec completion status.
 
 ## Completed
 <!-- Specs fully implemented and verified -->
+- specs/002-fix-template-tests.md

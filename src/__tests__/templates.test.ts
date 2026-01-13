@@ -14,7 +14,7 @@ describe("Template Constants", () => {
 
     it("contains expected sections for planning mode", () => {
       // Should reference specs directory
-      expect(PROMPT_PLAN).toContain(".ralph/specs");
+      expect(PROMPT_PLAN).toContain(".ralph-wiggum/specs");
 
       // Should reference IMPLEMENTATION_PLAN.md
       expect(PROMPT_PLAN).toContain("IMPLEMENTATION_PLAN.md");
@@ -24,7 +24,7 @@ describe("Template Constants", () => {
 
       // Should emphasize planning only, no implementation
       expect(PROMPT_PLAN).toContain("Plan only");
-      expect(PROMPT_PLAN).toContain("Do NOT implement");
+      expect(PROMPT_PLAN).toContain("do NOT implement");
     });
 
     it("includes guidance about checking before assuming", () => {
@@ -40,7 +40,7 @@ describe("Template Constants", () => {
 
     it("contains expected sections for build mode", () => {
       // Should reference specs directory
-      expect(PROMPT_BUILD).toContain(".ralph/specs");
+      expect(PROMPT_BUILD).toContain(".ralph-wiggum/specs");
 
       // Should reference IMPLEMENTATION_PLAN.md
       expect(PROMPT_BUILD).toContain("IMPLEMENTATION_PLAN.md");
@@ -55,10 +55,6 @@ describe("Template Constants", () => {
       expect(PROMPT_BUILD).toContain("git commit");
       expect(PROMPT_BUILD).toContain("git push");
     });
-
-    it("includes guidance about git tagging on success", () => {
-      expect(PROMPT_BUILD).toContain("git tag");
-    });
   });
 
   describe("IMPLEMENTATION_PLAN_TEMPLATE", () => {
@@ -71,23 +67,15 @@ describe("Template Constants", () => {
       // Should have main title
       expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("# Implementation Plan");
 
-      // Should have current status section
-      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("## Current Status");
-
-      // Should have task priority sections
-      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("### High Priority");
-      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("### Medium Priority");
-      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("### Low Priority");
-
-      // Should have completed section
+      // Should have workflow state sections
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("## In Progress");
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("## Backlog");
       expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("## Completed");
-
-      // Should have discovered issues section
-      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("## Discovered Issues");
     });
 
-    it("uses markdown checkbox syntax", () => {
-      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("- [ ]");
+    it("uses HTML comments for section guidance", () => {
+      // Template uses HTML comments instead of checkboxes
+      expect(IMPLEMENTATION_PLAN_TEMPLATE).toContain("<!-- Specs");
     });
   });
 });
