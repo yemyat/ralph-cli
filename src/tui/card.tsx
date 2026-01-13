@@ -21,6 +21,8 @@ export function Card({
         return "●";
       case "completed":
         return "✓";
+      case "stopped":
+        return "■";
       default:
         return "?";
     }
@@ -37,6 +39,8 @@ export function Card({
         return "yellow";
       case "completed":
         return "green";
+      case "stopped":
+        return "red";
       default:
         return "gray";
     }

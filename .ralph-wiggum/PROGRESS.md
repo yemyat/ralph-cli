@@ -4,6 +4,49 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-13 19:00] - Stop In-Progress Tasks
+
+**Commit:** (pending)
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS
+- `bun run build` → PASS
+
+**Files changed:**
+- src/tui/app.tsx (added stop state, confirmation dialogs, SIGTERM/SIGKILL handling)
+- src/tui/utils.ts (added markTaskAsStopped, appendToLog, stopped task parsing)
+- src/tui/card.tsx (added stopped status icon ■ and red color)
+- src/tui/kanban.tsx (added stopped prop, spinner for stopping tasks)
+- src/tui/confirm-dialog.tsx (new component for stop/force-kill dialogs)
+- .ralph-wiggum/specs/004-stop-in-progress-tasks.md (marked tasks complete)
+- .ralph-wiggum/IMPLEMENTATION_PLAN.md (moved spec to Completed)
+
+**What was done:**
+1. Added `s`/`x` keybindings to trigger stop confirmation on in-progress tasks
+2. Created ConfirmDialog component for stop confirmation and force-kill prompts
+3. Implemented SIGTERM graceful shutdown with 5-second timeout
+4. Added force-kill (SIGKILL) dialog after timeout
+5. Added "stopped" status type with ■ icon in red
+6. Updated IMPLEMENTATION_PLAN.md parsing to handle `[stopped]` marker
+7. Task moves from In Progress to Backlog with `[stopped]` marker when stopped
+8. Added spinner and "Stopping..." state during graceful shutdown
+9. Logs show termination messages with timestamps
+10. Status bar shows `[s] stop` hint when in In Progress column
+
+**Learnings:**
+- Need to extract helper functions to reduce cognitive complexity in both app.tsx and utils.ts
+- Cannot shadow global `escape` property - use `isEscapeKey` instead
+- Process signal 0 can be used to check if process is still running without sending a signal
+- Stopped tasks display in Backlog column but retain their "stopped" status for distinct styling
+
+---
+
 ## [2026-01-13 17:30] - Scrollable Spec & Logs Panels
 
 **Commit:** `578b7e4` feat: add scrollable panels to TUI detail view

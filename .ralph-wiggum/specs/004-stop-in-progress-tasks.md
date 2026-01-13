@@ -4,23 +4,23 @@
 Allow users to stop running tasks directly from the TUI. Provide clear visual feedback and confirmation before killing a running agent process.
 
 ## Tasks
-- [ ] Add stop action keybinding for in-progress items
-- [ ] Implement confirmation prompt before stopping
-- [ ] Send SIGTERM to running agent process
-- [ ] Update task status to "stopped" after termination
-- [ ] Show stopping state with spinner during graceful shutdown
-- [ ] Handle force-kill (SIGKILL) if graceful shutdown times out
+- [x] Add stop action keybinding for in-progress items
+- [x] Implement confirmation prompt before stopping
+- [x] Send SIGTERM to running agent process
+- [x] Update task status to "stopped" after termination
+- [x] Show stopping state with spinner during graceful shutdown
+- [x] Handle force-kill (SIGKILL) if graceful shutdown times out
 
 ## Acceptance Criteria
-- [ ] AC 1: `s` or `x` on an in-progress task triggers stop confirmation
-- [ ] AC 2: Confirmation prompt shows: "Stop [task name]? (y/n)"
-- [ ] AC 3: `y` confirms and initiates graceful shutdown (SIGTERM)
-- [ ] AC 4: `n` or `Esc` cancels and returns to previous view
-- [ ] AC 5: Task shows "Stopping..." spinner during shutdown
-- [ ] AC 6: If process doesn't exit within 5s, prompt for force-kill
-- [ ] AC 7: Stopped tasks move to a "Stopped" state (not Completed)
-- [ ] AC 8: Stop action only available for In Progress column items
-- [ ] AC 9: Logs panel shows termination message when stopped
+- [x] AC 1: `s` or `x` on an in-progress task triggers stop confirmation
+- [x] AC 2: Confirmation prompt shows: "Stop [task name]? (y/n)"
+- [x] AC 3: `y` confirms and initiates graceful shutdown (SIGTERM)
+- [x] AC 4: `n` or `Esc` cancels and returns to previous view
+- [x] AC 5: Task shows "Stopping..." spinner during shutdown
+- [x] AC 6: If process doesn't exit within 5s, prompt for force-kill
+- [x] AC 7: Stopped tasks move to a "Stopped" state (not Completed)
+- [x] AC 8: Stop action only available for In Progress column items
+- [x] AC 9: Logs panel shows termination message when stopped
 
 ## Target UX
 

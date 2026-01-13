@@ -7,7 +7,6 @@ Progress orchestrator tracking spec completion status.
 
 ## Backlog
 <!-- Specs not yet started, in priority order -->
-- specs/004-stop-in-progress-tasks.md
 
 ## Completed
 <!-- Specs fully implemented and verified -->
@@ -15,3 +14,4 @@ Progress orchestrator tracking spec completion status.
 - specs/002-fix-template-tests.md
 - specs/002-vim-keybindings.md
 - specs/003-scrollable-panels.md
+- specs/004-stop-in-progress-tasks.md

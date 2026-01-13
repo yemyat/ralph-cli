@@ -2,11 +2,16 @@ import { Box, Text, useApp, useInput, useStdout } from "ink";
 import Spinner from "ink-spinner";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getProjectSessions, saveSession } from "../config.js";
+import type { RalphSession } from "../types.js";
+import { ConfirmDialog } from "./confirm-dialog.js";
 import { DetailView, type FocusedPanel } from "./detail-view.js";
 import { HelpOverlay } from "./help-overlay.js";
 import { Kanban } from "./kanban.js";
 import {
+  appendToLog,
   getLatestSessionLog,
+  markTaskAsStopped,
   type ParsedPlan,
   parseImplementationPlan,
   readLogContent,
@@ -38,6 +43,7 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     inProgress: [],
     backlog: [],
     completed: [],
+    stopped: [],
   });
   const [view, setView] = useState<View>("kanban");
   const [activeColumn, setActiveColumn] = useState<TaskStatus>("backlog");
@@ -65,12 +71,25 @@ export function App({ projectPath }: AppProps): React.ReactElement {
   const [logsScrollOffset, setLogsScrollOffset] = useState(0);
   const [autoFollow, setAutoFollow] = useState(true);
 
+  // Stop task state
+  const [showStopConfirm, setShowStopConfirm] = useState(false);
+  const [showForceKillConfirm, setShowForceKillConfirm] = useState(false);
+  const [taskToStop, setTaskToStop] = useState<Task | null>(null);
+  const [stoppingTaskId, setStoppingTaskId] = useState<string | null>(null);
+  const [runningSession, setRunningSession] = useState<RalphSession | null>(
+    null
+  );
+  const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Get tasks for current column
   const getTasksForColumn = useCallback(
     (column: TaskStatus): Task[] => {
       switch (column) {
         case "backlog":
-          return plan.backlog;
+          // Backlog column shows both stopped and backlog tasks
+          return [...plan.stopped, ...plan.backlog];
+        case "stopped":
+          return plan.stopped;
         case "in_progress":
           return plan.inProgress;
         case "completed":
@@ -84,7 +103,12 @@ export function App({ projectPath }: AppProps): React.ReactElement {
 
   // Get all tasks flattened
   const getAllTasks = useCallback((): Task[] => {
-    return [...plan.backlog, ...plan.inProgress, ...plan.completed];
+    return [
+      ...plan.backlog,
+      ...plan.inProgress,
+      ...plan.completed,
+      ...plan.stopped,
+    ];
   }, [plan]);
 
   // Update search matches when query changes
@@ -178,6 +202,33 @@ export function App({ projectPath }: AppProps): React.ReactElement {
       }
     };
   }, [selectedTask, logPath]);
+
+  // Load running session (for stop functionality)
+  useEffect(() => {
+    const loadRunningSession = async (): Promise<void> => {
+      try {
+        const sessions = await getProjectSessions(projectPath);
+        const running = sessions.find((s) => s.status === "running");
+        setRunningSession(running || null);
+      } catch {
+        // Ignore errors loading session
+      }
+    };
+    loadRunningSession();
+
+    // Poll for session status every 2 seconds
+    const intervalId = setInterval(loadRunningSession, 2000);
+    return () => clearInterval(intervalId);
+  }, [projectPath]);
+
+  // Cleanup stop timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (stopTimeoutRef.current) {
+        clearTimeout(stopTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Navigate to a different column
   const navigateColumn = useCallback(
@@ -287,9 +338,141 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     [selectedIndex]
   );
 
+  // Initiate stop action - show confirmation dialog
+  const initiateStop = useCallback((task: Task): void => {
+    if (task.status !== "in_progress") {
+      return;
+    }
+    setTaskToStop(task);
+    setShowStopConfirm(true);
+  }, []);
+
+  // Cancel stop action - hide dialogs and reset state
+  const cancelStop = useCallback((): void => {
+    setShowStopConfirm(false);
+    setShowForceKillConfirm(false);
+    setTaskToStop(null);
+    if (stopTimeoutRef.current) {
+      clearTimeout(stopTimeoutRef.current);
+      stopTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Complete the stop process - mark task as stopped and update plan
+  const completeStop = useCallback(
+    async (task: Task, wasForceKilled: boolean): Promise<void> => {
+      // Update session status
+      if (runningSession) {
+        runningSession.status = "stopped";
+        runningSession.stoppedAt = new Date().toISOString();
+        await saveSession(projectPath, runningSession);
+      }
+
+      // Mark task as stopped in implementation plan
+      await markTaskAsStopped(projectPath, task.specPath);
+
+      // Append termination message to log
+      if (logPath) {
+        const message = wasForceKilled
+          ? "Task force-killed by user (SIGKILL)"
+          : "Task stopped by user (SIGTERM)";
+        await appendToLog(logPath, message);
+      }
+
+      // Reload the plan to reflect changes
+      const parsedPlan = await parseImplementationPlan(projectPath);
+      setPlan(parsedPlan);
+
+      // Reset stop state
+      setStoppingTaskId(null);
+      setShowForceKillConfirm(false);
+      setTaskToStop(null);
+    },
+    [projectPath, runningSession, logPath]
+  );
+
+  // Confirm stop - send SIGTERM and start timeout
+  const confirmStop = useCallback(async (): Promise<void> => {
+    if (!taskToStop) {
+      return;
+    }
+
+    setShowStopConfirm(false);
+    setStoppingTaskId(taskToStop.id);
+
+    // Try to send SIGTERM to the running process
+    if (runningSession?.pid) {
+      try {
+        process.kill(runningSession.pid, "SIGTERM");
+        if (logPath) {
+          await appendToLog(logPath, "Sending SIGTERM to process...");
+        }
+      } catch {
+        // Process might already be terminated
+        await completeStop(taskToStop, false);
+        return;
+      }
+    }
+
+    // Start 5-second timeout for graceful shutdown
+    stopTimeoutRef.current = setTimeout(async () => {
+      // Check if process is still running
+      if (runningSession?.pid) {
+        try {
+          // Sending signal 0 checks if process exists without sending a signal
+          process.kill(runningSession.pid, 0);
+          // Process still running - show force kill dialog
+          setShowForceKillConfirm(true);
+        } catch {
+          // Process already terminated
+          if (taskToStop) {
+            await completeStop(taskToStop, false);
+          }
+        }
+      } else if (taskToStop) {
+        await completeStop(taskToStop, false);
+      }
+    }, 5000);
+  }, [taskToStop, runningSession, logPath, completeStop]);
+
+  // Force kill - send SIGKILL
+  const forceKill = useCallback(async (): Promise<void> => {
+    if (!taskToStop) {
+      return;
+    }
+
+    if (runningSession?.pid) {
+      try {
+        process.kill(runningSession.pid, "SIGKILL");
+      } catch {
+        // Process might already be terminated
+      }
+    }
+
+    await completeStop(taskToStop, true);
+  }, [taskToStop, runningSession, completeStop]);
+
+  // Handle stop keybindings (s or x)
+  const handleStopKey = useCallback(
+    (tasks: Task[]): boolean => {
+      if (activeColumn !== "in_progress") {
+        return false;
+      }
+      if (tasks.length > 0 && selectedIndex < tasks.length) {
+        const task = tasks[selectedIndex];
+        if (task.status === "in_progress") {
+          initiateStop(task);
+          return true;
+        }
+      }
+      return false;
+    },
+    [activeColumn, selectedIndex, initiateStop]
+  );
+
   // Handle single-character mode/action keys
   const handleSingleCharKey = useCallback(
-    (input: string): boolean => {
+    (input: string, tasks: Task[]): boolean => {
       switch (input) {
         case "?":
           setShowHelp(true);
@@ -311,11 +494,14 @@ export function App({ projectPath }: AppProps): React.ReactElement {
         case "N":
           handleSearchMatchNav("prev");
           return true;
+        case "s":
+        case "x":
+          return handleStopKey(tasks);
         default:
           return false;
       }
     },
-    [jumpToLast, handleSearchMatchNav]
+    [jumpToLast, handleSearchMatchNav, handleStopKey]
   );
 
   // Handle column navigation
@@ -395,8 +581,8 @@ export function App({ projectPath }: AppProps): React.ReactElement {
       // Clear last key on any other input
       lastKeyRef.current = { key: "", time: 0 };
 
-      // Single-character mode/action keys
-      if (handleSingleCharKey(input)) {
+      // Single-character mode/action keys (now passes tasks for stop action)
+      if (handleSingleCharKey(input, tasks)) {
         return;
       }
 
@@ -512,6 +698,52 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     [exit, commandBuffer]
   );
 
+  // Handle force kill dialog input
+  const handleForceKillDialogInput = useCallback(
+    (input: string, isEscapeKey: boolean): boolean => {
+      if (!showForceKillConfirm) {
+        return false;
+      }
+      if (input === "y" || input === "Y") {
+        forceKill();
+      } else if (input === "n" || input === "N" || isEscapeKey) {
+        setShowForceKillConfirm(false);
+      }
+      return true;
+    },
+    [showForceKillConfirm, forceKill]
+  );
+
+  // Handle stop confirmation dialog input
+  const handleStopDialogInput = useCallback(
+    (input: string, isEscapeKey: boolean): boolean => {
+      if (!showStopConfirm) {
+        return false;
+      }
+      if (input === "y" || input === "Y") {
+        confirmStop();
+      } else if (input === "n" || input === "N" || isEscapeKey) {
+        cancelStop();
+      }
+      return true;
+    },
+    [showStopConfirm, confirmStop, cancelStop]
+  );
+
+  // Handle help overlay input
+  const handleHelpOverlayInput = useCallback(
+    (input: string, isEscapeKey: boolean): boolean => {
+      if (!showHelp) {
+        return false;
+      }
+      if (isEscapeKey || input === "?" || input === "q") {
+        setShowHelp(false);
+      }
+      return true;
+    },
+    [showHelp]
+  );
+
   // Handle kanban view navigation (routes to mode-specific handlers)
   const handleKanbanInput = useCallback(
     (
@@ -528,11 +760,14 @@ export function App({ projectPath }: AppProps): React.ReactElement {
         delete?: boolean;
       }
     ) => {
-      // Close help overlay
-      if (showHelp) {
-        if (key.escape || input === "?" || input === "q") {
-          setShowHelp(false);
-        }
+      // Handle dialogs and overlays first
+      if (handleForceKillDialogInput(input, key.escape ?? false)) {
+        return;
+      }
+      if (handleStopDialogInput(input, key.escape ?? false)) {
+        return;
+      }
+      if (handleHelpOverlayInput(input, key.escape ?? false)) {
         return;
       }
 
@@ -550,7 +785,9 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     },
     [
       mode,
-      showHelp,
+      handleForceKillDialogInput,
+      handleStopDialogInput,
+      handleHelpOverlayInput,
       handleNormalModeInput,
       handleSearchModeInput,
       handleCommandModeInput,
@@ -822,7 +1059,10 @@ export function App({ projectPath }: AppProps): React.ReactElement {
 
   // Main Kanban view
   const totalTasks =
-    plan.backlog.length + plan.inProgress.length + plan.completed.length;
+    plan.backlog.length +
+    plan.inProgress.length +
+    plan.completed.length +
+    plan.stopped.length;
 
   // Build status bar text based on mode
   const getStatusBarText = (): React.ReactElement => {
@@ -849,6 +1089,14 @@ export function App({ projectPath }: AppProps): React.ReactElement {
         </Text>
       );
     }
+    // Show stop hint when in In Progress column
+    if (activeColumn === "in_progress" && plan.inProgress.length > 0) {
+      return (
+        <Text color="gray">
+          [hjkl] move [o] open [s] stop [/] search [?] help [:q] quit
+        </Text>
+      );
+    }
     return (
       <Text color="gray">
         [hjkl] move [o] open [/] search [?] help [:q] quit
@@ -861,6 +1109,44 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     return (
       <Box flexDirection="column" height={terminalHeight} width="100%">
         <HelpOverlay height={terminalHeight} width={stdout?.columns || 80} />
+      </Box>
+    );
+  }
+
+  // Show stop confirmation dialog
+  if (showStopConfirm && taskToStop) {
+    return (
+      <Box
+        alignItems="center"
+        flexDirection="column"
+        height={terminalHeight}
+        justifyContent="center"
+        width="100%"
+      >
+        <ConfirmDialog
+          taskName={taskToStop.name}
+          type="confirm-stop"
+          visible={true}
+        />
+      </Box>
+    );
+  }
+
+  // Show force kill confirmation dialog
+  if (showForceKillConfirm && taskToStop) {
+    return (
+      <Box
+        alignItems="center"
+        flexDirection="column"
+        height={terminalHeight}
+        justifyContent="center"
+        width="100%"
+      >
+        <ConfirmDialog
+          taskName={taskToStop.name}
+          type="force-kill"
+          visible={true}
+        />
       </Box>
     );
   }
@@ -892,6 +1178,8 @@ export function App({ projectPath }: AppProps): React.ReactElement {
             completed={plan.completed}
             inProgress={plan.inProgress}
             selectedIndex={selectedIndex}
+            stopped={plan.stopped}
+            stoppingTaskId={stoppingTaskId}
           />
         )}
       </Box>
