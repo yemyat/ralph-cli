@@ -6,7 +6,7 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ## [2026-01-13 19:00] - Stop In-Progress Tasks
 
-**Commit:** (pending)
+**Commit:** `574277f` feat: add stop in-progress tasks functionality to TUI
 
 **Guardrails:**
 - Pre-flight: ✓
