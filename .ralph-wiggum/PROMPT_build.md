@@ -3,13 +3,13 @@
 You are an autonomous coding agent. Complete one spec at a time.
 
 ## Context (Read First)
-1. Read @.ralph/GUARDRAILS.md — compliance rules for this project
-2. Read @.ralph/IMPLEMENTATION_PLAN.md — find the next spec to work on
-3. Read @.ralph/PROGRESS.md — context from previous runs
-4. Read the spec file from `.ralph/specs/` for the selected work
+1. Read @.ralph-wiggum/GUARDRAILS.md — compliance rules for this project
+2. Read @.ralph-wiggum/IMPLEMENTATION_PLAN.md — find the next spec to work on
+3. Read @.ralph-wiggum/PROGRESS.md — context from previous runs
+4. Read the spec file from `.ralph-wiggum/specs/` for the selected work
 
 ## Rules
-- Complete ONE spec from @.ralph/IMPLEMENTATION_PLAN.md per run
+- Complete ONE spec from @.ralph-wiggum/IMPLEMENTATION_PLAN.md per run
 - Do NOT assume code is missing — search first using subagents (up to 500 for reads, 1 for builds)
 - No placeholders or stubs — implement completely
 - Single sources of truth — no migrations or adapters
@@ -18,9 +18,9 @@ You are an autonomous coding agent. Complete one spec at a time.
 ## Workflow
 
 ### 1. Pre-Flight (Guardrails Check)
-- Read @.ralph/GUARDRAILS.md completely
+- Read @.ralph-wiggum/GUARDRAILS.md completely
 - Verify you understand the "Before Making Changes" rules
-- Pick the next spec from "In Progress" or "Backlog" in @.ralph/IMPLEMENTATION_PLAN.md
+- Pick the next spec from "In Progress" or "Backlog" in @.ralph-wiggum/IMPLEMENTATION_PLAN.md
 - Read that spec file completely — understand all tasks and acceptance criteria
 
 ### 2. Understand Current State
@@ -34,7 +34,7 @@ You are an autonomous coding agent. Complete one spec at a time.
 - Check off tasks as you complete them: `- [x] Task`
 
 ### 4. Post-Flight (Guardrails Check)
-Verify ALL items in @.ralph/GUARDRAILS.md "After Making Changes":
+Verify ALL items in @.ralph-wiggum/GUARDRAILS.md "After Making Changes":
 ```
 bun run typecheck  → PASS/FAIL
 bun run lint       ->PASS/FAIL
@@ -63,7 +63,7 @@ Adjust commands based on project (check package.json or AGENTS.md for available 
 A backend spec is NOT complete until all relevant test suites pass.
 
 ### 7. Update Plan
-- Move spec from "In Progress" to "Completed" in @.ralph/IMPLEMENTATION_PLAN.md
+- Move spec from "In Progress" to "Completed" in @.ralph-wiggum/IMPLEMENTATION_PLAN.md
 - Add any discovered issues as new specs if needed
 
 ### 8. Commit & Push
@@ -73,7 +73,7 @@ git commit -m "feat: <spec name completed>"
 git push
 ```
 
-### 9. Log Progress (Append to @.ralph/PROGRESS.md)
+### 9. Log Progress (Append to @.ralph-wiggum/PROGRESS.md)
 ```markdown
 ## [YYYY-MM-DD HH:MM] - <Spec Name>
 
@@ -99,4 +99,4 @@ git push
 ---
 ```
 
-COMPLETION: When ALL specs in @.ralph/IMPLEMENTATION_PLAN.md are in "Completed", all tests pass, and the final commit/push is done, output exactly: <STATUS>DONE</STATUS>
+COMPLETION: When ALL specs in @.ralph-wiggum/IMPLEMENTATION_PLAN.md are in "Completed", all tests pass, and the final commit/push is done, output exactly: <STATUS>DONE</STATUS>

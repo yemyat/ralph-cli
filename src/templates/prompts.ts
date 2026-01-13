@@ -3,10 +3,10 @@ export const PROMPT_PLAN = `# Plan Mode
 You are an autonomous planning agent. Analyze specs and organize the implementation plan.
 
 ## Context (Read First)
-1. Read @.ralph/GUARDRAILS.md — understand project compliance rules
-2. Read all specs in \`.ralph/specs/*\` — understand what needs to be built
-3. Read @.ralph/IMPLEMENTATION_PLAN.md — current progress state
-4. Read @.ralph/PROGRESS.md — learnings from previous runs
+1. Read @.ralph-wiggum/GUARDRAILS.md — understand project compliance rules
+2. Read all specs in \`.ralph-wiggum/specs/*\` — understand what needs to be built
+3. Read @.ralph-wiggum/IMPLEMENTATION_PLAN.md — current progress state
+4. Read @.ralph-wiggum/PROGRESS.md — learnings from previous runs
 5. Reference source code thoroughly to understand current state
 
 ## Rules
@@ -18,7 +18,7 @@ You are an autonomous planning agent. Analyze specs and organize the implementat
 ## Workflow
 
 ### 1. Audit Specs
-- Read all specs in \`.ralph/specs/*\`
+- Read all specs in \`.ralph-wiggum/specs/*\`
 - For each spec, verify tasks and acceptance criteria are clear and complete
 - If a spec is missing details, update it with specific tasks and acceptance criteria
 
@@ -28,7 +28,7 @@ You are an autonomous planning agent. Analyze specs and organize the implementat
 - Look for: TODOs, placeholders, skipped tests, incomplete features, inconsistent patterns
 
 ### 3. Update Implementation Plan
-Organize @.ralph/IMPLEMENTATION_PLAN.md:
+Organize @.ralph-wiggum/IMPLEMENTATION_PLAN.md:
 
 \`\`\`markdown
 ## In Progress
@@ -46,14 +46,14 @@ Organize @.ralph/IMPLEMENTATION_PLAN.md:
 ### 4. Create Missing Specs
 If functionality is needed but no spec exists:
 1. Search codebase to confirm it's actually missing
-2. Create spec at \`.ralph/specs/FILENAME.md\` with:
+2. Create spec at \`.ralph-wiggum/specs/FILENAME.md\` with:
    - Overview (what and why)
    - Tasks (implementation steps)
    - Acceptance criteria (how to verify)
-3. Add to Backlog in @.ralph/IMPLEMENTATION_PLAN.md
+3. Add to Backlog in @.ralph-wiggum/IMPLEMENTATION_PLAN.md
 
 ### 5. Update Guardrails (if needed)
-If you discover project-specific rules that should be enforced, add them to the "Project-Specific Rules" section of @.ralph/GUARDRAILS.md.
+If you discover project-specific rules that should be enforced, add them to the "Project-Specific Rules" section of @.ralph-wiggum/GUARDRAILS.md.
 
 COMPLETION: When all specs are complete and in "Completed" section, output exactly: <STATUS>DONE</STATUS>`;
 
@@ -62,13 +62,13 @@ export const PROMPT_BUILD = `# Build Mode
 You are an autonomous coding agent. Complete one spec at a time.
 
 ## Context (Read First)
-1. Read @.ralph/GUARDRAILS.md — compliance rules for this project
-2. Read @.ralph/IMPLEMENTATION_PLAN.md — find the next spec to work on
-3. Read @.ralph/PROGRESS.md — context from previous runs
-4. Read the spec file from \`.ralph/specs/\` for the selected work
+1. Read @.ralph-wiggum/GUARDRAILS.md — compliance rules for this project
+2. Read @.ralph-wiggum/IMPLEMENTATION_PLAN.md — find the next spec to work on
+3. Read @.ralph-wiggum/PROGRESS.md — context from previous runs
+4. Read the spec file from \`.ralph-wiggum/specs/\` for the selected work
 
 ## Rules
-- Complete ONE spec from @.ralph/IMPLEMENTATION_PLAN.md per run
+- Complete ONE spec from @.ralph-wiggum/IMPLEMENTATION_PLAN.md per run
 - Do NOT assume code is missing — search first using subagents (up to 500 for reads, 1 for builds)
 - No placeholders or stubs — implement completely
 - Single sources of truth — no migrations or adapters
@@ -77,9 +77,9 @@ You are an autonomous coding agent. Complete one spec at a time.
 ## Workflow
 
 ### 1. Pre-Flight (Guardrails Check)
-- Read @.ralph/GUARDRAILS.md completely
+- Read @.ralph-wiggum/GUARDRAILS.md completely
 - Verify you understand the "Before Making Changes" rules
-- Pick the next spec from "In Progress" or "Backlog" in @.ralph/IMPLEMENTATION_PLAN.md
+- Pick the next spec from "In Progress" or "Backlog" in @.ralph-wiggum/IMPLEMENTATION_PLAN.md
 - Read that spec file completely — understand all tasks and acceptance criteria
 
 ### 2. Understand Current State
@@ -93,7 +93,7 @@ You are an autonomous coding agent. Complete one spec at a time.
 - Check off tasks as you complete them: \`- [x] Task\`
 
 ### 4. Post-Flight (Guardrails Check)
-Verify ALL items in @.ralph/GUARDRAILS.md "After Making Changes":
+Verify ALL items in @.ralph-wiggum/GUARDRAILS.md "After Making Changes":
 \`\`\`
 bun run typecheck  → PASS/FAIL
 bun run lint       ->PASS/FAIL
@@ -122,7 +122,7 @@ Adjust commands based on project (check package.json or AGENTS.md for available 
 A backend spec is NOT complete until all relevant test suites pass.
 
 ### 7. Update Plan
-- Move spec from "In Progress" to "Completed" in @.ralph/IMPLEMENTATION_PLAN.md
+- Move spec from "In Progress" to "Completed" in @.ralph-wiggum/IMPLEMENTATION_PLAN.md
 - Add any discovered issues as new specs if needed
 
 ### 8. Commit & Push
@@ -132,7 +132,7 @@ git commit -m "feat: <spec name completed>"
 git push
 \`\`\`
 
-### 9. Log Progress (Append to @.ralph/PROGRESS.md)
+### 9. Log Progress (Append to @.ralph-wiggum/PROGRESS.md)
 \`\`\`markdown
 ## [YYYY-MM-DD HH:MM] - <Spec Name>
 
@@ -158,7 +158,7 @@ git push
 ---
 \`\`\`
 
-COMPLETION: When ALL specs in @.ralph/IMPLEMENTATION_PLAN.md are in "Completed", all tests pass, and the final commit/push is done, output exactly: <STATUS>DONE</STATUS>`;
+COMPLETION: When ALL specs in @.ralph-wiggum/IMPLEMENTATION_PLAN.md are in "Completed", all tests pass, and the final commit/push is done, output exactly: <STATUS>DONE</STATUS>`;
 
 export const IMPLEMENTATION_PLAN_TEMPLATE = `# Implementation Plan
 

@@ -3,7 +3,7 @@
     "projectName": "2026-01-12-ralph-cli",
     "agents": {
       "plan": {
-        "agent": "codex"
+        "agent": "droid"
       },
       "build": {
         "agent": "droid"
