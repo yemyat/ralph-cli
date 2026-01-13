@@ -6,7 +6,7 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ## [2026-01-13 14:30] - Interactive TUI with Kanban Board
 
-**Commit:** `e097cdb` feat: add interactive TUI with kanban board
+**Commit:** `85592e6` feat: add interactive TUI with kanban board
 
 **Guardrails:**
 - Pre-flight: ✓
