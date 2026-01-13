@@ -4,6 +4,50 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-13 17:30] - Scrollable Spec & Logs Panels
+
+**Commit:** `578b7e4` feat: add scrollable panels to TUI detail view
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS
+- `bun run build` → PASS
+
+**Files changed:**
+- src/tui/app.tsx (added scroll state, panel focus, keyboard handlers for detail view)
+- src/tui/detail-view.tsx (accepts focusedPanel, scroll offsets, autoFollow props)
+- src/tui/spec-viewer.tsx (added isFocused, scrollOffset props, scroll indicators)
+- src/tui/log-viewer.tsx (added isFocused, scrollOffset, autoFollow props, scroll indicators)
+- .ralph-wiggum/specs/003-scrollable-panels.md (marked tasks complete)
+- .ralph-wiggum/IMPLEMENTATION_PLAN.md (moved spec to Completed)
+
+**What was done:**
+1. Added scroll offset state for spec and logs panels
+2. Implemented Tab to switch focus between spec and logs panels
+3. Focused panel shows bold cyan border highlight
+4. Added j/k and ↑/↓ for line-by-line scrolling
+5. Added gg to scroll to top, G to scroll to bottom
+6. Added Ctrl+U/Ctrl+D for half-page scrolling
+7. Added scroll indicators (▲▼) showing content above/below viewport
+8. Added scroll position display (e.g., "1-15/45")
+9. Logs panel auto-follows new content when autoFollow is enabled
+10. Added f key to toggle auto-follow mode for logs
+11. Scrolling up manually pauses auto-follow, G or f re-enables it
+12. Esc still exits detail view (not consumed by scroll handlers)
+
+**Learnings:**
+- Panel focus switching only applies in split view (not for backlog items which show spec only)
+- Auto-follow for logs should pause when user scrolls up but resume on G or f toggle
+- Helper functions for scroll indicators avoid nested ternary lint errors
+- Block statements required for all if statements by lint rules
+
+---
+
 ## [2026-01-13 16:45] - Vim Key Bindings
 
 **Commit:** `8de0f66` feat: add vim keybindings to TUI
