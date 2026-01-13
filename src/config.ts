@@ -40,17 +40,31 @@ export async function getProjectConfig(
   return state?.config || null;
 }
 
+export interface InitProjectOptions {
+  planAgent: AgentType;
+  planModel?: string;
+  buildAgent: AgentType;
+  buildModel?: string;
+}
+
 export async function initProject(
   projectPath: string,
-  agent: AgentType,
-  model?: string
+  options: InitProjectOptions
 ): Promise<RalphConfig> {
   await ensureRalphDirs(projectPath);
 
   const config: RalphConfig = {
     projectName: basename(projectPath),
-    agent,
-    model,
+    agents: {
+      plan: {
+        agent: options.planAgent,
+        model: options.planModel,
+      },
+      build: {
+        agent: options.buildAgent,
+        model: options.buildModel,
+      },
+    },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

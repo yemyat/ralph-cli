@@ -33,10 +33,17 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "test-project");
       await fse.ensureDir(projectPath);
 
-      const config = await initProject(projectPath, "claude", "sonnet");
+      const config = await initProject(projectPath, {
+        planAgent: "claude",
+        planModel: "sonnet",
+        buildAgent: "amp",
+        buildModel: "smart",
+      });
 
-      expect(config.agent).toBe("claude");
-      expect(config.model).toBe("sonnet");
+      expect(config.agents.plan.agent).toBe("claude");
+      expect(config.agents.plan.model).toBe("sonnet");
+      expect(config.agents.build.agent).toBe("amp");
+      expect(config.agents.build.model).toBe("smart");
       expect(config.projectName).toBe("test-project");
       expect(config.createdAt).toBeDefined();
       expect(config.updatedAt).toBeDefined();
@@ -46,7 +53,10 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "test-project-2");
       await fse.ensureDir(projectPath);
 
-      await initProject(projectPath, "amp");
+      await initProject(projectPath, {
+        planAgent: "amp",
+        buildAgent: "amp",
+      });
 
       const ralphDir = getRalphDir(projectPath);
       const exists = await fse.pathExists(ralphDir);
@@ -57,7 +67,10 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "test-project-3");
       await fse.ensureDir(projectPath);
 
-      await initProject(projectPath, "droid");
+      await initProject(projectPath, {
+        planAgent: "droid",
+        buildAgent: "droid",
+      });
 
       const ralphDir = getRalphDir(projectPath);
       const logsExists = await fse.pathExists(join(ralphDir, "logs"));
@@ -82,13 +95,18 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "initialized-project");
       await fse.ensureDir(projectPath);
 
-      await initProject(projectPath, "claude", "opus");
+      await initProject(projectPath, {
+        planAgent: "claude",
+        planModel: "opus",
+        buildAgent: "claude",
+        buildModel: "opus",
+      });
 
       const config = await getProjectConfig(projectPath);
 
       expect(config).not.toBeNull();
-      expect(config?.agent).toBe("claude");
-      expect(config?.model).toBe("opus");
+      expect(config?.agents.plan.agent).toBe("claude");
+      expect(config?.agents.plan.model).toBe("opus");
     });
   });
 
@@ -97,7 +115,10 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "session-project");
       await fse.ensureDir(projectPath);
 
-      await initProject(projectPath, "claude");
+      await initProject(projectPath, {
+        planAgent: "claude",
+        buildAgent: "claude",
+      });
 
       const sessionId = `test-session-${Date.now()}`;
 
@@ -124,7 +145,10 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "get-session-project");
       await fse.ensureDir(projectPath);
 
-      await initProject(projectPath, "amp");
+      await initProject(projectPath, {
+        planAgent: "amp",
+        buildAgent: "amp",
+      });
 
       const sessionId = `session-${Date.now()}`;
       const session: RalphSession = {
@@ -149,7 +173,10 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "delete-session-project");
       await fse.ensureDir(projectPath);
 
-      await initProject(projectPath, "droid");
+      await initProject(projectPath, {
+        planAgent: "droid",
+        buildAgent: "droid",
+      });
 
       const sessionId = `to-delete-${Date.now()}`;
       const session: RalphSession = {
@@ -174,7 +201,10 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "update-session-project");
       await fse.ensureDir(projectPath);
 
-      await initProject(projectPath, "claude");
+      await initProject(projectPath, {
+        planAgent: "claude",
+        buildAgent: "claude",
+      });
 
       const sessionId = `update-${Date.now()}`;
       const session: RalphSession = {
@@ -213,7 +243,10 @@ describe("Config Module", () => {
       const projectPath = join(TEST_DIR, "state-project");
       await fse.ensureDir(projectPath);
 
-      await initProject(projectPath, "claude");
+      await initProject(projectPath, {
+        planAgent: "claude",
+        buildAgent: "claude",
+      });
 
       const state = await loadProjectState(projectPath);
 

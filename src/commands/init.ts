@@ -15,6 +15,10 @@ import { getRalphDir, getSpecsDir, RALPH_LOGS_DIR } from "../utils/paths.js";
 interface InitOptions {
   agent?: AgentType;
   model?: string;
+  planAgent?: AgentType;
+  planModel?: string;
+  buildAgent?: AgentType;
+  buildModel?: string;
   force?: boolean;
 }
 
@@ -43,43 +47,77 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
   if (existingConfig && !options.force) {
     console.log(chalk.yellow("Ralph is already initialized for this project."));
-    console.log(`  Agent: ${chalk.cyan(existingConfig.agent)}`);
-    console.log(`  Model: ${chalk.cyan(existingConfig.model || "default")}`);
+    console.log(`  Plan Agent:  ${chalk.cyan(existingConfig.agents.plan.agent)}`);
+    console.log(`  Plan Model:  ${chalk.cyan(existingConfig.agents.plan.model || "default")}`);
+    console.log(`  Build Agent: ${chalk.cyan(existingConfig.agents.build.agent)}`);
+    console.log(`  Build Model: ${chalk.cyan(existingConfig.agents.build.model || "default")}`);
     console.log(chalk.gray("\nUse --force to reinitialize."));
     return;
   }
 
-  let agent: AgentType = options.agent || "claude";
+  const agentChoices = getAllAgents().map((a) => ({
+    name: `${a.name} (${a.type})`,
+    value: a.type,
+  }));
 
-  if (!options.agent) {
+  let planAgent: AgentType = options.planAgent || options.agent || "claude";
+  let buildAgent: AgentType = options.buildAgent || options.agent || "claude";
+
+  if (!options.planAgent && !options.agent) {
     const answers = await inquirer.prompt([
       {
         type: "list",
-        name: "agent",
-        message: "Select an AI agent:",
-        choices: getAllAgents().map((a) => ({
-          name: `${a.name} (${a.type})`,
-          value: a.type,
-        })),
+        name: "planAgent",
+        message: "Select an AI agent for PLANNING:",
+        choices: agentChoices,
         default: "claude",
       },
     ]);
-    agent = answers.agent;
+    planAgent = answers.planAgent;
   }
 
-  const agentInstance = getAgent(agent);
-  const isInstalled = await agentInstance.checkInstalled();
+  if (!options.buildAgent && !options.agent) {
+    const answers = await inquirer.prompt([
+      {
+        type: "list",
+        name: "buildAgent",
+        message: "Select an AI agent for BUILDING:",
+        choices: agentChoices,
+        default: planAgent,
+      },
+    ]);
+    buildAgent = answers.buildAgent;
+  }
 
-  if (!isInstalled) {
-    console.log(chalk.red(`\n${agentInstance.name} is not installed.\n`));
-    console.log(agentInstance.getInstallInstructions());
+  const planAgentInstance = getAgent(planAgent);
+  const buildAgentInstance = getAgent(buildAgent);
+
+  const planInstalled = await planAgentInstance.checkInstalled();
+  if (!planInstalled) {
+    console.log(chalk.red(`\n${planAgentInstance.name} (plan agent) is not installed.\n`));
+    console.log(planAgentInstance.getInstallInstructions());
     console.log(
       chalk.gray("\nAfter installing, run `ralph-wiggum-cli init` again.")
     );
     return;
   }
 
-  const config = await initProject(projectPath, agent, options.model);
+  const buildInstalled = await buildAgentInstance.checkInstalled();
+  if (!buildInstalled) {
+    console.log(chalk.red(`\n${buildAgentInstance.name} (build agent) is not installed.\n`));
+    console.log(buildAgentInstance.getInstallInstructions());
+    console.log(
+      chalk.gray("\nAfter installing, run `ralph-wiggum-cli init` again.")
+    );
+    return;
+  }
+
+  const config = await initProject(projectPath, {
+    planAgent,
+    planModel: options.planModel || options.model,
+    buildAgent,
+    buildModel: options.buildModel || options.model,
+  });
 
   const ralphDir = getRalphDir(projectPath);
   const specsDir = getSpecsDir(projectPath);
@@ -121,9 +159,9 @@ export async function initCommand(options: InitOptions): Promise<void> {
   await addLogsToGitignore(projectPath);
 
   console.log(chalk.green("\n✓ Ralph initialized successfully!\n"));
-  console.log(`  Project: ${chalk.cyan(config.projectName)}`);
-  console.log(`  Agent:   ${chalk.cyan(agentInstance.name)}`);
-  console.log(`  Model:   ${chalk.cyan(config.model || "default")}`);
+  console.log(`  Project:     ${chalk.cyan(config.projectName)}`);
+  console.log(`  Plan Agent:  ${chalk.cyan(planAgentInstance.name)} ${chalk.gray(`(model: ${config.agents.plan.model || "default"})`)}`);
+  console.log(`  Build Agent: ${chalk.cyan(buildAgentInstance.name)} ${chalk.gray(`(model: ${config.agents.build.model || "default"})`)}`);
   console.log();
   console.log(chalk.gray("Created .ralph-wiggum/ directory with:"));
   console.log(chalk.gray("  - PROMPT_plan.md    (planning mode prompt)"));

@@ -44,8 +44,9 @@ export async function startCommand(
     return;
   }
 
-  const agent = options.agent || config.agent;
-  const model = options.model || config.model;
+  const modeConfig = config.agents[mode];
+  const agent = options.agent || modeConfig.agent;
+  const model = options.model || modeConfig.model;
   const maxIterations = options.maxIterations || 0;
 
   const agentInstance = getAgent(agent);

@@ -14,7 +14,8 @@ export async function listCommand(): Promise<void> {
     return;
   }
 
-  const agent = getAgent(config.agent);
+  const planAgent = getAgent(config.agents.plan.agent);
+  const buildAgent = getAgent(config.agents.build.agent);
   const sessions = await getProjectSessions(projectPath);
   const runningSessions = sessions.filter((s) => s.status === "running");
 
@@ -23,8 +24,8 @@ export async function listCommand(): Promise<void> {
 
   console.log(chalk.bold("\n📁 Ralph Project\n"));
   console.log(`${statusIndicator} ${chalk.cyan(config.projectName)}`);
-  console.log(`    Agent:    ${chalk.gray(agent.name)}`);
-  console.log(`    Model:    ${chalk.gray(config.model || "default")}`);
+  console.log(`    Plan:     ${chalk.gray(planAgent.name)} ${chalk.gray(`(${config.agents.plan.model || "default"})`)}`);
+  console.log(`    Build:    ${chalk.gray(buildAgent.name)} ${chalk.gray(`(${config.agents.build.model || "default"})`)}`);
   console.log(
     `    Sessions: ${chalk.gray(sessions.length)} total, ${chalk.green(runningSessions.length)} running`
   );

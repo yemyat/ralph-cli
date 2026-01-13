@@ -7,10 +7,21 @@ export type AgentType =
   | "codex"
   | "gemini";
 
-export interface RalphConfig {
-  projectName: string;
+export interface AgentConfig {
   agent: AgentType;
   model?: string;
+}
+
+export interface RalphConfig {
+  projectName: string;
+  /** @deprecated Use agents.plan and agents.build instead */
+  agent?: AgentType;
+  /** @deprecated Use agents.plan.model and agents.build.model instead */
+  model?: string;
+  agents: {
+    plan: AgentConfig;
+    build: AgentConfig;
+  };
   maxIterations?: number;
   createdAt: string;
   updatedAt: string;

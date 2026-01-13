@@ -26,13 +26,14 @@ export async function statusCommand(): Promise<void> {
     return;
   }
 
-  const agent = getAgent(config.agent);
+  const planAgent = getAgent(config.agents.plan.agent);
+  const buildAgent = getAgent(config.agents.build.agent);
 
   console.log(chalk.bold("\n📋 Project Status\n"));
-  console.log(`  Project:    ${chalk.cyan(config.projectName)}`);
-  console.log(`  Agent:      ${chalk.cyan(agent.name)}`);
-  console.log(`  Model:      ${chalk.cyan(config.model || "default")}`);
-  console.log(`  Created:    ${chalk.gray(config.createdAt)}`);
+  console.log(`  Project:     ${chalk.cyan(config.projectName)}`);
+  console.log(`  Plan Agent:  ${chalk.cyan(planAgent.name)} ${chalk.gray(`(model: ${config.agents.plan.model || "default"})`)}`);
+  console.log(`  Build Agent: ${chalk.cyan(buildAgent.name)} ${chalk.gray(`(model: ${config.agents.build.model || "default"})`)}`);
+  console.log(`  Created:     ${chalk.gray(config.createdAt)}`);
 
   const sessions = await getProjectSessions(projectPath);
 

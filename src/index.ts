@@ -20,17 +20,21 @@ program
 program
   .command("init")
   .description("Initialize Ralph in the current project")
-  .option(
-    "-a, --agent <agent>",
-    "AI agent to use (claude, amp, droid)",
-    "claude"
-  )
-  .option("-m, --model <model>", "Model to use")
+  .option("-a, --agent <agent>", "AI agent for both modes (claude, amp, droid)")
+  .option("-m, --model <model>", "Model for both modes")
+  .option("--plan-agent <agent>", "AI agent for planning mode")
+  .option("--plan-model <model>", "Model for planning mode")
+  .option("--build-agent <agent>", "AI agent for building mode")
+  .option("--build-model <model>", "Model for building mode")
   .option("-f, --force", "Force reinitialization")
   .action(async (options) => {
     await initCommand({
       agent: options.agent as AgentType,
       model: options.model,
+      planAgent: options.planAgent as AgentType,
+      planModel: options.planModel,
+      buildAgent: options.buildAgent as AgentType,
+      buildModel: options.buildModel,
       force: options.force,
     });
   });
