@@ -9,6 +9,10 @@ import { getProjectSessions, saveSession } from "../config";
 import type { RalphSession } from "../types";
 import { ConfirmDialog } from "./confirm-dialog";
 import { HelpOverlay } from "./help-overlay";
+import {
+  type KeyEvent,
+  useKeyboardNavigation,
+} from "./hooks/use-keyboard-navigation";
 import { TIMING, TOKYO_NIGHT } from "./lib/constants";
 import {
   appendToLog,
@@ -20,7 +24,7 @@ import {
 import { LoadingSpinner } from "./loading-spinner";
 import { Sidebar } from "./sidebar";
 import { TaskDetail } from "./task-detail";
-import type { ParsedPlan, Task, VimMode } from "./types";
+import type { ParsedPlan, Task } from "./types";
 
 interface AppProps {
   projectPath: string;
@@ -40,23 +44,11 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     completed: [],
     stopped: [],
   });
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [specContent, setSpecContent] = useState("");
   const [logPath, setLogPath] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
-
-  // Vim keybindings state
-  const [mode, setMode] = useState<VimMode>("normal");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchMatches, setSearchMatches] = useState<Task[]>([]);
-  const [searchMatchIndex, setSearchMatchIndex] = useState(0);
-  const [commandBuffer, setCommandBuffer] = useState("");
   const [showHelp, setShowHelp] = useState(false);
-  const lastKeyRef = useRef<{ key: string; time: number }>({
-    key: "",
-    time: 0,
-  });
 
   // Detail scroll state
   const [detailScrollOffset, setDetailScrollOffset] = useState(0);
@@ -90,30 +82,25 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     return tasks;
   }, [plan, showCompleted]);
 
-  // Get all tasks flattened
-  const getAllTasks = useCallback((): Task[] => {
-    return [
-      ...plan.inProgress,
-      ...plan.stopped,
-      ...plan.backlog,
-      ...plan.completed,
-    ];
-  }, [plan]);
+  // Keyboard navigation hook
+  const visibleTasks = getVisibleTasks();
+  const {
+    mode,
+    selectedIndex,
+    searchState,
+    commandBuffer,
+    handlers: navHandlers,
+  } = useKeyboardNavigation(visibleTasks, {
+    onExit: exit,
+  });
 
-  // Update search matches when query changes
+  // Sync selectedTask with hook's selectedIndex
   useEffect(() => {
-    if (searchQuery.length > 0) {
-      const allTasks = getAllTasks();
-      const matches = allTasks.filter((task) =>
-        task.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setSearchMatches(matches);
-      setSearchMatchIndex(0);
-    } else {
-      setSearchMatches([]);
-      setSearchMatchIndex(0);
+    const task = visibleTasks[selectedIndex];
+    if (task && task.id !== selectedTask?.id) {
+      setSelectedTask(task);
     }
-  }, [searchQuery, getAllTasks]);
+  }, [selectedIndex, visibleTasks, selectedTask?.id]);
 
   // Load implementation plan
   useEffect(() => {
@@ -122,14 +109,13 @@ export function App({ projectPath }: AppProps): React.ReactNode {
         const parsedPlan = await parseImplementationPlan(projectPath);
         setPlan(parsedPlan);
 
-        // Select first task from visible list
+        // Select first task from visible list (hook initializes at index 0)
         const firstTask =
           parsedPlan.inProgress[0] ||
           parsedPlan.stopped[0] ||
           parsedPlan.backlog[0];
         if (firstTask) {
           setSelectedTask(firstTask);
-          setSelectedIndex(0);
         }
 
         // Get latest log file path
@@ -190,99 +176,6 @@ export function App({ projectPath }: AppProps): React.ReactNode {
       }
     };
   }, []);
-
-  // Navigate to a specific task in the flat list
-  const navigateToTask = useCallback(
-    (task: Task) => {
-      const tasks = getVisibleTasks();
-      const index = tasks.findIndex((t) => t.id === task.id);
-      if (index !== -1) {
-        setSelectedIndex(index);
-        setSelectedTask(task);
-      }
-    },
-    [getVisibleTasks]
-  );
-
-  // Select current search match
-  const selectSearchMatch = useCallback(() => {
-    if (searchMatches.length > 0 && searchMatchIndex < searchMatches.length) {
-      const match = searchMatches[searchMatchIndex];
-      navigateToTask(match);
-      setMode("normal");
-      setSearchQuery("");
-    }
-  }, [searchMatches, searchMatchIndex, navigateToTask]);
-
-  // Jump to first/last item in the task list
-  const jumpToFirst = useCallback(() => {
-    const tasks = getVisibleTasks();
-    if (tasks.length > 0) {
-      setSelectedIndex(0);
-      setSelectedTask(tasks[0]);
-    }
-  }, [getVisibleTasks]);
-
-  const jumpToLast = useCallback(() => {
-    const tasks = getVisibleTasks();
-    const lastTask = tasks.at(-1);
-    if (tasks.length > 0 && lastTask) {
-      setSelectedIndex(tasks.length - 1);
-      setSelectedTask(lastTask);
-    }
-  }, [getVisibleTasks]);
-
-  // Handle gg double-tap detection
-  const handleDoubleTapG = useCallback((): boolean => {
-    const now = Date.now();
-    const lastKey = lastKeyRef.current;
-    if (lastKey.key === "g" && now - lastKey.time < TIMING.DOUBLE_TAP_MS) {
-      jumpToFirst();
-      lastKeyRef.current = { key: "", time: 0 };
-      return true;
-    }
-    lastKeyRef.current = { key: "g", time: now };
-    return true;
-  }, [jumpToFirst]);
-
-  // Handle search match navigation
-  const handleSearchMatchNav = useCallback(
-    (direction: "next" | "prev"): boolean => {
-      if (searchMatches.length === 0) {
-        return false;
-      }
-      const newIndex =
-        direction === "next"
-          ? (searchMatchIndex + 1) % searchMatches.length
-          : (searchMatchIndex - 1 + searchMatches.length) %
-            searchMatches.length;
-      setSearchMatchIndex(newIndex);
-      navigateToTask(searchMatches[newIndex]);
-      return true;
-    },
-    [searchMatches, searchMatchIndex, navigateToTask]
-  );
-
-  // Handle vertical navigation
-  const handleVerticalNav = useCallback(
-    (direction: "up" | "down"): boolean => {
-      const tasks = getVisibleTasks();
-      if (direction === "up" && selectedIndex > 0) {
-        const newIndex = selectedIndex - 1;
-        setSelectedIndex(newIndex);
-        setSelectedTask(tasks[newIndex]);
-        return true;
-      }
-      if (direction === "down" && selectedIndex < tasks.length - 1) {
-        const newIndex = selectedIndex + 1;
-        setSelectedIndex(newIndex);
-        setSelectedTask(tasks[newIndex]);
-        return true;
-      }
-      return false;
-    },
-    [selectedIndex, getVisibleTasks]
-  );
 
   // Initiate stop action - show confirmation dialog
   const initiateStop = useCallback((task: Task): void => {
@@ -412,29 +305,12 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     setShowCompleted((prev) => !prev);
   }, []);
 
-  // Handle single-character mode/action keys
-  const handleSingleCharKey = useCallback(
+  // Handle app-specific keys in normal mode (not handled by navigation hook)
+  const handleAppSpecificKeys = useCallback(
     (input: string): boolean => {
       switch (input) {
         case "?":
           setShowHelp(true);
-          return true;
-        case "/":
-          setMode("search");
-          setSearchQuery("");
-          return true;
-        case ":":
-          setMode("command");
-          setCommandBuffer(":");
-          return true;
-        case "G":
-          jumpToLast();
-          return true;
-        case "n":
-          handleSearchMatchNav("next");
-          return true;
-        case "N":
-          handleSearchMatchNav("prev");
           return true;
         case "c":
           toggleCompleted();
@@ -446,164 +322,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
           return false;
       }
     },
-    [jumpToLast, handleSearchMatchNav, handleStopKey, toggleCompleted]
-  );
-
-  // Handle movement keys (arrows, jk)
-  const handleMovementKeys = useCallback(
-    (
-      input: string,
-      key: {
-        isUpArrow?: boolean;
-        isDownArrow?: boolean;
-      }
-    ): boolean => {
-      // Vertical navigation
-      if (key.isUpArrow || input === "k") {
-        return handleVerticalNav("up");
-      }
-      if (key.isDownArrow || input === "j") {
-        return handleVerticalNav("down");
-      }
-
-      return false;
-    },
-    [handleVerticalNav]
-  );
-
-  // Handle sidebar navigation in normal mode
-  const handleNormalModeInput = useCallback(
-    (
-      input: string,
-      key: {
-        isUpArrow?: boolean;
-        isDownArrow?: boolean;
-        ctrl?: boolean;
-        isEscape?: boolean;
-      }
-    ) => {
-      // Check for gg (double-tap g)
-      if (input === "g") {
-        handleDoubleTapG();
-        return;
-      }
-
-      // Clear last key on any other input
-      lastKeyRef.current = { key: "", time: 0 };
-
-      // Single-character mode/action keys
-      if (handleSingleCharKey(input)) {
-        return;
-      }
-
-      // Ctrl+C to quit
-      if (key.ctrl && input === "c") {
-        exit();
-        return;
-      }
-
-      // Movement keys
-      if (handleMovementKeys(input, key)) {
-        return;
-      }
-
-      // Quit (only if no search matches)
-      if (input === "q" && searchMatches.length === 0) {
-        exit();
-      }
-    },
-    [
-      exit,
-      searchMatches,
-      handleDoubleTapG,
-      handleSingleCharKey,
-      handleMovementKeys,
-    ]
-  );
-
-  // Handle search mode input
-  const handleSearchModeInput = useCallback(
-    (
-      input: string,
-      key: {
-        isReturn?: boolean;
-        isEscape?: boolean;
-        isBackspace?: boolean;
-        isDelete?: boolean;
-      }
-    ) => {
-      // Cancel search
-      if (key.isEscape) {
-        setMode("normal");
-        setSearchQuery("");
-        return;
-      }
-
-      // Select current match
-      if (key.isReturn) {
-        selectSearchMatch();
-        return;
-      }
-
-      // Backspace
-      if (key.isBackspace || key.isDelete) {
-        setSearchQuery((prev) => prev.slice(0, -1));
-        return;
-      }
-
-      // Add character to search query
-      if (input.length === 1 && input.charCodeAt(0) >= 32) {
-        setSearchQuery((prev) => prev + input);
-      }
-    },
-    [selectSearchMatch]
-  );
-
-  // Handle command mode input
-  const handleCommandModeInput = useCallback(
-    (
-      input: string,
-      key: {
-        isReturn?: boolean;
-        isEscape?: boolean;
-        isBackspace?: boolean;
-        isDelete?: boolean;
-      }
-    ) => {
-      // Cancel command
-      if (key.isEscape) {
-        setMode("normal");
-        setCommandBuffer("");
-        return;
-      }
-
-      // Execute command
-      if (key.isReturn) {
-        if (commandBuffer === ":q" || commandBuffer === ":quit") {
-          exit();
-        }
-        setMode("normal");
-        setCommandBuffer("");
-        return;
-      }
-
-      // Backspace
-      if (key.isBackspace || key.isDelete) {
-        if (commandBuffer.length > 1) {
-          setCommandBuffer((prev) => prev.slice(0, -1));
-        } else {
-          setMode("normal");
-          setCommandBuffer("");
-        }
-        return;
-      }
-
-      // Add character to command
-      if (input.length === 1 && input.charCodeAt(0) >= 32) {
-        setCommandBuffer((prev) => prev + input);
-      }
-    },
-    [exit, commandBuffer]
+    [handleStopKey, toggleCompleted]
   );
 
   // Handle force kill dialog input
@@ -654,55 +373,42 @@ export function App({ projectPath }: AppProps): React.ReactNode {
 
   // Handle main input (routes to mode-specific handlers)
   const handleMainInput = useCallback(
-    (
-      input: string,
-      key: {
-        isUpArrow?: boolean;
-        isDownArrow?: boolean;
-        ctrl?: boolean;
-        isEscape?: boolean;
-        isBackspace?: boolean;
-        isDelete?: boolean;
-        isReturn?: boolean;
-      }
-    ) => {
+    (keyEvent: KeyEvent) => {
+      const { input, isEscape } = keyEvent;
+
       // Handle dialogs and overlays first
-      if (handleForceKillDialogInput(input, key.isEscape ?? false)) {
+      if (handleForceKillDialogInput(input, isEscape ?? false)) {
         return;
       }
-      if (handleStopDialogInput(input, key.isEscape ?? false)) {
+      if (handleStopDialogInput(input, isEscape ?? false)) {
         return;
       }
-      if (handleHelpOverlayInput(input, key.isEscape ?? false)) {
+      if (handleHelpOverlayInput(input, isEscape ?? false)) {
         return;
       }
 
-      // Route to mode-specific handler
-      switch (mode) {
-        case "search":
-          handleSearchModeInput(input, key);
-          break;
-        case "command":
-          handleCommandModeInput(input, key);
-          break;
-        default:
-          handleNormalModeInput(input, key);
+      // In normal mode, check app-specific keys first
+      if (mode === "normal" && handleAppSpecificKeys(input)) {
+        return;
       }
+
+      // Route all other input to the navigation hook
+      navHandlers.handleKeyEvent(keyEvent);
     },
     [
       mode,
       handleForceKillDialogInput,
       handleStopDialogInput,
       handleHelpOverlayInput,
-      handleNormalModeInput,
-      handleSearchModeInput,
-      handleCommandModeInput,
+      handleAppSpecificKeys,
+      navHandlers,
     ]
   );
 
   // Keyboard input handling
   useKeyboard((keyEvent) => {
-    const key = {
+    const event: KeyEvent = {
+      input: keyEvent.sequence || "",
       isUpArrow: keyEvent.name === "up",
       isDownArrow: keyEvent.name === "down",
       isReturn: keyEvent.name === "return",
@@ -711,8 +417,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
       isDelete: keyEvent.name === "delete",
       ctrl: keyEvent.ctrl,
     };
-    const input = keyEvent.sequence || "";
-    handleMainInput(input, key);
+    handleMainInput(event);
   });
 
   // Loading state
@@ -751,12 +456,12 @@ export function App({ projectPath }: AppProps): React.ReactNode {
       return (
         <text>
           <span fg={TOKYO_NIGHT.purple}>/</span>
-          <span fg={TOKYO_NIGHT.fg}>{searchQuery}</span>
+          <span fg={TOKYO_NIGHT.fg}>{searchState.query}</span>
           <span fg={TOKYO_NIGHT.comment}>_</span>
-          {searchMatches.length > 0 && (
+          {searchState.matches.length > 0 && (
             <span fg={TOKYO_NIGHT.comment}>
               {" "}
-              ({searchMatchIndex + 1}/{searchMatches.length})
+              ({searchState.matchIndex + 1}/{searchState.matches.length})
             </span>
           )}
         </text>

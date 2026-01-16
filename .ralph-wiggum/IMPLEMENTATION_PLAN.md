@@ -4,7 +4,6 @@ Progress orchestrator tracking spec completion status.
 
 ## In Progress
 <!-- Specs currently being worked on -->
-- [Extract Keyboard Navigation Hook](specs/006-extract-keyboard-navigation-hook.md)
 
 ## Backlog
 <!-- Specs not yet started, in priority order -->
@@ -14,6 +13,7 @@ Progress orchestrator tracking spec completion status.
 
 ## Completed
 <!-- Specs fully implemented and verified -->
+- specs/006-extract-keyboard-navigation-hook.md
 - specs/001-interactive-tui.md
 - specs/002-fix-template-tests.md
 - specs/002-vim-keybindings.md

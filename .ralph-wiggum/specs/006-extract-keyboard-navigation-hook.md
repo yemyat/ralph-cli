@@ -9,7 +9,7 @@ Extract the vim-style keyboard navigation logic from `app.tsx` into a dedicated 
 - [x] Extract search functionality (query, matches, navigation)
 - [x] Extract command mode handling
 - [x] Extract double-tap detection logic (gg)
-- [ ] Wire hook into `app.tsx` replacing inline state
+- [x] Wire hook into `app.tsx` replacing inline state
 - [x] Add unit tests for hook behavior
 
 ## Acceptance Criteria
@@ -42,9 +42,9 @@ Extract the vim-style keyboard navigation logic from `app.tsx` into a dedicated 
 - [x] AC 19: Empty search clears matches array
 
 ### Integration
-- [ ] AC 20: `app.tsx` uses hook instead of inline useState calls
-- [ ] AC 21: All existing keyboard shortcuts work identically after refactor
-- [ ] AC 22: No visual/behavioral regression in TUI
+- [x] AC 20: `app.tsx` uses hook instead of inline useState calls
+- [x] AC 21: All existing keyboard shortcuts work identically after refactor
+- [x] AC 22: No visual/behavioral regression in TUI
 
 ## Notes
 - Keep the hook focused on navigation state only—no process control or file I/O
@@ -54,15 +54,14 @@ Extract the vim-style keyboard navigation logic from `app.tsx` into a dedicated 
 
 ## Implementation Status
 
-**Hook Implementation: COMPLETE**
+**COMPLETE**
+
+Hook:
 - File: `src/tui/hooks/use-keyboard-navigation.ts`
 - Tests: `src/tui/hooks/__tests__/use-keyboard-navigation.test.ts`
 
-**App Integration: PENDING**
-The hook is fully functional but integration with `app.tsx` requires:
-1. Replacing inline navigation state with hook state
-2. Syncing `selectedTask` with hook's `selectedIndex`
-3. Routing keyboard events through the hook
-4. Keeping app-specific handlers (stop, help, toggle completed) in app.tsx
-
-This integration should be done carefully to avoid regressions in the TUI.
+App Integration:
+- Removed ~150 lines of inline navigation state from `app.tsx`
+- Hook manages: mode, selectedIndex, searchState, commandBuffer
+- App manages: selectedTask (synced from hook's selectedIndex), showHelp, stop dialogs
+- App-specific keys (?, c, s/x) handled before routing to hook
