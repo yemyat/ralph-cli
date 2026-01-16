@@ -1,7 +1,8 @@
 import { TextAttributes } from "@opentui/core";
 import type React from "react";
+import { STATUS_COLORS, STATUS_ICONS, TOKYO_NIGHT } from "./lib/constants";
 import { LoadingSpinner } from "./loading-spinner";
-import type { Task } from "./utils";
+import type { Task } from "./types";
 
 interface SidebarItemProps {
   task: Task;
@@ -14,38 +15,10 @@ function SidebarItem({
   isSelected,
   isStopping,
 }: SidebarItemProps): React.ReactNode {
-  const getIcon = (): string => {
-    switch (task.status) {
-      case "in_progress":
-        return "●";
-      case "backlog":
-        return "○";
-      case "completed":
-        return "✓";
-      case "stopped":
-        return "■";
-      default:
-        return "?";
-    }
-  };
-
-  const getColor = (): string => {
-    if (isSelected) {
-      return "#7aa2f7"; // tokyo night blue
-    }
-    switch (task.status) {
-      case "in_progress":
-        return "#e0af68"; // tokyo night yellow
-      case "backlog":
-        return "#c0caf5"; // tokyo night fg
-      case "completed":
-        return "#9ece6a"; // tokyo night green
-      case "stopped":
-        return "#f7768e"; // tokyo night red
-      default:
-        return "#565f89"; // tokyo night comment
-    }
-  };
+  const icon = STATUS_ICONS[task.status] ?? "?";
+  const color = isSelected
+    ? TOKYO_NIGHT.blue
+    : (STATUS_COLORS[task.status] ?? TOKYO_NIGHT.comment);
 
   if (isStopping) {
     let attrs = TextAttributes.BOLD;
@@ -54,7 +27,7 @@ function SidebarItem({
       attrs = TextAttributes.BOLD | TextAttributes.INVERSE;
     }
     return (
-      <text attributes={attrs} fg="#e0af68">
+      <text attributes={attrs} fg={TOKYO_NIGHT.yellow}>
         {" "}
         <LoadingSpinner /> {task.name.slice(0, 20)}...
       </text>
@@ -63,19 +36,19 @@ function SidebarItem({
 
   const displayName =
     task.name.length > 22 ? `${task.name.slice(0, 22)}...` : task.name;
-  const content = ` ${getIcon()} ${displayName}`;
+  const content = ` ${icon} ${displayName}`;
 
   if (isSelected) {
     // biome-ignore lint/suspicious/noBitwiseOperators: intentional bitwise OR
     const attrs = TextAttributes.BOLD | TextAttributes.INVERSE;
     return (
-      <text attributes={attrs} fg={getColor()}>
+      <text attributes={attrs} fg={color}>
         {content}
       </text>
     );
   }
 
-  return <text fg={getColor()}>{content}</text>;
+  return <text fg={color}>{content}</text>;
 }
 
 interface SectionProps {
@@ -107,7 +80,7 @@ function Section({
         <strong>
           {icon} {title}
         </strong>
-        <span fg="#565f89"> ({tasks.length})</span>
+        <span fg={TOKYO_NIGHT.comment}> ({tasks.length})</span>
       </text>
       {!collapsed &&
         tasks.map((task) => (
@@ -119,7 +92,7 @@ function Section({
           />
         ))}
       {collapsed && tasks.length > 0 && (
-        <text fg="#565f89"> Press 'c' to show</text>
+        <text fg={TOKYO_NIGHT.comment}> Press 'c' to show</text>
       )}
     </box>
   );
@@ -153,7 +126,7 @@ export function Sidebar({
   return (
     <box
       border
-      borderColor="#414868"
+      borderColor={TOKYO_NIGHT.border}
       borderStyle="single"
       flexDirection="column"
       height={height}
@@ -162,7 +135,7 @@ export function Sidebar({
       width={width}
     >
       <Section
-        headerColor="#e0af68"
+        headerColor={TOKYO_NIGHT.yellow}
         icon="▶"
         selectedTaskId={selectedTaskId}
         stoppingTaskId={stoppingTaskId}
@@ -170,7 +143,7 @@ export function Sidebar({
         title="IN PROGRESS"
       />
       <Section
-        headerColor="#c0caf5"
+        headerColor={TOKYO_NIGHT.fg}
         icon="○"
         selectedTaskId={selectedTaskId}
         stoppingTaskId={stoppingTaskId}
@@ -179,7 +152,7 @@ export function Sidebar({
       />
       <Section
         collapsed={!showCompleted}
-        headerColor="#9ece6a"
+        headerColor={TOKYO_NIGHT.green}
         icon="✓"
         selectedTaskId={selectedTaskId}
         tasks={completed}

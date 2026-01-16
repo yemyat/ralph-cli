@@ -1,9 +1,8 @@
 import type React from "react";
+import { TOKYO_NIGHT } from "./lib/constants";
 import { LogViewer } from "./log-viewer";
 import { SpecViewer } from "./spec-viewer";
-import type { Task } from "./utils";
-
-export type FocusedPanel = "spec" | "logs";
+import type { FocusedPanel, Task } from "./types";
 
 interface DetailViewProps {
   task: Task;
@@ -44,10 +43,10 @@ export function DetailView({
     return (
       <box flexDirection="column" width="100%">
         <box justifyContent="space-between" marginBottom={1}>
-          <text fg="#00FFFF">
+          <text fg={TOKYO_NIGHT.cyan}>
             <strong>{task.name}</strong>
           </text>
-          <text fg="#808080">[Esc] back [j/k] scroll</text>
+          <text fg={TOKYO_NIGHT.comment}>[Esc] back [j/k] scroll</text>
         </box>
         <SpecViewer
           content={specContent}
@@ -67,10 +66,10 @@ export function DetailView({
   return (
     <box flexDirection="column" width="100%">
       <box justifyContent="space-between" marginBottom={1}>
-        <text fg="#00FFFF">
+        <text fg={TOKYO_NIGHT.cyan}>
           <strong>{task.name}</strong>
         </text>
-        <text fg="#808080">{getHintText()}</text>
+        <text fg={TOKYO_NIGHT.comment}>{getHintText()}</text>
       </box>
       <box flexDirection="row" width="100%">
         <box width={panelWidth}>

@@ -17,8 +17,10 @@ Compliance rules to verify before and after making changes.
 
 ## Project-Specific Rules
 - Use Bun for all scripts: `bun run test`, `bun run build`, `bun run typecheck`
-- Follow existing patterns: Commander for CLI, chalk for colors
+- Follow existing patterns: Commander for CLI, picocolors for terminal colors
 - When adding new dependencies, verify they work with Bun bundler
-- For TUI work: Use `ink` for React-based TUI, `@clack/prompts` only for init flow
+- For TUI work: Use `@opentui/react` for React-based TUI, `@clack/prompts` only for init flow
+- TUI components use Tokyo Night color palette - import from `lib/constants.ts` (once created)
+- TUI types (Task, ParsedPlan, etc.) should be imported from `types.ts` (once created)
 - TypeScript strict mode is enabled - all types must be explicit
 - Test files go in `src/__tests__/` with `.test.ts` extension

@@ -1,26 +1,14 @@
 import { join } from "node:path";
 import fse from "fs-extra";
 import { getLogsDir, getRalphDir, getSpecsDir } from "../utils/paths";
+import type { ParsedPlan, Task, TaskStatus } from "./types";
+
+// Re-export types for backwards compatibility
+export type { ParsedPlan, Task, TaskStatus } from "./types";
 
 // Top-level regex patterns for performance
 const SPEC_REFERENCE_REGEX = /^-\s*(?:\[.?\]\s*)?(specs\/[\w-]+\.md)/;
 const LEADING_NUMBERS_REGEX = /^\d+-/;
-
-export type TaskStatus = "backlog" | "in_progress" | "completed" | "stopped";
-
-export interface Task {
-  id: string;
-  name: string;
-  specPath: string;
-  status: TaskStatus;
-}
-
-export interface ParsedPlan {
-  inProgress: Task[];
-  backlog: Task[];
-  completed: Task[];
-  stopped: Task[];
-}
 
 /**
  * Parse IMPLEMENTATION_PLAN.md to extract tasks organized by status

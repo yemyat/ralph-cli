@@ -1,6 +1,6 @@
 import type React from "react";
-
-export type DialogType = "confirm-stop" | "force-kill";
+import { TOKYO_NIGHT } from "./lib/constants";
+import type { DialogType } from "./types";
 
 interface ConfirmDialogProps {
   type: DialogType;
@@ -21,7 +21,7 @@ export function ConfirmDialog({
     return (
       <box
         border
-        borderColor="#FFFF00"
+        borderColor={TOKYO_NIGHT.yellow}
         borderStyle="single"
         flexDirection="column"
         paddingBottom={1}
@@ -33,7 +33,7 @@ export function ConfirmDialog({
           <strong>Stop &quot;{taskName}&quot;?</strong>
         </text>
         <box marginTop={1}>
-          <text fg="#808080">[y] Yes [n] No</text>
+          <text fg={TOKYO_NIGHT.comment}>[y] Yes [n] No</text>
         </box>
       </box>
     );
@@ -43,7 +43,7 @@ export function ConfirmDialog({
   return (
     <box
       border
-      borderColor="#FF0000"
+      borderColor={TOKYO_NIGHT.red}
       borderStyle="single"
       flexDirection="column"
       paddingBottom={1}
@@ -51,8 +51,8 @@ export function ConfirmDialog({
       paddingRight={2}
       paddingTop={1}
     >
-      <text fg="#FF0000">
-        <strong>⚠️ Process not responding</strong>
+      <text fg={TOKYO_NIGHT.red}>
+        <strong>Warning: Process not responding</strong>
       </text>
       <box marginTop={1}>
         <text>&quot;{taskName}&quot; did not stop gracefully.</text>
@@ -61,7 +61,7 @@ export function ConfirmDialog({
         <text>Force kill? This may leave incomplete changes.</text>
       </box>
       <box marginTop={1}>
-        <text fg="#808080">[y] Force Kill [n] Keep Waiting</text>
+        <text fg={TOKYO_NIGHT.comment}>[y] Force Kill [n] Keep Waiting</text>
       </box>
     </box>
   );

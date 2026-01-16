@@ -1,9 +1,5 @@
 import pc from "picocolors";
-import {
-  getProjectConfig,
-  getProjectSessions,
-  saveSession,
-} from "../config";
+import { getProjectConfig, getProjectSessions, saveSession } from "../config";
 
 export async function stopCommand(): Promise<void> {
   const projectPath = process.cwd();

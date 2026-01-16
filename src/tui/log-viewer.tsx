@@ -1,4 +1,5 @@
 import type React from "react";
+import { TOKYO_NIGHT } from "./lib/constants";
 import { LoadingSpinner } from "./loading-spinner";
 
 interface LogViewerProps {
@@ -21,7 +22,7 @@ function renderLogLine(line: string, index: number): React.ReactNode {
     trimmed.includes("success")
   ) {
     return (
-      <text fg="#00FF00" key={index}>
+      <text fg={TOKYO_NIGHT.green} key={index}>
         {line}
       </text>
     );
@@ -35,7 +36,7 @@ function renderLogLine(line: string, index: number): React.ReactNode {
     trimmed.includes("Error")
   ) {
     return (
-      <text fg="#FF0000" key={index}>
+      <text fg={TOKYO_NIGHT.red} key={index}>
         {line}
       </text>
     );
@@ -48,7 +49,7 @@ function renderLogLine(line: string, index: number): React.ReactNode {
     trimmed.includes("WARN")
   ) {
     return (
-      <text fg="#FFFF00" key={index}>
+      <text fg={TOKYO_NIGHT.yellow} key={index}>
         {line}
       </text>
     );
@@ -57,7 +58,7 @@ function renderLogLine(line: string, index: number): React.ReactNode {
   // Command indicators
   if (trimmed.startsWith(">") || trimmed.startsWith("$")) {
     return (
-      <text fg="#00FFFF" key={index}>
+      <text fg={TOKYO_NIGHT.cyan} key={index}>
         {line}
       </text>
     );
@@ -105,8 +106,8 @@ export function LogViewer({
     totalLines > 0 ? `${currentLine}-${endLine}/${totalLines}` : "0/0";
 
   // Border color changes based on focus
-  const borderColor = isFocused ? "#00FFFF" : "#00FF00";
-  const titleColor = isFocused ? "#00FFFF" : "#00FF00";
+  const borderColor = isFocused ? TOKYO_NIGHT.cyan : TOKYO_NIGHT.green;
+  const titleColor = isFocused ? TOKYO_NIGHT.cyan : TOKYO_NIGHT.green;
 
   // Build scroll indicator string
   const getScrollIndicator = (): string => {
@@ -141,18 +142,18 @@ export function LogViewer({
       <box justifyContent="space-between" marginBottom={1}>
         <box>
           <text fg={titleColor}>
-            <strong>📜 Logs{followLabel}</strong>
+            <strong>Logs{followLabel}</strong>
           </text>
           {isStreaming && (
-            <text fg="#FFFF00">
+            <text fg={TOKYO_NIGHT.yellow}>
               {" "}
               <LoadingSpinner />
             </text>
           )}
         </box>
         <box>
-          <text fg="#808080">{scrollIndicator} </text>
-          <text fg="#808080">[{scrollPosition}]</text>
+          <text fg={TOKYO_NIGHT.comment}>{scrollIndicator} </text>
+          <text fg={TOKYO_NIGHT.comment}>[{scrollPosition}]</text>
         </box>
       </box>
 
@@ -160,7 +161,7 @@ export function LogViewer({
       <box flexDirection="column">
         {displayLines.length === 0 ||
         (displayLines.length === 1 && displayLines[0] === "") ? (
-          <text fg="#808080">No logs available.</text>
+          <text fg={TOKYO_NIGHT.comment}>No logs available.</text>
         ) : (
           displayLines.map((line, index) =>
             renderLogLine(line, effectiveOffset + index)

@@ -9,27 +9,22 @@ import { getProjectSessions, saveSession } from "../config";
 import type { RalphSession } from "../types";
 import { ConfirmDialog } from "./confirm-dialog";
 import { HelpOverlay } from "./help-overlay";
+import { TIMING, TOKYO_NIGHT } from "./lib/constants";
 import { LoadingSpinner } from "./loading-spinner";
 import { Sidebar } from "./sidebar";
 import { TaskDetail } from "./task-detail";
+import type { ParsedPlan, Task, VimMode } from "./types";
 import {
   appendToLog,
   getLatestSessionLog,
   markTaskAsStopped,
-  type ParsedPlan,
   parseImplementationPlan,
   readSpecContent,
-  type Task,
 } from "./utils";
-
-type Mode = "normal" | "search" | "command";
 
 interface AppProps {
   projectPath: string;
 }
-
-// Timeout for detecting double-tap (gg)
-const DOUBLE_TAP_TIMEOUT = 300;
 
 export function App({ projectPath }: AppProps): React.ReactNode {
   const renderer = useRenderer();
@@ -52,7 +47,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   const [showCompleted, setShowCompleted] = useState(false);
 
   // Vim keybindings state
-  const [mode, setMode] = useState<Mode>("normal");
+  const [mode, setMode] = useState<VimMode>("normal");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMatches, setSearchMatches] = useState<Task[]>([]);
   const [searchMatchIndex, setSearchMatchIndex] = useState(0);
@@ -182,8 +177,8 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     };
     loadRunningSession();
 
-    // Poll for session status every 2 seconds
-    const intervalId = setInterval(loadRunningSession, 2000);
+    // Poll for session status
+    const intervalId = setInterval(loadRunningSession, TIMING.POLL_INTERVAL_MS);
     return () => clearInterval(intervalId);
   }, [projectPath]);
 
@@ -241,7 +236,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   const handleDoubleTapG = useCallback((): boolean => {
     const now = Date.now();
     const lastKey = lastKeyRef.current;
-    if (lastKey.key === "g" && now - lastKey.time < DOUBLE_TAP_TIMEOUT) {
+    if (lastKey.key === "g" && now - lastKey.time < TIMING.DOUBLE_TAP_MS) {
       jumpToFirst();
       lastKeyRef.current = { key: "", time: 0 };
       return true;
@@ -365,7 +360,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
       }
     }
 
-    // Start 5-second timeout for graceful shutdown
+    // Start timeout for graceful shutdown
     stopTimeoutRef.current = setTimeout(async () => {
       // Check if process is still running
       if (runningSession?.pid) {
@@ -383,7 +378,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
       } else if (taskToStop) {
         await completeStop(taskToStop, false);
       }
-    }, 5000);
+    }, TIMING.GRACEFUL_SHUTDOWN_MS);
   }, [taskToStop, runningSession, logPath, completeStop]);
 
   // Force kill - send SIGKILL
@@ -724,7 +719,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   if (loading) {
     return (
       <box flexDirection="column" padding={1}>
-        <text fg="#7aa2f7">
+        <text fg={TOKYO_NIGHT.blue}>
           <LoadingSpinner /> Loading Ralph Wiggum CLI...
         </text>
       </box>
@@ -735,8 +730,8 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   if (error) {
     return (
       <box flexDirection="column" padding={1}>
-        <text fg="#f7768e">Error: {error}</text>
-        <text fg="#565f89">Press q to quit.</text>
+        <text fg={TOKYO_NIGHT.red}>Error: {error}</text>
+        <text fg={TOKYO_NIGHT.comment}>Press q to quit.</text>
       </box>
     );
   }
@@ -755,11 +750,11 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     if (mode === "search") {
       return (
         <text>
-          <span fg="#bb9af7">/</span>
-          <span fg="#c0caf5">{searchQuery}</span>
-          <span fg="#565f89">_</span>
+          <span fg={TOKYO_NIGHT.purple}>/</span>
+          <span fg={TOKYO_NIGHT.fg}>{searchQuery}</span>
+          <span fg={TOKYO_NIGHT.comment}>_</span>
           {searchMatches.length > 0 && (
-            <span fg="#565f89">
+            <span fg={TOKYO_NIGHT.comment}>
               {" "}
               ({searchMatchIndex + 1}/{searchMatches.length})
             </span>
@@ -770,15 +765,15 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     if (mode === "command") {
       return (
         <text>
-          <span fg="#bb9af7">{commandBuffer}</span>
-          <span fg="#565f89">_</span>
+          <span fg={TOKYO_NIGHT.purple}>{commandBuffer}</span>
+          <span fg={TOKYO_NIGHT.comment}>_</span>
         </text>
       );
     }
     const stopHint = selectedTask?.status === "in_progress" ? "[s] stop " : "";
     const completedHint = showCompleted ? "[c] hide done" : "[c] show done";
     return (
-      <text fg="#565f89">
+      <text fg={TOKYO_NIGHT.comment}>
         [jk] move {stopHint}[/] search {completedHint} [?] help [:q] quit
       </text>
     );
@@ -840,8 +835,8 @@ export function App({ projectPath }: AppProps): React.ReactNode {
         paddingLeft={1}
         paddingRight={1}
       >
-        <text fg="#7aa2f7">
-          <strong>🧑‍🚀 Ralph Wiggum CLI</strong>
+        <text fg={TOKYO_NIGHT.blue}>
+          <strong>Ralph Wiggum CLI</strong>
         </text>
         {getStatusBarContent()}
       </box>
@@ -850,8 +845,10 @@ export function App({ projectPath }: AppProps): React.ReactNode {
       <box flexDirection="row" flexGrow={1} paddingLeft={1} paddingRight={1}>
         {totalTasks === 0 ? (
           <box flexDirection="column" paddingBottom={2} paddingTop={2}>
-            <text fg="#e0af68">No specs found in IMPLEMENTATION_PLAN.md</text>
-            <text fg="#565f89">
+            <text fg={TOKYO_NIGHT.yellow}>
+              No specs found in IMPLEMENTATION_PLAN.md
+            </text>
+            <text fg={TOKYO_NIGHT.comment}>
               Run `ralph-wiggum-cli start plan` to generate the implementation
               plan.
             </text>
@@ -883,7 +880,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
 
       {/* Footer */}
       <box marginTop={1} paddingLeft={1} paddingRight={1}>
-        <text fg="#565f89">
+        <text fg={TOKYO_NIGHT.comment}>
           {totalTasks} spec(s) | {plan.completed.length} completed
         </text>
       </box>

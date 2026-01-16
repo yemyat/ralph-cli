@@ -1,5 +1,6 @@
 import type React from "react";
-import type { Task, TaskStatus } from "./utils";
+import { STATUS_COLORS, STATUS_ICONS, TOKYO_NIGHT } from "./lib/constants";
+import type { Task, TaskStatus } from "./types";
 
 interface ParsedSpec {
   title: string;
@@ -11,29 +12,11 @@ interface ParsedSpec {
 const NUMBERED_LIST_REGEX = /^\d+\.\s/;
 
 function getStatusIcon(status: TaskStatus): string {
-  switch (status) {
-    case "in_progress":
-      return "●";
-    case "completed":
-      return "✓";
-    case "stopped":
-      return "■";
-    default:
-      return "○";
-  }
+  return STATUS_ICONS[status] ?? "○";
 }
 
 function getStatusColor(status: TaskStatus): string {
-  switch (status) {
-    case "in_progress":
-      return "#e0af68"; // tokyo night yellow
-    case "completed":
-      return "#9ece6a"; // tokyo night green
-    case "stopped":
-      return "#f7768e"; // tokyo night red
-    default:
-      return "#c0caf5"; // tokyo night fg
-  }
+  return STATUS_COLORS[status] ?? TOKYO_NIGHT.fg;
 }
 
 function parseSpecContent(content: string): ParsedSpec {
@@ -118,7 +101,7 @@ function renderLine(line: string, index: number): React.ReactNode {
   // Completed checkbox
   if (trimmed.startsWith("- [x]") || trimmed.startsWith("- [X]")) {
     return (
-      <text fg="#9ece6a" key={index}>
+      <text fg={TOKYO_NIGHT.green} key={index}>
         {"  "}✓ {trimmed.slice(6)}
       </text>
     );
@@ -127,7 +110,7 @@ function renderLine(line: string, index: number): React.ReactNode {
   // Incomplete checkbox
   if (trimmed.startsWith("- [ ]")) {
     return (
-      <text fg="#e0af68" key={index}>
+      <text fg={TOKYO_NIGHT.yellow} key={index}>
         {"  "}○ {trimmed.slice(6)}
       </text>
     );
@@ -136,7 +119,7 @@ function renderLine(line: string, index: number): React.ReactNode {
   // Bullet point
   if (trimmed.startsWith("- ")) {
     return (
-      <text fg="#c0caf5" key={index}>
+      <text fg={TOKYO_NIGHT.fg} key={index}>
         {"  "}• {trimmed.slice(2)}
       </text>
     );
@@ -145,7 +128,7 @@ function renderLine(line: string, index: number): React.ReactNode {
   // Numbered list
   if (NUMBERED_LIST_REGEX.test(trimmed)) {
     return (
-      <text fg="#c0caf5" key={index}>
+      <text fg={TOKYO_NIGHT.fg} key={index}>
         {"  "}
         {trimmed}
       </text>
@@ -154,7 +137,7 @@ function renderLine(line: string, index: number): React.ReactNode {
 
   // Regular text
   return (
-    <text fg="#a9b1d6" key={index}>
+    <text fg={TOKYO_NIGHT.fgDark} key={index}>
       {line}
     </text>
   );
@@ -177,7 +160,7 @@ export function TaskDetail({
       <box
         alignItems="center"
         border
-        borderColor="#414868"
+        borderColor={TOKYO_NIGHT.border}
         borderStyle="single"
         flexDirection="column"
         height={height}
@@ -186,8 +169,8 @@ export function TaskDetail({
         paddingRight={2}
         width="100%"
       >
-        <text fg="#565f89">Select a task to view details</text>
-        <text fg="#565f89">Use j/k to navigate</text>
+        <text fg={TOKYO_NIGHT.comment}>Select a task to view details</text>
+        <text fg={TOKYO_NIGHT.comment}>Use j/k to navigate</text>
       </box>
     );
   }
@@ -203,8 +186,8 @@ export function TaskDetail({
   if (parsed.overview.length > 0) {
     contentLines.push(
       <box flexDirection="column" key="overview" marginBottom={1}>
-        <text fg="#7aa2f7">
-          <strong>📋 Overview</strong>
+        <text fg={TOKYO_NIGHT.blue}>
+          <strong>Overview</strong>
         </text>
         {parsed.overview.map((line, i) => renderLine(line, i))}
       </box>
@@ -215,8 +198,8 @@ export function TaskDetail({
   if (parsed.tasks.length > 0) {
     contentLines.push(
       <box flexDirection="column" key="tasks" marginBottom={1}>
-        <text fg="#bb9af7">
-          <strong>📝 Tasks</strong>
+        <text fg={TOKYO_NIGHT.purple}>
+          <strong>Tasks</strong>
         </text>
         {parsed.tasks.map((line, i) => renderLine(line, i))}
       </box>
@@ -227,8 +210,8 @@ export function TaskDetail({
   if (parsed.acceptanceCriteria.length > 0) {
     contentLines.push(
       <box flexDirection="column" key="criteria" marginBottom={1}>
-        <text fg="#9ece6a">
-          <strong>✅ Acceptance Criteria</strong>
+        <text fg={TOKYO_NIGHT.green}>
+          <strong>Acceptance Criteria</strong>
         </text>
         {parsed.acceptanceCriteria.map((line, i) => renderLine(line, i))}
       </box>
@@ -250,7 +233,7 @@ export function TaskDetail({
   return (
     <box
       border
-      borderColor="#414868"
+      borderColor={TOKYO_NIGHT.border}
       borderStyle="single"
       flexDirection="column"
       height={height}
@@ -269,7 +252,7 @@ export function TaskDetail({
       </box>
 
       {/* Spec path */}
-      <text fg="#565f89">{task.specPath}</text>
+      <text fg={TOKYO_NIGHT.comment}>{task.specPath}</text>
 
       {/* Content */}
       <box flexDirection="column" marginTop={1}>

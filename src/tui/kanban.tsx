@@ -1,8 +1,9 @@
 import { TextAttributes } from "@opentui/core";
 import type React from "react";
 import { Card } from "./card";
+import { TOKYO_NIGHT } from "./lib/constants";
 import { LoadingSpinner } from "./loading-spinner";
-import type { Task, TaskStatus } from "./utils";
+import type { Task, TaskStatus } from "./types";
 
 interface ColumnProps {
   title: string;
@@ -21,8 +22,8 @@ function Column({
   columnWidth,
   stoppingTaskId,
 }: ColumnProps): React.ReactNode {
-  const headerColor = isActiveColumn ? "#00FFFF" : "#FFFFFF";
-  const borderColor = isActiveColumn ? "#00FFFF" : "#808080";
+  const headerColor = isActiveColumn ? TOKYO_NIGHT.cyan : TOKYO_NIGHT.fg;
+  const borderColor = isActiveColumn ? TOKYO_NIGHT.cyan : TOKYO_NIGHT.comment;
 
   const renderTask = (task: Task, index: number): React.ReactNode => {
     const isStopping = task.id === stoppingTaskId;
@@ -37,7 +38,7 @@ function Column({
       }
       return (
         <box key={task.id}>
-          <text attributes={attrs} fg="#FFFF00">
+          <text attributes={attrs} fg={TOKYO_NIGHT.yellow}>
             {" "}
             <LoadingSpinner /> {task.name} (Stopping...){" "}
           </text>
@@ -71,7 +72,7 @@ function Column({
         </text>
       </box>
       {tasks.length === 0 ? (
-        <text fg="#808080">(empty)</text>
+        <text fg={TOKYO_NIGHT.comment}>(empty)</text>
       ) : (
         tasks.map((task, index) => renderTask(task, index))
       )}

@@ -1,6 +1,7 @@
 import { TextAttributes } from "@opentui/core";
 import type React from "react";
-import type { TaskStatus } from "./utils";
+import { STATUS_COLORS, STATUS_ICONS, TOKYO_NIGHT } from "./lib/constants";
+import type { TaskStatus } from "./types";
 
 interface CardProps {
   name: string;
@@ -9,47 +10,18 @@ interface CardProps {
 }
 
 export function Card({ name, status, isSelected }: CardProps): React.ReactNode {
-  const getIcon = (): string => {
-    switch (status) {
-      case "backlog":
-        return "○";
-      case "in_progress":
-        return "●";
-      case "completed":
-        return "✓";
-      case "stopped":
-        return "■";
-      default:
-        return "?";
-    }
-  };
-
-  const getColor = (): string => {
-    if (isSelected) {
-      return "#00FFFF";
-    }
-    switch (status) {
-      case "backlog":
-        return "#FFFFFF";
-      case "in_progress":
-        return "#FFFF00";
-      case "completed":
-        return "#00FF00";
-      case "stopped":
-        return "#FF0000";
-      default:
-        return "#808080";
-    }
-  };
-
-  const content = ` ${getIcon()} ${name} `;
+  const icon = STATUS_ICONS[status] ?? "?";
+  const color = isSelected
+    ? TOKYO_NIGHT.cyan
+    : (STATUS_COLORS[status] ?? TOKYO_NIGHT.comment);
+  const content = ` ${icon} ${name} `;
 
   if (isSelected) {
     // biome-ignore lint/suspicious/noBitwiseOperators: intentional bitwise OR for TextAttributes
     const selectedAttrs = TextAttributes.BOLD | TextAttributes.INVERSE;
     return (
       <box>
-        <text attributes={selectedAttrs} fg={getColor()}>
+        <text attributes={selectedAttrs} fg={color}>
           {content}
         </text>
       </box>
@@ -58,7 +30,7 @@ export function Card({ name, status, isSelected }: CardProps): React.ReactNode {
 
   return (
     <box>
-      <text fg={getColor()}>{content}</text>
+      <text fg={color}>{content}</text>
     </box>
   );
 }

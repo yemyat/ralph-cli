@@ -1,4 +1,5 @@
 import type React from "react";
+import { TOKYO_NIGHT } from "./lib/constants";
 
 interface SpecViewerProps {
   content: string;
@@ -15,21 +16,21 @@ function renderMarkdownLine(line: string, index: number): React.ReactNode {
   // Headers
   if (trimmed.startsWith("# ")) {
     return (
-      <text fg="#00FFFF" key={index}>
+      <text fg={TOKYO_NIGHT.cyan} key={index}>
         <strong>{trimmed.slice(2)}</strong>
       </text>
     );
   }
   if (trimmed.startsWith("## ")) {
     return (
-      <text fg="#0000FF" key={index}>
+      <text fg={TOKYO_NIGHT.blue} key={index}>
         <strong>{trimmed}</strong>
       </text>
     );
   }
   if (trimmed.startsWith("### ")) {
     return (
-      <text fg="#FFFFFF" key={index}>
+      <text fg={TOKYO_NIGHT.fg} key={index}>
         <strong>{trimmed}</strong>
       </text>
     );
@@ -38,7 +39,7 @@ function renderMarkdownLine(line: string, index: number): React.ReactNode {
   // Completed tasks
   if (trimmed.startsWith("- [x]") || trimmed.startsWith("- [X]")) {
     return (
-      <text fg="#00FF00" key={index}>
+      <text fg={TOKYO_NIGHT.green} key={index}>
         ✓ {trimmed.slice(6)}
       </text>
     );
@@ -47,7 +48,7 @@ function renderMarkdownLine(line: string, index: number): React.ReactNode {
   // Incomplete tasks
   if (trimmed.startsWith("- [ ]")) {
     return (
-      <text fg="#FFFF00" key={index}>
+      <text fg={TOKYO_NIGHT.yellow} key={index}>
         ○ {trimmed.slice(6)}
       </text>
     );
@@ -61,7 +62,7 @@ function renderMarkdownLine(line: string, index: number): React.ReactNode {
   // Comments
   if (trimmed.startsWith("<!--")) {
     return (
-      <text fg="#808080" key={index}>
+      <text fg={TOKYO_NIGHT.comment} key={index}>
         {trimmed}
       </text>
     );
@@ -70,7 +71,7 @@ function renderMarkdownLine(line: string, index: number): React.ReactNode {
   // Code blocks
   if (trimmed.startsWith("```")) {
     return (
-      <text fg="#808080" key={index}>
+      <text fg={TOKYO_NIGHT.comment} key={index}>
         {trimmed}
       </text>
     );
@@ -113,8 +114,8 @@ export function SpecViewer({
   const scrollPosition = `${currentLine}-${endLine}/${totalLines}`;
 
   // Border color changes based on focus
-  const borderColor = isFocused ? "#00FFFF" : "#0000FF";
-  const titleColor = isFocused ? "#00FFFF" : "#0000FF";
+  const borderColor = isFocused ? TOKYO_NIGHT.cyan : TOKYO_NIGHT.blue;
+  const titleColor = isFocused ? TOKYO_NIGHT.cyan : TOKYO_NIGHT.blue;
 
   // Build scroll indicator string
   const getScrollIndicator = (): string => {
@@ -145,11 +146,11 @@ export function SpecViewer({
       {/* Header with title and scroll info */}
       <box justifyContent="space-between" marginBottom={1}>
         <text fg={titleColor}>
-          <strong>📄 {title}</strong>
+          <strong>{title}</strong>
         </text>
         <box>
-          <text fg="#808080">{scrollIndicator} </text>
-          <text fg="#808080">[{scrollPosition}]</text>
+          <text fg={TOKYO_NIGHT.comment}>{scrollIndicator} </text>
+          <text fg={TOKYO_NIGHT.comment}>[{scrollPosition}]</text>
         </box>
       </box>
 
