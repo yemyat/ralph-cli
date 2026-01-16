@@ -4,6 +4,53 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-16 22:00] - Extract Keyboard Navigation Hook (Partial)
+
+**Commit:** `423273a` feat: add useKeyboardNavigation hook
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS (146 tests, +13 new)
+- `bun run build` → PASS
+
+**Files changed:**
+- src/tui/hooks/use-keyboard-navigation.ts (NEW - vim-style navigation hook)
+- src/tui/hooks/__tests__/use-keyboard-navigation.test.ts (NEW - 13 type/interface tests)
+- package.json (added @testing-library/react for future hook testing)
+- .ralph-wiggum/specs/006-extract-keyboard-navigation-hook.md (updated with progress)
+- .ralph-wiggum/IMPLEMENTATION_PLAN.md (moved spec to In Progress)
+
+**What was done:**
+1. Created src/tui/hooks/ directory structure
+2. Implemented useKeyboardNavigation hook with:
+   - VimMode state machine (normal/search/command)
+   - Navigation handlers (j/k, gg/G, arrow keys)
+   - Search functionality (query building, match finding, n/N navigation)
+   - Command mode (:q/:quit handling)
+   - Double-tap detection for gg
+   - Configurable options (wrap, onExit, onCommand)
+3. Exported types: KeyEvent, NavOptions, SearchState, NavigationState, NavigationHandlers
+4. Created tests verifying hook exports and TypeScript types
+5. Note: Hook behavioral tests limited due to Bun lacking DOM/jsdom for React hook testing
+
+**Remaining Work:**
+- Wire hook into app.tsx replacing inline useState calls
+- Ensure all existing keyboard shortcuts work identically
+- Verify no visual/behavioral regression in TUI
+
+**Learnings:**
+- React hooks with useState cannot be easily tested in Bun without jsdom
+- @testing-library/react requires DOM environment (document)
+- Pure type verification tests still provide value for hook exports
+- Extracting callbacks (handleModeTransition, handleNavigationKey) reduces cognitive complexity
+
+---
+
 ## [2026-01-16 21:00] - Modularize Utils
 
 **Commit:** `285f4a7` feat: modularize TUI utils into focused modules

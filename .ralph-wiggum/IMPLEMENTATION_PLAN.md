@@ -4,11 +4,11 @@ Progress orchestrator tracking spec completion status.
 
 ## In Progress
 <!-- Specs currently being worked on -->
+- [Extract Keyboard Navigation Hook](specs/006-extract-keyboard-navigation-hook.md)
 
 ## Backlog
 <!-- Specs not yet started, in priority order -->
 <!-- TUI Reorganization (separation of concerns) -->
-- [Extract Keyboard Navigation Hook](specs/006-extract-keyboard-navigation-hook.md)
 - [Extract Task Manager Hook](specs/007-extract-task-manager-hook.md)
 - [Reorganize Component Structure](specs/010-reorganize-component-structure.md)
 
