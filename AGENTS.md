@@ -28,6 +28,7 @@ bun link
 - ES modules (`"type": "module"`)
 - Use `bun` runtime (not Node.js)
 - Minimal comments, self-documenting code
+- No `.js` extensions in imports (Bun + `moduleResolution: "bundler"` handles this)
 
 ## Project Structure
 
