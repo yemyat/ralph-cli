@@ -1,4 +1,4 @@
-import type { AgentCommand, AgentType } from "../types.js";
+import type { AgentCommand, AgentType } from "../types";
 
 export interface AgentOptions {
   model?: string;

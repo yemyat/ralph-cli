@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
-import type { AgentCommand } from "../types.js";
-import { type AgentOptions, BaseAgent } from "./base.js";
+import type { AgentCommand } from "../types";
+import { type AgentOptions, BaseAgent } from "./base";
 
 export class AmpAgent extends BaseAgent {
   readonly type = "amp" as const;

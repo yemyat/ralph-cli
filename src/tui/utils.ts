@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import fse from "fs-extra";
-import { getLogsDir, getRalphDir, getSpecsDir } from "../utils/paths.js";
+import { getLogsDir, getRalphDir, getSpecsDir } from "../utils/paths";
 
 // Top-level regex patterns for performance
 const SPEC_REFERENCE_REGEX = /^-\s*(?:\[.?\]\s*)?(specs\/[\w-]+\.md)/;

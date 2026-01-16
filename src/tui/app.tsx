@@ -5,13 +5,13 @@ import {
 } from "@opentui/react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getProjectSessions, saveSession } from "../config.js";
-import type { RalphSession } from "../types.js";
-import { ConfirmDialog } from "./confirm-dialog.js";
-import { DetailView, type FocusedPanel } from "./detail-view.js";
-import { HelpOverlay } from "./help-overlay.js";
-import { Kanban } from "./kanban.js";
-import { LoadingSpinner } from "./loading-spinner.js";
+import { getProjectSessions, saveSession } from "../config";
+import type { RalphSession } from "../types";
+import { ConfirmDialog } from "./confirm-dialog";
+import { DetailView, type FocusedPanel } from "./detail-view";
+import { HelpOverlay } from "./help-overlay";
+import { Kanban } from "./kanban";
+import { LoadingSpinner } from "./loading-spinner";
 import {
   appendToLog,
   getLatestSessionLog,
@@ -22,7 +22,7 @@ import {
   readSpecContent,
   type Task,
   type TaskStatus,
-} from "./utils.js";
+} from "./utils";
 
 type View = "kanban" | "detail";
 type Mode = "normal" | "search" | "command";

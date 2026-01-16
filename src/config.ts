@@ -5,13 +5,13 @@ import type {
   ProjectState,
   RalphConfig,
   RalphSession,
-} from "./types.js";
+} from "./types";
 import {
   getConfigFile,
   getLogsDir,
   getRalphDir,
   getSpecsDir,
-} from "./utils/paths.js";
+} from "./utils/paths";
 
 export async function ensureRalphDirs(projectPath: string): Promise<void> {
   await fse.ensureDir(getRalphDir(projectPath));

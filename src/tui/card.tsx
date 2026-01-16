@@ -1,6 +1,6 @@
 import { TextAttributes } from "@opentui/core";
 import type React from "react";
-import type { TaskStatus } from "./utils.js";
+import type { TaskStatus } from "./utils";
 
 interface CardProps {
   name: string;

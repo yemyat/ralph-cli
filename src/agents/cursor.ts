@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
-import type { AgentCommand } from "../types.js";
-import { type AgentOptions, BaseAgent } from "./base.js";
+import type { AgentCommand } from "../types";
+import { type AgentOptions, BaseAgent } from "./base";
 
 export class CursorAgent extends BaseAgent {
   readonly type = "cursor" as const;

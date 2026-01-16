@@ -1,8 +1,8 @@
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import pc from "picocolors";
-import { getProjectConfig } from "../config.js";
-import { App } from "../tui/app.js";
+import { getProjectConfig } from "../config";
+import { App } from "../tui/app";
 
 export async function tuiCommand(): Promise<void> {
   // Check if running under Bun

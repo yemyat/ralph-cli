@@ -11,8 +11,8 @@ import {
 } from "@clack/prompts";
 import fse from "fs-extra";
 import pc from "picocolors";
-import { getAgent, getAllAgents } from "../agents/index.js";
-import { getProjectConfig, initProject } from "../config.js";
+import { getAgent, getAllAgents } from "../agents/index";
+import { getProjectConfig, initProject } from "../config";
 import {
   GUARDRAILS_TEMPLATE,
   IMPLEMENTATION_PLAN_TEMPLATE,
@@ -20,9 +20,9 @@ import {
   PROMPT_BUILD,
   PROMPT_PLAN,
   SPEC_TEMPLATE,
-} from "../templates/prompts.js";
-import type { AgentType } from "../types.js";
-import { getRalphDir, getSpecsDir, RALPH_LOGS_DIR } from "../utils/paths.js";
+} from "../templates/prompts";
+import type { AgentType } from "../types";
+import { getRalphDir, getSpecsDir, RALPH_LOGS_DIR } from "../utils/paths";
 
 interface InitOptions {
   agent?: AgentType;

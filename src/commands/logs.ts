@@ -1,8 +1,8 @@
 import fse from "fs-extra";
 import pc from "picocolors";
-import { getProjectConfig, getProjectSessions, getSession } from "../config.js";
-import type { RalphSession } from "../types.js";
-import { getSessionLogFile } from "../utils/paths.js";
+import { getProjectConfig, getProjectSessions, getSession } from "../config";
+import type { RalphSession } from "../types";
+import { getSessionLogFile } from "../utils/paths";
 
 interface LogsOptions {
   sessionId?: string;

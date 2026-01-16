@@ -3,7 +3,7 @@ import {
   getProjectConfig,
   getProjectSessions,
   saveSession,
-} from "../config.js";
+} from "../config";
 
 export async function stopCommand(): Promise<void> {
   const projectPath = process.cwd();

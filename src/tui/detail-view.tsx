@@ -1,7 +1,7 @@
 import type React from "react";
-import { LogViewer } from "./log-viewer.js";
-import { SpecViewer } from "./spec-viewer.js";
-import type { Task } from "./utils.js";
+import { LogViewer } from "./log-viewer";
+import { SpecViewer } from "./spec-viewer";
+import type { Task } from "./utils";
 
 export type FocusedPanel = "spec" | "logs";
 

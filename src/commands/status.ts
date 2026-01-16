@@ -1,7 +1,7 @@
 import pc from "picocolors";
-import { getAgent } from "../agents/index.js";
-import { getProjectConfig, getProjectSessions } from "../config.js";
-import type { RalphSession } from "../types.js";
+import { getAgent } from "../agents/index";
+import { getProjectConfig, getProjectSessions } from "../config";
+import type { RalphSession } from "../types";
 
 function getStatusColor(status: RalphSession["status"]): typeof pc.green {
   switch (status) {

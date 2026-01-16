@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getAllAgents } from "../agents/index.js";
+import { getAllAgents } from "../agents/index";
 
 const MOCK_AGENT_SCRIPT = `#!/usr/bin/env node
 // Mock agent that reads stdin and outputs structured JSON

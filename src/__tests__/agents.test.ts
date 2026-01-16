@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { AgentOptions } from "../agents/base.js";
+import type { AgentOptions } from "../agents/base";
 import {
   AmpAgent,
   ClaudeAgent,
@@ -10,7 +10,7 @@ import {
   getAgent,
   getAllAgents,
   OpenCodeAgent,
-} from "../agents/index.js";
+} from "../agents/index";
 
 describe("Agent Module", () => {
   describe("Agent Registry", () => {

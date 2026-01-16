@@ -2,14 +2,14 @@
 
 import { Command } from "commander";
 import pc from "picocolors";
-import { initCommand } from "./commands/init.js";
-import { listCommand } from "./commands/list.js";
-import { logsCommand } from "./commands/logs.js";
-import { startCommand } from "./commands/start.js";
-import { statusCommand } from "./commands/status.js";
-import { stopCommand } from "./commands/stop.js";
-import { tuiCommand } from "./commands/tui.js";
-import type { AgentType } from "./types.js";
+import { initCommand } from "./commands/init";
+import { listCommand } from "./commands/list";
+import { logsCommand } from "./commands/logs";
+import { startCommand } from "./commands/start";
+import { statusCommand } from "./commands/status";
+import { stopCommand } from "./commands/stop";
+import { tuiCommand } from "./commands/tui";
+import type { AgentType } from "./types";
 
 const program = new Command();
 

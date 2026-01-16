@@ -9,7 +9,7 @@ import {
   RALPH_CONFIG_FILE,
   RALPH_DIR_NAME,
   RALPH_LOGS_DIR,
-} from "../utils/paths.js";
+} from "../utils/paths";
 
 describe("Path Utilities", () => {
   describe("Constants", () => {

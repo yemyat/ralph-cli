@@ -1,8 +1,8 @@
 import { TextAttributes } from "@opentui/core";
 import type React from "react";
-import { Card } from "./card.js";
-import { LoadingSpinner } from "./loading-spinner.js";
-import type { Task, TaskStatus } from "./utils.js";
+import { Card } from "./card";
+import { LoadingSpinner } from "./loading-spinner";
+import type { Task, TaskStatus } from "./utils";
 
 interface ColumnProps {
   title: string;

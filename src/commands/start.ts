@@ -4,14 +4,14 @@ import { join } from "node:path";
 import fse from "fs-extra";
 import ora from "ora";
 import pc from "picocolors";
-import { getAgent } from "../agents/index.js";
+import { getAgent } from "../agents/index";
 import {
   getProjectConfig,
   getProjectSessions,
   saveSession,
-} from "../config.js";
-import type { AgentType, RalphSession } from "../types.js";
-import { getRalphDir, getSessionLogFile } from "../utils/paths.js";
+} from "../config";
+import type { AgentType, RalphSession } from "../types";
+import { getRalphDir, getSessionLogFile } from "../utils/paths";
 
 interface StartOptions {
   agent?: AgentType;

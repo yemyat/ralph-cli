@@ -1,12 +1,12 @@
-import type { AgentType } from "../types.js";
-import { AmpAgent } from "./amp.js";
-import type { BaseAgent } from "./base.js";
-import { ClaudeAgent } from "./claude.js";
-import { CodexAgent } from "./codex.js";
-import { CursorAgent } from "./cursor.js";
-import { DroidAgent } from "./droid.js";
-import { GeminiAgent } from "./gemini.js";
-import { OpenCodeAgent } from "./opencode.js";
+import type { AgentType } from "../types";
+import { AmpAgent } from "./amp";
+import type { BaseAgent } from "./base";
+import { ClaudeAgent } from "./claude";
+import { CodexAgent } from "./codex";
+import { CursorAgent } from "./cursor";
+import { DroidAgent } from "./droid";
+import { GeminiAgent } from "./gemini";
+import { OpenCodeAgent } from "./opencode";
 
 const agents: Record<AgentType, BaseAgent> = {
   claude: new ClaudeAgent(),
@@ -28,11 +28,11 @@ export function getAllAgents(): BaseAgent[] {
 
 // Re-export agent classes for direct usage by consumers and tests
 // biome-ignore lint/performance/noBarrelFile: This is a legitimate barrel file for the agents module
-export { AmpAgent } from "./amp.js";
-export { BaseAgent } from "./base.js";
-export { ClaudeAgent } from "./claude.js";
-export { CodexAgent } from "./codex.js";
-export { CursorAgent } from "./cursor.js";
-export { DroidAgent } from "./droid.js";
-export { GeminiAgent } from "./gemini.js";
-export { OpenCodeAgent } from "./opencode.js";
+export { AmpAgent } from "./amp";
+export { BaseAgent } from "./base";
+export { ClaudeAgent } from "./claude";
+export { CodexAgent } from "./codex";
+export { CursorAgent } from "./cursor";
+export { DroidAgent } from "./droid";
+export { GeminiAgent } from "./gemini";
+export { OpenCodeAgent } from "./opencode";

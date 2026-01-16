@@ -1,5 +1,5 @@
 import type React from "react";
-import { LoadingSpinner } from "./loading-spinner.js";
+import { LoadingSpinner } from "./loading-spinner";
 
 interface LogViewerProps {
   content: string;

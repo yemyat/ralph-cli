@@ -10,9 +10,9 @@ import {
   initProject,
   loadProjectState,
   saveSession,
-} from "../config.js";
-import type { RalphSession } from "../types.js";
-import { getRalphDir } from "../utils/paths.js";
+} from "../config";
+import type { RalphSession } from "../types";
+import { getRalphDir } from "../utils/paths";
 
 const TEST_DIR = join(
   tmpdir(),

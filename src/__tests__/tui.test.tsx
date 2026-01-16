@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { createTestRenderer } from "@opentui/core/testing";
 import { createRoot } from "@opentui/react";
 import fse from "fs-extra";
-import { App } from "../tui/app.js";
+import { App } from "../tui/app";
 
 // Regex for scroll position indicator format [x-y/z]
 const SCROLL_POSITION_REGEX = /\[\d+-\d+\/\d+\]/;

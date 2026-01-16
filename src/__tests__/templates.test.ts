@@ -3,7 +3,7 @@ import {
   IMPLEMENTATION_PLAN_TEMPLATE,
   PROMPT_BUILD,
   PROMPT_PLAN,
-} from "../templates/prompts.js";
+} from "../templates/prompts";
 
 describe("Template Constants", () => {
   describe("PROMPT_PLAN", () => {

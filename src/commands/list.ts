@@ -1,6 +1,6 @@
 import pc from "picocolors";
-import { getAgent } from "../agents/index.js";
-import { getProjectConfig, getProjectSessions } from "../config.js";
+import { getAgent } from "../agents/index";
+import { getProjectConfig, getProjectSessions } from "../config";
 
 export async function listCommand(): Promise<void> {
   const projectPath = process.cwd();
