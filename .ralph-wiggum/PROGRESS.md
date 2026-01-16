@@ -4,6 +4,41 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-16 23:00] - Extract Keyboard Navigation Hook (Complete)
+
+**Commit:** `eeec7be` feat: integrate useKeyboardNavigation hook into app.tsx
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS (146 tests)
+- `bun run build` → PASS
+
+**Files changed:**
+- src/tui/app.tsx (integrated hook, removed ~150 lines of inline navigation logic)
+- .ralph-wiggum/specs/006-extract-keyboard-navigation-hook.md (marked complete)
+- .ralph-wiggum/IMPLEMENTATION_PLAN.md (moved spec to Completed)
+
+**What was done:**
+1. Imported useKeyboardNavigation hook and KeyEvent type into app.tsx
+2. Replaced inline state (mode, searchQuery, searchMatches, searchMatchIndex, commandBuffer, lastKeyRef) with hook
+3. Added useEffect to sync selectedTask with hook's selectedIndex
+4. Simplified handleMainInput to route through hook after handling app-specific keys (?, c, s/x)
+5. Updated status bar to use searchState from hook
+6. Removed redundant navigation functions (navigateToTask, selectSearchMatch, jumpToFirst/Last, etc.)
+
+**Learnings:**
+- Hook integration required careful sync between hook's selectedIndex and app's selectedTask
+- App-specific functionality (stop dialogs, help overlay, toggle completed) stays in app.tsx
+- The hook's onExit callback cleanly handles :q and Ctrl+C without app involvement
+- Net reduction of ~300 lines in the diff shows significant code simplification
+
+---
+
 ## [2026-01-16 22:00] - Extract Keyboard Navigation Hook (Partial)
 
 **Commit:** `423273a` feat: add useKeyboardNavigation hook
