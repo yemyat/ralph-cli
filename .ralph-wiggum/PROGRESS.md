@@ -4,6 +4,98 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-16 21:00] - Modularize Utils
+
+**Commit:** `285f4a7` feat: modularize TUI utils into focused modules
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS (133 tests, +24 new)
+- `bun run build` → PASS
+
+**Files changed:**
+- src/tui/lib/plan-parser.ts (NEW - pure plan parsing functions)
+- src/tui/lib/spec-parser.ts (NEW - pure spec parsing functions)
+- src/tui/lib/file-operations.ts (NEW - file I/O utilities)
+- src/tui/lib/__tests__/plan-parser.test.ts (NEW - 12 tests)
+- src/tui/lib/__tests__/spec-parser.test.ts (NEW - 7 tests)
+- src/tui/lib/__tests__/file-operations.test.ts (NEW - 16 tests)
+- src/tui/app.tsx (updated imports to use lib/file-operations)
+- src/tui/utils.ts (DELETED - replaced by modular files)
+- .ralph-wiggum/specs/009-modularize-utils.md (marked complete)
+- .ralph-wiggum/IMPLEMENTATION_PLAN.md (moved spec to completed)
+
+**What was done:**
+1. Created plan-parser.ts with `parseImplementationPlanContent()` pure function and helper exports
+2. Created spec-parser.ts with `parseSpecContent()` for structured spec parsing
+3. Created file-operations.ts with all file I/O: `parseImplementationPlan`, `readSpecContent`, `readLogContent`, `getLatestSessionLog`, `appendToLog`, `markTaskAsStopped`, `getAllSpecs`
+4. Fixed bug in `findTaskAndBacklogPositions()` that broke early before finding backlog section
+5. Updated app.tsx to import from `./lib/file-operations` instead of `./utils`
+6. Deleted original utils.ts (326 lines)
+7. Added 24 new tests covering all three modules
+
+**Learnings:**
+- Breaking out of a loop early to avoid scanning the whole file can miss required data (backlog index)
+- Pure functions (plan-parser, spec-parser) are trivial to unit test without mocking
+- Top-level regex constants are required by Biome's `useTopLevelRegex` lint rule
+- Module organization: types → pure parsers → I/O (no circular deps)
+
+---
+
+## [2026-01-16 14:00] - Centralize Theme and Types
+
+**Commit:** `ea0e2df` feat: centralize theme and types for TUI
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS (98 tests)
+- `bun run build` → PASS
+
+**Files changed:**
+- src/tui/types.ts (NEW - centralized type definitions)
+- src/tui/lib/constants.ts (NEW - Tokyo Night theme constants, STATUS_ICONS, TIMING)
+- src/tui/app.tsx (imports from types.ts and constants.ts)
+- src/tui/card.tsx (uses STATUS_COLORS, STATUS_ICONS from constants)
+- src/tui/confirm-dialog.tsx (uses TOKYO_NIGHT colors)
+- src/tui/detail-view.tsx (uses TOKYO_NIGHT colors, imports types from types.ts)
+- src/tui/help-overlay.tsx (uses TOKYO_NIGHT colors)
+- src/tui/kanban.tsx (uses TOKYO_NIGHT colors, imports types from types.ts)
+- src/tui/log-viewer.tsx (uses TOKYO_NIGHT colors)
+- src/tui/sidebar.tsx (uses STATUS_COLORS, STATUS_ICONS)
+- src/tui/spec-viewer.tsx (uses TOKYO_NIGHT colors)
+- src/tui/task-detail.tsx (uses STATUS_COLORS, STATUS_ICONS, TOKYO_NIGHT)
+- src/tui/utils.ts (re-exports types from types.ts)
+- src/__tests__/tui.test.tsx (updated tests for new sidebar layout)
+- .ralph-wiggum/specs/008-centralize-theme-and-types.md (marked complete)
+- .ralph-wiggum/IMPLEMENTATION_PLAN.md (moved spec to completed)
+
+**What was done:**
+1. Created src/tui/types.ts with Task, TaskStatus, ParsedPlan, VimMode, DialogType, FocusedPanel, ScrollState, SearchState
+2. Created src/tui/lib/constants.ts with TOKYO_NIGHT palette, STATUS_ICONS, STATUS_COLORS, TIMING, LAYOUT
+3. Updated all TUI components to import types from types.ts instead of utils.ts
+4. Replaced all inline hex color codes (#7aa2f7, #e0af68, etc.) with TOKYO_NIGHT constants
+5. Simplified status icon/color logic using STATUS_ICONS and STATUS_COLORS maps
+6. Removed emoji icons from components for cleaner rendering
+7. Updated TUI tests for new sidebar-based layout (was kanban columns)
+
+**Learnings:**
+- The `as const` assertion on constant objects enables TypeScript to infer literal types
+- Re-exporting types with `export type { X } from "./module"` is cleaner than importing and re-exporting separately
+- STATUS_COLORS map eliminates repetitive switch statements for task status coloring
+- Grep verification confirms all Tokyo Night colors are centralized in constants.ts only
+
+---
+
 ## [2026-01-16 12:00] - Fix Lint Errors in TUI Tests
 
 **Commit:** `ffa8cb4` fix: lint errors in TUI tests (imports, regex, formatting)

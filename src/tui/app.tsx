@@ -10,17 +10,17 @@ import type { RalphSession } from "../types";
 import { ConfirmDialog } from "./confirm-dialog";
 import { HelpOverlay } from "./help-overlay";
 import { TIMING, TOKYO_NIGHT } from "./lib/constants";
-import { LoadingSpinner } from "./loading-spinner";
-import { Sidebar } from "./sidebar";
-import { TaskDetail } from "./task-detail";
-import type { ParsedPlan, Task, VimMode } from "./types";
 import {
   appendToLog,
   getLatestSessionLog,
   markTaskAsStopped,
   parseImplementationPlan,
   readSpecContent,
-} from "./utils";
+} from "./lib/file-operations";
+import { LoadingSpinner } from "./loading-spinner";
+import { Sidebar } from "./sidebar";
+import { TaskDetail } from "./task-detail";
+import type { ParsedPlan, Task, VimMode } from "./types";
 
 interface AppProps {
   projectPath: string;

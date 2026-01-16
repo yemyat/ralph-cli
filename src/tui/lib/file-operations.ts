@@ -1,21 +1,16 @@
+// src/tui/lib/file-operations.ts
+// File I/O utilities for TUI
+
 import { join } from "node:path";
 import fse from "fs-extra";
-import { getLogsDir, getRalphDir, getSpecsDir } from "../utils/paths";
-import type { ParsedPlan, Task, TaskStatus } from "./types";
-
-// Re-export types for backwards compatibility
-export type { ParsedPlan, Task, TaskStatus } from "./types";
-
-// Top-level regex patterns for performance
-const SPEC_REFERENCE_REGEX = /^-\s*(?:\[.?\]\s*)?(specs\/[\w-]+\.md)/;
-const LEADING_NUMBERS_REGEX = /^\d+-/;
+import { getLogsDir, getRalphDir, getSpecsDir } from "../../utils/paths";
+import type { ParsedPlan } from "../types";
+import { detectSection, parseImplementationPlanContent } from "./plan-parser";
 
 /**
- * Parse IMPLEMENTATION_PLAN.md to extract tasks organized by status
+ * Parse IMPLEMENTATION_PLAN.md from the project path.
+ * Combines file I/O with pure parsing logic.
  */
-// Regex to detect stopped marker: - [stopped] specs/...
-const STOPPED_MARKER_REGEX = /^-\s*\[stopped\]\s*(specs\/[\w-]+\.md)/;
-
 export async function parseImplementationPlan(
   projectPath: string
 ): Promise<ParsedPlan> {
@@ -26,103 +21,12 @@ export async function parseImplementationPlan(
   }
 
   const content = await fse.readFile(planPath, "utf-8");
-  const lines = content.split("\n");
-
-  const result: ParsedPlan = {
-    inProgress: [],
-    backlog: [],
-    completed: [],
-    stopped: [],
-  };
-
-  let currentSection: TaskStatus | null = null;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    // Detect section headers
-    if (trimmed.startsWith("## In Progress")) {
-      currentSection = "in_progress";
-      continue;
-    }
-    if (trimmed.startsWith("## Backlog")) {
-      currentSection = "backlog";
-      continue;
-    }
-    if (trimmed.startsWith("## Completed")) {
-      currentSection = "completed";
-      continue;
-    }
-
-    // Skip if not in a section or line is empty/comment
-    if (!(currentSection && trimmed) || trimmed.startsWith("<!--")) {
-      continue;
-    }
-
-    // Check for stopped marker first (e.g., "- [stopped] specs/...")
-    const stoppedMatch = trimmed.match(STOPPED_MARKER_REGEX);
-    if (stoppedMatch) {
-      const specPath = stoppedMatch[1];
-      const name = extractSpecName(specPath);
-      const task: Task = {
-        id: specPath,
-        name,
-        specPath,
-        status: "stopped",
-      };
-      result.stopped.push(task);
-      continue;
-    }
-
-    // Parse spec references (e.g., "- specs/001-feature.md" or "- [x] specs/...")
-    const specMatch = trimmed.match(SPEC_REFERENCE_REGEX);
-    if (specMatch) {
-      const specPath = specMatch[1];
-      const name = extractSpecName(specPath);
-      const task: Task = {
-        id: specPath,
-        name,
-        specPath,
-        status: currentSection,
-      };
-
-      switch (currentSection) {
-        case "in_progress":
-          result.inProgress.push(task);
-          break;
-        case "backlog":
-          result.backlog.push(task);
-          break;
-        case "completed":
-          result.completed.push(task);
-          break;
-        default:
-          // Exhaustive check - all cases handled
-          break;
-      }
-    }
-  }
-
-  return result;
+  return parseImplementationPlanContent(content);
 }
 
 /**
- * Extract a readable name from a spec path
- */
-function extractSpecName(specPath: string): string {
-  // specs/001-interactive-tui.md -> Interactive TUI
-  const filename = specPath.replace("specs/", "").replace(".md", "");
-  // Remove leading numbers
-  const withoutNumbers = filename.replace(LEADING_NUMBERS_REGEX, "");
-  // Convert kebab-case to Title Case
-  return withoutNumbers
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
-/**
- * Read spec file content
+ * Read spec file content from the project.
+ * Returns the raw markdown content or a "not found" message.
  */
 export async function readSpecContent(
   projectPath: string,
@@ -138,7 +42,8 @@ export async function readSpecContent(
 }
 
 /**
- * Get all spec files from the specs directory
+ * Get all spec files from the specs directory.
+ * Returns array of relative spec paths (e.g., ["specs/001-feature.md"])
  */
 export async function getAllSpecs(projectPath: string): Promise<string[]> {
   const specsDir = getSpecsDir(projectPath);
@@ -152,7 +57,8 @@ export async function getAllSpecs(projectPath: string): Promise<string[]> {
 }
 
 /**
- * Get log file path for a session
+ * Get the most recent log file path for a project.
+ * Returns null if no logs exist.
  */
 export async function getLatestSessionLog(
   projectPath: string
@@ -183,7 +89,8 @@ export async function getLatestSessionLog(
 }
 
 /**
- * Read log file content (tail)
+ * Read log file content (tail).
+ * Returns the last N lines of the log file.
  */
 export async function readLogContent(
   logPath: string,
@@ -198,21 +105,28 @@ export async function readLogContent(
   return allLines.slice(-lines).join("\n");
 }
 
-// Helper to detect section from line
-function detectSection(trimmed: string): string | null {
-  if (trimmed.startsWith("## In Progress")) {
-    return "in_progress";
+/**
+ * Append a timestamped message to a log file.
+ */
+export async function appendToLog(
+  logPath: string,
+  message: string
+): Promise<void> {
+  if (!logPath) {
+    return;
   }
-  if (trimmed.startsWith("## Backlog")) {
-    return "backlog";
+
+  const timestamp = new Date().toISOString();
+  const logEntry = `\n[${timestamp}] ${message}\n`;
+
+  try {
+    await fse.appendFile(logPath, logEntry);
+  } catch {
+    // Ignore errors when appending to log
   }
-  if (trimmed.startsWith("## Completed")) {
-    return "completed";
-  }
-  return null;
 }
 
-// Helper to find task and backlog positions
+// Helper: find task and backlog positions in lines
 function findTaskAndBacklogPositions(
   lines: string[],
   specPath: string
@@ -233,16 +147,20 @@ function findTaskAndBacklogPositions(
       continue;
     }
 
-    if (currentSection === "in_progress" && trimmed.includes(specPath)) {
+    // Only look for task in in_progress section, but continue scanning for backlog
+    if (
+      taskLineIndex === -1 &&
+      currentSection === "in_progress" &&
+      trimmed.includes(specPath)
+    ) {
       taskLineIndex = i;
-      break;
     }
   }
 
   return { taskLineIndex, backlogIndex };
 }
 
-// Helper to find insertion index in backlog
+// Helper: find insertion index in backlog (after header and comments)
 function findBacklogInsertIndex(lines: string[], startIndex: number): number {
   let insertIndex = startIndex;
   while (insertIndex < lines.length) {
@@ -258,7 +176,8 @@ function findBacklogInsertIndex(lines: string[], startIndex: number): number {
 }
 
 /**
- * Move a task from In Progress to Backlog with [stopped] marker
+ * Move a task from In Progress to Backlog with [stopped] marker.
+ * Updates the IMPLEMENTATION_PLAN.md file in place.
  */
 export async function markTaskAsStopped(
   projectPath: string,
@@ -301,25 +220,4 @@ export async function markTaskAsStopped(
 
   // Write back to file
   await fse.writeFile(planPath, lines.join("\n"));
-}
-
-/**
- * Append a termination message to the log file
- */
-export async function appendToLog(
-  logPath: string,
-  message: string
-): Promise<void> {
-  if (!logPath) {
-    return;
-  }
-
-  const timestamp = new Date().toISOString();
-  const logEntry = `\n[${timestamp}] ${message}\n`;
-
-  try {
-    await fse.appendFile(logPath, logEntry);
-  } catch {
-    // Ignore errors when appending to log
-  }
 }
