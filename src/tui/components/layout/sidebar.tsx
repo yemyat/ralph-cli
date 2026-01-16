@@ -1,8 +1,8 @@
 import { TextAttributes } from "@opentui/core";
 import type React from "react";
-import { STATUS_COLORS, STATUS_ICONS, TOKYO_NIGHT } from "./lib/constants";
-import { LoadingSpinner } from "./loading-spinner";
-import type { Task } from "./types";
+import { LoadingSpinner } from "../../components/primitives/loading-spinner";
+import { STATUS_COLORS, STATUS_ICONS, TOKYO_NIGHT } from "../../lib/constants";
+import type { Task } from "../../types";
 
 interface SidebarItemProps {
   task: Task;

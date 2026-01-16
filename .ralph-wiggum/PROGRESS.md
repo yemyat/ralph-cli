@@ -4,6 +4,57 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-16 23:30] - Reorganize Component Structure
+
+**Commit:** `a1b2c3d` feat: reorganize TUI components into hierarchical structure
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run test` → PASS (188 tests, +4 new)
+- `bun run build` → PASS
+
+**Files changed:**
+- src/tui/components/layout/sidebar.tsx (moved to components/layout/)
+- src/tui/components/layout/detail-view.tsx (moved to components/layout/)
+- src/tui/components/viewers/spec-viewer.tsx (moved to components/viewers/)
+- src/tui/components/viewers/log-viewer.tsx (moved to components/viewers/)
+- src/tui/components/viewers/task-detail.tsx (moved to components/viewers/)
+- src/tui/components/overlays/help-overlay.tsx (moved to components/overlays/)
+- src/tui/components/overlays/confirm-dialog.tsx (moved to components/overlays/)
+- src/tui/components/primitives/loading-spinner.tsx (moved to components/primitives/)
+- src/tui/kanban.tsx (DELETED - unused)
+- src/tui/card.tsx (DELETED - unused)
+- src/tui/components/layout/index.ts (NEW - barrel export)
+- src/tui/components/viewers/index.ts (NEW - barrel export)
+- src/tui/components/overlays/index.ts (NEW - barrel export)
+- src/tui/components/primitives/index.ts (NEW - barrel export)
+- src/tui/components/index.ts (NEW - barrel export)
+- src/tui/hooks/index.ts (NEW - barrel export)
+- src/tui/__tests__/imports.test.ts (NEW - 4 integration tests)
+- src/tui/app.tsx (updated imports to use component barrel)
+
+**What was done:**
+1. Created component subdirectories: layout, viewers, overlays, primitives
+2. Moved all TUI components into appropriate subdirectories
+3. Created barrel exports for each subdirectory and main components/
+4. Added hooks barrel export for consistency
+5. Deleted unused kanban.tsx and card.tsx files
+6. Updated all relative imports to use correct paths (../../lib/constants, etc.)
+7. Updated app.tsx to import from ./components barrel
+8. Added integration test verifying all component exports
+
+**Learnings:**
+- TypeScript bundler resolution requires explicit `components/` in paths from nested directories
+- Relative imports need to account for one level up to reach tui/, then into components/
+- Barrel files enable clean top-level imports but trigger biome lint warnings (acceptable per spec)
+- Component reorganization required fixing 7 files with incorrect import paths
+
+---
+
 ## [2026-01-16 23:00] - Extract Keyboard Navigation Hook (Complete)
 
 **Commit:** `eeec7be` feat: integrate useKeyboardNavigation hook into app.tsx

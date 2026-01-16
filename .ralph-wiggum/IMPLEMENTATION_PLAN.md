@@ -7,6 +7,11 @@ Progress orchestrator tracking spec completion status.
 
 ## Backlog
 <!-- Specs not yet started, in priority order -->
+
+## Completed
+<!-- Specs fully implemented and verified -->
+- specs/007-extract-task-manager-hook.md
+- specs/010-reorganize-component-structure.md
 <!-- TUI Reorganization (separation of concerns) -->
 - [Extract Task Manager Hook](specs/007-extract-task-manager-hook.md)
 - [Reorganize Component Structure](specs/010-reorganize-component-structure.md)

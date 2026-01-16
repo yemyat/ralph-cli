@@ -1,5 +1,5 @@
 import type React from "react";
-import { TOKYO_NIGHT } from "./lib/constants";
+import { TOKYO_NIGHT } from "../../lib/constants";
 
 interface HelpOverlayProps {
   width: number;

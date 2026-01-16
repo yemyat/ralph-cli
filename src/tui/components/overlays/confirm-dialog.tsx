@@ -1,6 +1,6 @@
 import type React from "react";
-import { TOKYO_NIGHT } from "./lib/constants";
-import type { DialogType } from "./types";
+import { TOKYO_NIGHT } from "../../lib/constants";
+import type { DialogType } from "../../types";
 
 interface ConfirmDialogProps {
   type: DialogType;

@@ -4,26 +4,26 @@ import {
   useTerminalDimensions,
 } from "@opentui/react";
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { getProjectSessions, saveSession } from "../config";
-import type { RalphSession } from "../types";
-import { ConfirmDialog } from "./confirm-dialog";
-import { HelpOverlay } from "./help-overlay";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ConfirmDialog,
+  HelpOverlay,
+  LoadingSpinner,
+  Sidebar,
+  TaskDetail,
+} from "./components";
 import {
   type KeyEvent,
   useKeyboardNavigation,
 } from "./hooks/use-keyboard-navigation";
-import { TIMING, TOKYO_NIGHT } from "./lib/constants";
+import { useSessionPolling } from "./hooks/use-session-polling";
+import { useTaskManager } from "./hooks/use-task-manager";
+import { TOKYO_NIGHT } from "./lib/constants";
 import {
-  appendToLog,
   getLatestSessionLog,
-  markTaskAsStopped,
   parseImplementationPlan,
   readSpecContent,
 } from "./lib/file-operations";
-import { LoadingSpinner } from "./loading-spinner";
-import { Sidebar } from "./sidebar";
-import { TaskDetail } from "./task-detail";
 import type { ParsedPlan, Task } from "./types";
 
 interface AppProps {
@@ -53,15 +53,23 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   // Detail scroll state
   const [detailScrollOffset, setDetailScrollOffset] = useState(0);
 
-  // Stop task state
-  const [showStopConfirm, setShowStopConfirm] = useState(false);
-  const [showForceKillConfirm, setShowForceKillConfirm] = useState(false);
-  const [taskToStop, setTaskToStop] = useState<Task | null>(null);
-  const [stoppingTaskId, setStoppingTaskId] = useState<string | null>(null);
-  const [runningSession, setRunningSession] = useState<RalphSession | null>(
-    null
-  );
-  const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Session polling hook
+  const { runningSession, setRunningSession } = useSessionPolling(projectPath);
+
+  // Reload plan callback (for when task is stopped)
+  const reloadPlan = useCallback(async (): Promise<void> => {
+    const parsedPlan = await parseImplementationPlan(projectPath);
+    setPlan(parsedPlan);
+  }, [projectPath]);
+
+  // Task manager hook
+  const taskManager = useTaskManager({
+    projectPath,
+    runningSession,
+    logPath,
+    onTaskStopped: reloadPlan,
+    onSessionUpdate: setRunningSession,
+  });
 
   // Exit function
   const exit = useCallback(() => {
@@ -150,155 +158,14 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     loadSpec();
   }, [selectedTask, projectPath]);
 
-  // Load running session (for stop functionality)
-  useEffect(() => {
-    const loadRunningSession = async (): Promise<void> => {
-      try {
-        const sessions = await getProjectSessions(projectPath);
-        const running = sessions.find((s) => s.status === "running");
-        setRunningSession(running || null);
-      } catch {
-        // Ignore errors loading session
-      }
-    };
-    loadRunningSession();
-
-    // Poll for session status
-    const intervalId = setInterval(loadRunningSession, TIMING.POLL_INTERVAL_MS);
-    return () => clearInterval(intervalId);
-  }, [projectPath]);
-
-  // Cleanup stop timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (stopTimeoutRef.current) {
-        clearTimeout(stopTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Initiate stop action - show confirmation dialog
-  const initiateStop = useCallback((task: Task): void => {
-    if (task.status !== "in_progress") {
-      return;
-    }
-    setTaskToStop(task);
-    setShowStopConfirm(true);
-  }, []);
-
-  // Cancel stop action - hide dialogs and reset state
-  const cancelStop = useCallback((): void => {
-    setShowStopConfirm(false);
-    setShowForceKillConfirm(false);
-    setTaskToStop(null);
-    if (stopTimeoutRef.current) {
-      clearTimeout(stopTimeoutRef.current);
-      stopTimeoutRef.current = null;
-    }
-  }, []);
-
-  // Complete the stop process - mark task as stopped and update plan
-  const completeStop = useCallback(
-    async (task: Task, wasForceKilled: boolean): Promise<void> => {
-      // Update session status
-      if (runningSession) {
-        runningSession.status = "stopped";
-        runningSession.stoppedAt = new Date().toISOString();
-        await saveSession(projectPath, runningSession);
-      }
-
-      // Mark task as stopped in implementation plan
-      await markTaskAsStopped(projectPath, task.specPath);
-
-      // Append termination message to log
-      if (logPath) {
-        const message = wasForceKilled
-          ? "Task force-killed by user (SIGKILL)"
-          : "Task stopped by user (SIGTERM)";
-        await appendToLog(logPath, message);
-      }
-
-      // Reload the plan to reflect changes
-      const parsedPlan = await parseImplementationPlan(projectPath);
-      setPlan(parsedPlan);
-
-      // Reset stop state
-      setStoppingTaskId(null);
-      setShowForceKillConfirm(false);
-      setTaskToStop(null);
-    },
-    [projectPath, runningSession, logPath]
-  );
-
-  // Confirm stop - send SIGTERM and start timeout
-  const confirmStop = useCallback(async (): Promise<void> => {
-    if (!taskToStop) {
-      return;
-    }
-
-    setShowStopConfirm(false);
-    setStoppingTaskId(taskToStop.id);
-
-    // Try to send SIGTERM to the running process
-    if (runningSession?.pid) {
-      try {
-        process.kill(runningSession.pid, "SIGTERM");
-        if (logPath) {
-          await appendToLog(logPath, "Sending SIGTERM to process...");
-        }
-      } catch {
-        // Process might already be terminated
-        await completeStop(taskToStop, false);
-        return;
-      }
-    }
-
-    // Start timeout for graceful shutdown
-    stopTimeoutRef.current = setTimeout(async () => {
-      // Check if process is still running
-      if (runningSession?.pid) {
-        try {
-          // Sending signal 0 checks if process exists without sending a signal
-          process.kill(runningSession.pid, 0);
-          // Process still running - show force kill dialog
-          setShowForceKillConfirm(true);
-        } catch {
-          // Process already terminated
-          if (taskToStop) {
-            await completeStop(taskToStop, false);
-          }
-        }
-      } else if (taskToStop) {
-        await completeStop(taskToStop, false);
-      }
-    }, TIMING.GRACEFUL_SHUTDOWN_MS);
-  }, [taskToStop, runningSession, logPath, completeStop]);
-
-  // Force kill - send SIGKILL
-  const forceKill = useCallback(async (): Promise<void> => {
-    if (!taskToStop) {
-      return;
-    }
-
-    if (runningSession?.pid) {
-      try {
-        process.kill(runningSession.pid, "SIGKILL");
-      } catch {
-        // Process might already be terminated
-      }
-    }
-
-    await completeStop(taskToStop, true);
-  }, [taskToStop, runningSession, completeStop]);
-
   // Handle stop keybindings (s or x)
   const handleStopKey = useCallback((): boolean => {
     if (selectedTask?.status === "in_progress") {
-      initiateStop(selectedTask);
+      taskManager.initiateStop(selectedTask);
       return true;
     }
     return false;
-  }, [selectedTask, initiateStop]);
+  }, [selectedTask, taskManager]);
 
   // Toggle completed tasks visibility
   const toggleCompleted = useCallback(() => {
@@ -328,33 +195,33 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   // Handle force kill dialog input
   const handleForceKillDialogInput = useCallback(
     (input: string, isEscapeKey: boolean): boolean => {
-      if (!showForceKillConfirm) {
+      if (taskManager.confirmState !== "force-kill") {
         return false;
       }
       if (input === "y" || input === "Y") {
-        forceKill();
+        taskManager.forceKill();
       } else if (input === "n" || input === "N" || isEscapeKey) {
-        setShowForceKillConfirm(false);
+        taskManager.cancelStop();
       }
       return true;
     },
-    [showForceKillConfirm, forceKill]
+    [taskManager]
   );
 
   // Handle stop confirmation dialog input
   const handleStopDialogInput = useCallback(
     (input: string, isEscapeKey: boolean): boolean => {
-      if (!showStopConfirm) {
+      if (taskManager.confirmState !== "confirm-stop") {
         return false;
       }
       if (input === "y" || input === "Y") {
-        confirmStop();
+        taskManager.confirmStop();
       } else if (input === "n" || input === "N" || isEscapeKey) {
-        cancelStop();
+        taskManager.cancelStop();
       }
       return true;
     },
-    [showStopConfirm, confirmStop, cancelStop]
+    [taskManager]
   );
 
   // Handle help overlay input
@@ -494,7 +361,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   }
 
   // Show stop confirmation dialog
-  if (showStopConfirm && taskToStop) {
+  if (taskManager.confirmState === "confirm-stop" && taskManager.taskToStop) {
     return (
       <box
         alignItems="center"
@@ -504,7 +371,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
         width="100%"
       >
         <ConfirmDialog
-          taskName={taskToStop.name}
+          taskName={taskManager.taskToStop.name}
           type="confirm-stop"
           visible={true}
         />
@@ -513,7 +380,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   }
 
   // Show force kill confirmation dialog
-  if (showForceKillConfirm && taskToStop) {
+  if (taskManager.confirmState === "force-kill" && taskManager.taskToStop) {
     return (
       <box
         alignItems="center"
@@ -523,7 +390,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
         width="100%"
       >
         <ConfirmDialog
-          taskName={taskToStop.name}
+          taskName={taskManager.taskToStop.name}
           type="force-kill"
           visible={true}
         />
@@ -568,7 +435,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
               selectedTaskId={selectedTask?.id || null}
               showCompleted={showCompleted}
               stopped={plan.stopped}
-              stoppingTaskId={stoppingTaskId}
+              stoppingTaskId={taskManager.stoppingTaskId}
               width={sidebarWidth}
             />
             <box flexGrow={1}>

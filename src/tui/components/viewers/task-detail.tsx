@@ -1,6 +1,6 @@
 import type React from "react";
-import { STATUS_COLORS, STATUS_ICONS, TOKYO_NIGHT } from "./lib/constants";
-import type { Task, TaskStatus } from "./types";
+import { STATUS_COLORS, STATUS_ICONS, TOKYO_NIGHT } from "../../lib/constants";
+import type { Task, TaskStatus } from "../../types";
 
 interface ParsedSpec {
   title: string;

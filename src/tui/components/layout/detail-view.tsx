@@ -1,8 +1,8 @@
 import type React from "react";
-import { TOKYO_NIGHT } from "./lib/constants";
-import { LogViewer } from "./log-viewer";
-import { SpecViewer } from "./spec-viewer";
-import type { FocusedPanel, Task } from "./types";
+import { LogViewer } from "../../components/viewers/log-viewer";
+import { SpecViewer } from "../../components/viewers/spec-viewer";
+import { TOKYO_NIGHT } from "../../lib/constants";
+import type { FocusedPanel, Task } from "../../types";
 
 interface DetailViewProps {
   task: Task;

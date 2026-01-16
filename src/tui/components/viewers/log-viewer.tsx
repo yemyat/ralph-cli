@@ -1,6 +1,6 @@
 import type React from "react";
-import { TOKYO_NIGHT } from "./lib/constants";
-import { LoadingSpinner } from "./loading-spinner";
+import { LoadingSpinner } from "../../components/primitives/loading-spinner";
+import { TOKYO_NIGHT } from "../../lib/constants";
 
 interface LogViewerProps {
   content: string;
