@@ -8,23 +8,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getProjectSessions, saveSession } from "../config";
 import type { RalphSession } from "../types";
 import { ConfirmDialog } from "./confirm-dialog";
-import { DetailView, type FocusedPanel } from "./detail-view";
 import { HelpOverlay } from "./help-overlay";
-import { Kanban } from "./kanban";
 import { LoadingSpinner } from "./loading-spinner";
+import { Sidebar } from "./sidebar";
+import { TaskDetail } from "./task-detail";
 import {
   appendToLog,
   getLatestSessionLog,
   markTaskAsStopped,
   type ParsedPlan,
   parseImplementationPlan,
-  readLogContent,
   readSpecContent,
   type Task,
-  type TaskStatus,
 } from "./utils";
 
-type View = "kanban" | "detail";
 type Mode = "normal" | "search" | "command";
 
 interface AppProps {
@@ -33,8 +30,6 @@ interface AppProps {
 
 // Timeout for detecting double-tap (gg)
 const DOUBLE_TAP_TIMEOUT = 300;
-
-const COLUMN_ORDER: TaskStatus[] = ["backlog", "in_progress", "completed"];
 
 export function App({ projectPath }: AppProps): React.ReactNode {
   const renderer = useRenderer();
@@ -50,13 +45,11 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     completed: [],
     stopped: [],
   });
-  const [view, setView] = useState<View>("kanban");
-  const [activeColumn, setActiveColumn] = useState<TaskStatus>("backlog");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [specContent, setSpecContent] = useState("");
-  const [logContent, setLogContent] = useState("");
   const [logPath, setLogPath] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   // Vim keybindings state
   const [mode, setMode] = useState<Mode>("normal");
@@ -70,11 +63,8 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     time: 0,
   });
 
-  // Detail view scroll state
-  const [focusedPanel, setFocusedPanel] = useState<FocusedPanel>("spec");
-  const [specScrollOffset, setSpecScrollOffset] = useState(0);
-  const [logsScrollOffset, setLogsScrollOffset] = useState(0);
-  const [autoFollow, setAutoFollow] = useState(true);
+  // Detail scroll state
+  const [detailScrollOffset, setDetailScrollOffset] = useState(0);
 
   // Stop task state
   const [showStopConfirm, setShowStopConfirm] = useState(false);
@@ -92,33 +82,26 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     process.exit(0);
   }, [renderer]);
 
-  // Get tasks for current column
-  const getTasksForColumn = useCallback(
-    (column: TaskStatus): Task[] => {
-      switch (column) {
-        case "backlog":
-          // Backlog column shows both stopped and backlog tasks
-          return [...plan.stopped, ...plan.backlog];
-        case "stopped":
-          return plan.stopped;
-        case "in_progress":
-          return plan.inProgress;
-        case "completed":
-          return plan.completed;
-        default:
-          return [];
-      }
-    },
-    [plan]
-  );
+  // Get visible task list for navigation (in_progress -> backlog/stopped -> completed if shown)
+  const getVisibleTasks = useCallback((): Task[] => {
+    const tasks: Task[] = [
+      ...plan.inProgress,
+      ...plan.stopped,
+      ...plan.backlog,
+    ];
+    if (showCompleted) {
+      tasks.push(...plan.completed);
+    }
+    return tasks;
+  }, [plan, showCompleted]);
 
   // Get all tasks flattened
   const getAllTasks = useCallback((): Task[] => {
     return [
-      ...plan.backlog,
       ...plan.inProgress,
-      ...plan.completed,
       ...plan.stopped,
+      ...plan.backlog,
+      ...plan.completed,
     ];
   }, [plan]);
 
@@ -144,13 +127,14 @@ export function App({ projectPath }: AppProps): React.ReactNode {
         const parsedPlan = await parseImplementationPlan(projectPath);
         setPlan(parsedPlan);
 
-        // Find the first non-empty column
-        if (parsedPlan.inProgress.length > 0) {
-          setActiveColumn("in_progress");
-        } else if (parsedPlan.backlog.length > 0) {
-          setActiveColumn("backlog");
-        } else if (parsedPlan.completed.length > 0) {
-          setActiveColumn("completed");
+        // Select first task from visible list
+        const firstTask =
+          parsedPlan.inProgress[0] ||
+          parsedPlan.stopped[0] ||
+          parsedPlan.backlog[0];
+        if (firstTask) {
+          setSelectedTask(firstTask);
+          setSelectedIndex(0);
         }
 
         // Get latest log file path
@@ -173,46 +157,17 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   // Load spec content when a task is selected
   useEffect(() => {
     if (!selectedTask) {
+      setSpecContent("");
       return;
     }
 
     const loadSpec = async (): Promise<void> => {
       const content = await readSpecContent(projectPath, selectedTask.specPath);
       setSpecContent(content);
+      setDetailScrollOffset(0);
     };
     loadSpec();
   }, [selectedTask, projectPath]);
-
-  // Load and stream log content
-  useEffect(() => {
-    if (!selectedTask || selectedTask.status === "backlog") {
-      return;
-    }
-    if (!logPath) {
-      setLogContent("No session logs found.");
-      return;
-    }
-
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-
-    const loadLog = async (): Promise<void> => {
-      const content = await readLogContent(logPath, 100);
-      setLogContent(content);
-    };
-
-    loadLog();
-
-    // Stream logs if in progress
-    if (selectedTask.status === "in_progress") {
-      intervalId = setInterval(loadLog, 1000);
-    }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [selectedTask, logPath]);
 
   // Load running session (for stop functionality)
   useEffect(() => {
@@ -241,30 +196,17 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     };
   }, []);
 
-  // Navigate to a different column
-  const navigateColumn = useCallback(
-    (direction: -1 | 1) => {
-      const currentIdx = COLUMN_ORDER.indexOf(activeColumn);
-      const newIdx = currentIdx + direction;
-      if (newIdx >= 0 && newIdx < COLUMN_ORDER.length) {
-        setActiveColumn(COLUMN_ORDER[newIdx]);
-        setSelectedIndex(0);
-      }
-    },
-    [activeColumn]
-  );
-
-  // Navigate to a specific task
+  // Navigate to a specific task in the flat list
   const navigateToTask = useCallback(
     (task: Task) => {
-      setActiveColumn(task.status);
-      const tasks = getTasksForColumn(task.status);
+      const tasks = getVisibleTasks();
       const index = tasks.findIndex((t) => t.id === task.id);
       if (index !== -1) {
         setSelectedIndex(index);
+        setSelectedTask(task);
       }
     },
-    [getTasksForColumn]
+    [getVisibleTasks]
   );
 
   // Select current search match
@@ -277,17 +219,23 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     }
   }, [searchMatches, searchMatchIndex, navigateToTask]);
 
-  // Jump to first/last item in current column
+  // Jump to first/last item in the task list
   const jumpToFirst = useCallback(() => {
-    setSelectedIndex(0);
-  }, []);
+    const tasks = getVisibleTasks();
+    if (tasks.length > 0) {
+      setSelectedIndex(0);
+      setSelectedTask(tasks[0]);
+    }
+  }, [getVisibleTasks]);
 
   const jumpToLast = useCallback(() => {
-    const tasks = getTasksForColumn(activeColumn);
-    if (tasks.length > 0) {
+    const tasks = getVisibleTasks();
+    const lastTask = tasks.at(-1);
+    if (tasks.length > 0 && lastTask) {
       setSelectedIndex(tasks.length - 1);
+      setSelectedTask(lastTask);
     }
-  }, [getTasksForColumn, activeColumn]);
+  }, [getVisibleTasks]);
 
   // Handle gg double-tap detection
   const handleDoubleTapG = useCallback((): boolean => {
@@ -322,31 +270,23 @@ export function App({ projectPath }: AppProps): React.ReactNode {
 
   // Handle vertical navigation
   const handleVerticalNav = useCallback(
-    (direction: "up" | "down", tasks: Task[]): boolean => {
+    (direction: "up" | "down"): boolean => {
+      const tasks = getVisibleTasks();
       if (direction === "up" && selectedIndex > 0) {
-        setSelectedIndex(selectedIndex - 1);
+        const newIndex = selectedIndex - 1;
+        setSelectedIndex(newIndex);
+        setSelectedTask(tasks[newIndex]);
         return true;
       }
       if (direction === "down" && selectedIndex < tasks.length - 1) {
-        setSelectedIndex(selectedIndex + 1);
+        const newIndex = selectedIndex + 1;
+        setSelectedIndex(newIndex);
+        setSelectedTask(tasks[newIndex]);
         return true;
       }
       return false;
     },
-    [selectedIndex]
-  );
-
-  // Handle opening a task
-  const handleOpenTask = useCallback(
-    (tasks: Task[]): boolean => {
-      if (tasks.length > 0 && selectedIndex < tasks.length) {
-        setSelectedTask(tasks[selectedIndex]);
-        setView("detail");
-        return true;
-      }
-      return false;
-    },
-    [selectedIndex]
+    [selectedIndex, getVisibleTasks]
   );
 
   // Initiate stop action - show confirmation dialog
@@ -464,26 +404,22 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   }, [taskToStop, runningSession, completeStop]);
 
   // Handle stop keybindings (s or x)
-  const handleStopKey = useCallback(
-    (tasks: Task[]): boolean => {
-      if (activeColumn !== "in_progress") {
-        return false;
-      }
-      if (tasks.length > 0 && selectedIndex < tasks.length) {
-        const task = tasks[selectedIndex];
-        if (task.status === "in_progress") {
-          initiateStop(task);
-          return true;
-        }
-      }
-      return false;
-    },
-    [activeColumn, selectedIndex, initiateStop]
-  );
+  const handleStopKey = useCallback((): boolean => {
+    if (selectedTask?.status === "in_progress") {
+      initiateStop(selectedTask);
+      return true;
+    }
+    return false;
+  }, [selectedTask, initiateStop]);
+
+  // Toggle completed tasks visibility
+  const toggleCompleted = useCallback(() => {
+    setShowCompleted((prev) => !prev);
+  }, []);
 
   // Handle single-character mode/action keys
   const handleSingleCharKey = useCallback(
-    (input: string, tasks: Task[]): boolean => {
+    (input: string): boolean => {
       switch (input) {
         case "?":
           setShowHelp(true);
@@ -505,84 +441,52 @@ export function App({ projectPath }: AppProps): React.ReactNode {
         case "N":
           handleSearchMatchNav("prev");
           return true;
+        case "c":
+          toggleCompleted();
+          return true;
         case "s":
         case "x":
-          return handleStopKey(tasks);
+          return handleStopKey();
         default:
           return false;
       }
     },
-    [jumpToLast, handleSearchMatchNav, handleStopKey]
+    [jumpToLast, handleSearchMatchNav, handleStopKey, toggleCompleted]
   );
 
-  // Handle column navigation
-  const handleColumnNav = useCallback(
-    (input: string, isLeftArrow?: boolean, isRightArrow?: boolean): boolean => {
-      if (isLeftArrow || input === "h") {
-        navigateColumn(-1);
-        return true;
-      }
-      if (isRightArrow || input === "l") {
-        navigateColumn(1);
-        return true;
-      }
-      return false;
-    },
-    [navigateColumn]
-  );
-
-  // Handle movement/action keys (arrows, hjkl, Enter, o)
+  // Handle movement keys (arrows, jk)
   const handleMovementKeys = useCallback(
     (
       input: string,
       key: {
-        isLeftArrow?: boolean;
-        isRightArrow?: boolean;
         isUpArrow?: boolean;
         isDownArrow?: boolean;
-        isReturn?: boolean;
-      },
-      tasks: Task[]
-    ): boolean => {
-      // Column navigation
-      if (handleColumnNav(input, key.isLeftArrow, key.isRightArrow)) {
-        return true;
       }
-
+    ): boolean => {
       // Vertical navigation
       if (key.isUpArrow || input === "k") {
-        return handleVerticalNav("up", tasks);
+        return handleVerticalNav("up");
       }
       if (key.isDownArrow || input === "j") {
-        return handleVerticalNav("down", tasks);
-      }
-
-      // Open task
-      if (key.isReturn || input === "o") {
-        return handleOpenTask(tasks);
+        return handleVerticalNav("down");
       }
 
       return false;
     },
-    [handleColumnNav, handleVerticalNav, handleOpenTask]
+    [handleVerticalNav]
   );
 
-  // Handle kanban view navigation in normal mode
+  // Handle sidebar navigation in normal mode
   const handleNormalModeInput = useCallback(
     (
       input: string,
       key: {
-        isLeftArrow?: boolean;
-        isRightArrow?: boolean;
         isUpArrow?: boolean;
         isDownArrow?: boolean;
-        isReturn?: boolean;
         ctrl?: boolean;
         isEscape?: boolean;
       }
     ) => {
-      const tasks = getTasksForColumn(activeColumn);
-
       // Check for gg (double-tap g)
       if (input === "g") {
         handleDoubleTapG();
@@ -592,8 +496,8 @@ export function App({ projectPath }: AppProps): React.ReactNode {
       // Clear last key on any other input
       lastKeyRef.current = { key: "", time: 0 };
 
-      // Single-character mode/action keys (now passes tasks for stop action)
-      if (handleSingleCharKey(input, tasks)) {
+      // Single-character mode/action keys
+      if (handleSingleCharKey(input)) {
         return;
       }
 
@@ -603,8 +507,8 @@ export function App({ projectPath }: AppProps): React.ReactNode {
         return;
       }
 
-      // Movement/action keys
-      if (handleMovementKeys(input, key, tasks)) {
+      // Movement keys
+      if (handleMovementKeys(input, key)) {
         return;
       }
 
@@ -615,8 +519,6 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     },
     [
       exit,
-      getTasksForColumn,
-      activeColumn,
       searchMatches,
       handleDoubleTapG,
       handleSingleCharKey,
@@ -755,20 +657,18 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     [showHelp]
   );
 
-  // Handle kanban view navigation (routes to mode-specific handlers)
-  const handleKanbanInput = useCallback(
+  // Handle main input (routes to mode-specific handlers)
+  const handleMainInput = useCallback(
     (
       input: string,
       key: {
-        isLeftArrow?: boolean;
-        isRightArrow?: boolean;
         isUpArrow?: boolean;
         isDownArrow?: boolean;
-        isReturn?: boolean;
         ctrl?: boolean;
         isEscape?: boolean;
         isBackspace?: boolean;
         isDelete?: boolean;
+        isReturn?: boolean;
       }
     ) => {
       // Handle dialogs and overlays first
@@ -805,240 +705,26 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     ]
   );
 
-  // Calculate content line counts for scroll bounds
-  const getSpecLineCount = useCallback((): number => {
-    return specContent.split("\n").length;
-  }, [specContent]);
-
-  const getLogsLineCount = useCallback((): number => {
-    return logContent.split("\n").length;
-  }, [logContent]);
-
-  // Calculate viewport height for panels (terminal height minus chrome)
-  const getPanelViewportHeight = useCallback((): number => {
-    // Account for header, borders, padding
-    return Math.max(1, terminalHeight - 7);
-  }, [terminalHeight]);
-
-  // Scroll the focused panel by a given amount
-  const scrollFocusedPanel = useCallback(
-    (delta: number) => {
-      const viewportHeight = getPanelViewportHeight();
-      if (focusedPanel === "spec") {
-        const maxOffset = Math.max(0, getSpecLineCount() - viewportHeight);
-        setSpecScrollOffset((prev) =>
-          Math.min(maxOffset, Math.max(0, prev + delta))
-        );
-      } else {
-        // When manually scrolling logs, disable auto-follow
-        if (delta < 0) {
-          setAutoFollow(false);
-        }
-        const maxOffset = Math.max(0, getLogsLineCount() - viewportHeight);
-        setLogsScrollOffset((prev) =>
-          Math.min(maxOffset, Math.max(0, prev + delta))
-        );
-      }
-    },
-    [focusedPanel, getSpecLineCount, getLogsLineCount, getPanelViewportHeight]
-  );
-
-  // Jump to top of focused panel
-  const scrollToTop = useCallback(() => {
-    if (focusedPanel === "spec") {
-      setSpecScrollOffset(0);
-    } else {
-      setAutoFollow(false);
-      setLogsScrollOffset(0);
-    }
-  }, [focusedPanel]);
-
-  // Jump to bottom of focused panel
-  const scrollToBottom = useCallback(() => {
-    const viewportHeight = getPanelViewportHeight();
-    if (focusedPanel === "spec") {
-      const maxOffset = Math.max(0, getSpecLineCount() - viewportHeight);
-      setSpecScrollOffset(maxOffset);
-    } else {
-      // Jumping to bottom re-enables auto-follow
-      setAutoFollow(true);
-      const maxOffset = Math.max(0, getLogsLineCount() - viewportHeight);
-      setLogsScrollOffset(maxOffset);
-    }
-  }, [
-    focusedPanel,
-    getSpecLineCount,
-    getLogsLineCount,
-    getPanelViewportHeight,
-  ]);
-
-  // Toggle auto-follow for logs panel
-  const toggleAutoFollow = useCallback(() => {
-    setAutoFollow((prev) => !prev);
-  }, []);
-
-  // Switch focus between panels
-  const togglePanelFocus = useCallback(() => {
-    // Only toggle if we're in split view (not backlog)
-    if (selectedTask && selectedTask.status !== "backlog") {
-      setFocusedPanel((prev) => (prev === "spec" ? "logs" : "spec"));
-    }
-  }, [selectedTask]);
-
-  // Reset scroll state when exiting detail view
-  const exitDetailView = useCallback(() => {
-    setView("kanban");
-    setSelectedTask(null);
-    setSpecContent("");
-    setLogContent("");
-    setFocusedPanel("spec");
-    setSpecScrollOffset(0);
-    setLogsScrollOffset(0);
-    setAutoFollow(true);
-  }, []);
-
-  // Handle detail view scroll keys
-  const handleDetailScrollKeys = useCallback(
-    (
-      input: string,
-      key: {
-        isUpArrow?: boolean;
-        isDownArrow?: boolean;
-        ctrl?: boolean;
-      }
-    ): boolean => {
-      // Ctrl+U - half page up
-      if (key.ctrl && input === "u") {
-        const halfPage = Math.floor(getPanelViewportHeight() / 2);
-        scrollFocusedPanel(-halfPage);
-        return true;
-      }
-
-      // Ctrl+D - half page down
-      if (key.ctrl && input === "d") {
-        const halfPage = Math.floor(getPanelViewportHeight() / 2);
-        scrollFocusedPanel(halfPage);
-        return true;
-      }
-
-      // j or down arrow - scroll down one line
-      if (key.isDownArrow || input === "j") {
-        scrollFocusedPanel(1);
-        return true;
-      }
-
-      // k or up arrow - scroll up one line
-      if (key.isUpArrow || input === "k") {
-        scrollFocusedPanel(-1);
-        return true;
-      }
-
-      return false;
-    },
-    [scrollFocusedPanel, getPanelViewportHeight]
-  );
-
-  // Handle gg double-tap for detail view
-  const handleDetailDoubleTapG = useCallback((): boolean => {
-    const now = Date.now();
-    const lastKey = lastKeyRef.current;
-    if (lastKey.key === "g" && now - lastKey.time < DOUBLE_TAP_TIMEOUT) {
-      scrollToTop();
-      lastKeyRef.current = { key: "", time: 0 };
-      return true;
-    }
-    lastKeyRef.current = { key: "g", time: now };
-    return false;
-  }, [scrollToTop]);
-
-  // Handle detail view navigation
-  const handleDetailInput = useCallback(
-    (
-      input: string,
-      key: {
-        isEscape?: boolean;
-        isTab?: boolean;
-        isUpArrow?: boolean;
-        isDownArrow?: boolean;
-        ctrl?: boolean;
-      }
-    ) => {
-      // Escape or q to exit detail view
-      if (key.isEscape || input === "q") {
-        exitDetailView();
-        return;
-      }
-
-      // Tab to switch panel focus
-      if (key.isTab) {
-        togglePanelFocus();
-        return;
-      }
-
-      // f to toggle auto-follow
-      if (input === "f") {
-        toggleAutoFollow();
-        return;
-      }
-
-      // G to jump to bottom
-      if (input === "G") {
-        scrollToBottom();
-        return;
-      }
-
-      // g for gg detection
-      if (input === "g") {
-        handleDetailDoubleTapG();
-        return;
-      }
-
-      // Handle scroll keys (j/k, arrows, ctrl+u/d)
-      if (handleDetailScrollKeys(input, key)) {
-        return;
-      }
-    },
-    [
-      exitDetailView,
-      togglePanelFocus,
-      toggleAutoFollow,
-      scrollToBottom,
-      handleDetailDoubleTapG,
-      handleDetailScrollKeys,
-    ]
-  );
-
   // Keyboard input handling
   useKeyboard((keyEvent) => {
-    // Map OpenTUI key event to our handler format
     const key = {
-      isLeftArrow: keyEvent.name === "left",
-      isRightArrow: keyEvent.name === "right",
       isUpArrow: keyEvent.name === "up",
       isDownArrow: keyEvent.name === "down",
       isReturn: keyEvent.name === "return",
       isEscape: keyEvent.name === "escape",
       isBackspace: keyEvent.name === "backspace",
       isDelete: keyEvent.name === "delete",
-      isTab: keyEvent.name === "tab",
       ctrl: keyEvent.ctrl,
     };
-
-    // Get the character input
     const input = keyEvent.sequence || "";
-
-    if (view === "kanban") {
-      handleKanbanInput(input, key);
-    } else if (view === "detail") {
-      handleDetailInput(input, key);
-    }
+    handleMainInput(input, key);
   });
 
   // Loading state
   if (loading) {
     return (
       <box flexDirection="column" padding={1}>
-        <text fg="#00FFFF">
+        <text fg="#7aa2f7">
           <LoadingSpinner /> Loading Ralph Wiggum CLI...
         </text>
       </box>
@@ -1049,40 +735,15 @@ export function App({ projectPath }: AppProps): React.ReactNode {
   if (error) {
     return (
       <box flexDirection="column" padding={1}>
-        <text fg="#FF0000">Error: {error}</text>
-        <text fg="#808080">Press q to quit.</text>
+        <text fg="#f7768e">Error: {error}</text>
+        <text fg="#565f89">Press q to quit.</text>
       </box>
     );
   }
 
-  // Detail view
-  if (view === "detail" && selectedTask) {
-    return (
-      <box flexDirection="column" height={terminalHeight} width="100%">
-        <box marginBottom={1} paddingLeft={1} paddingRight={1}>
-          <text fg="#00FFFF">
-            <strong>🧑‍🚀 Ralph Wiggum CLI</strong>
-          </text>
-        </box>
-        <box flexGrow={1} paddingLeft={1} paddingRight={1}>
-          <DetailView
-            autoFollow={autoFollow}
-            focusedPanel={focusedPanel}
-            height={terminalHeight - 4}
-            isStreaming={selectedTask.status === "in_progress"}
-            logContent={logContent}
-            logsScrollOffset={logsScrollOffset}
-            specContent={specContent}
-            specScrollOffset={specScrollOffset}
-            task={selectedTask}
-            terminalWidth={terminalWidth}
-          />
-        </box>
-      </box>
-    );
-  }
-
-  // Main Kanban view
+  // Calculate layout
+  const sidebarWidth = 30;
+  const contentHeight = terminalHeight - 4;
   const totalTasks =
     plan.backlog.length +
     plan.inProgress.length +
@@ -1094,11 +755,11 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     if (mode === "search") {
       return (
         <text>
-          <span fg="#FFFF00">/</span>
-          <span fg="#FFFFFF">{searchQuery}</span>
-          <span fg="#808080">_</span>
+          <span fg="#bb9af7">/</span>
+          <span fg="#c0caf5">{searchQuery}</span>
+          <span fg="#565f89">_</span>
           {searchMatches.length > 0 && (
-            <span fg="#808080">
+            <span fg="#565f89">
               {" "}
               ({searchMatchIndex + 1}/{searchMatches.length})
             </span>
@@ -1109,22 +770,16 @@ export function App({ projectPath }: AppProps): React.ReactNode {
     if (mode === "command") {
       return (
         <text>
-          <span fg="#FFFF00">{commandBuffer}</span>
-          <span fg="#808080">_</span>
+          <span fg="#bb9af7">{commandBuffer}</span>
+          <span fg="#565f89">_</span>
         </text>
       );
     }
-    // Show stop hint when in In Progress column
-    if (activeColumn === "in_progress" && plan.inProgress.length > 0) {
-      return (
-        <text fg="#808080">
-          [hjkl] move [o] open [s] stop [/] search [?] help [:q] quit
-        </text>
-      );
-    }
+    const stopHint = selectedTask?.status === "in_progress" ? "[s] stop " : "";
+    const completedHint = showCompleted ? "[c] hide done" : "[c] show done";
     return (
-      <text fg="#808080">
-        [hjkl] move [o] open [/] search [?] help [:q] quit
+      <text fg="#565f89">
+        [jk] move {stopHint}[/] search {completedHint} [?] help [:q] quit
       </text>
     );
   };
@@ -1185,39 +840,50 @@ export function App({ projectPath }: AppProps): React.ReactNode {
         paddingLeft={1}
         paddingRight={1}
       >
-        <text fg="#00FFFF">
+        <text fg="#7aa2f7">
           <strong>🧑‍🚀 Ralph Wiggum CLI</strong>
         </text>
         {getStatusBarContent()}
       </box>
 
-      {/* Kanban Board */}
-      <box flexGrow={1} paddingLeft={1} paddingRight={1}>
+      {/* Main content: Sidebar + Task Detail */}
+      <box flexDirection="row" flexGrow={1} paddingLeft={1} paddingRight={1}>
         {totalTasks === 0 ? (
           <box flexDirection="column" paddingBottom={2} paddingTop={2}>
-            <text fg="#FFFF00">No specs found in IMPLEMENTATION_PLAN.md</text>
-            <text fg="#808080">
+            <text fg="#e0af68">No specs found in IMPLEMENTATION_PLAN.md</text>
+            <text fg="#565f89">
               Run `ralph-wiggum-cli start plan` to generate the implementation
               plan.
             </text>
           </box>
         ) : (
-          <Kanban
-            activeColumn={activeColumn}
-            backlog={plan.backlog}
-            completed={plan.completed}
-            inProgress={plan.inProgress}
-            selectedIndex={selectedIndex}
-            stopped={plan.stopped}
-            stoppingTaskId={stoppingTaskId}
-            terminalWidth={terminalWidth}
-          />
+          <>
+            <Sidebar
+              backlog={plan.backlog}
+              completed={plan.completed}
+              height={contentHeight}
+              inProgress={plan.inProgress}
+              selectedTaskId={selectedTask?.id || null}
+              showCompleted={showCompleted}
+              stopped={plan.stopped}
+              stoppingTaskId={stoppingTaskId}
+              width={sidebarWidth}
+            />
+            <box flexGrow={1}>
+              <TaskDetail
+                height={contentHeight}
+                scrollOffset={detailScrollOffset}
+                specContent={specContent}
+                task={selectedTask}
+              />
+            </box>
+          </>
         )}
       </box>
 
       {/* Footer */}
       <box marginTop={1} paddingLeft={1} paddingRight={1}>
-        <text fg="#808080">
+        <text fg="#565f89">
           {totalTasks} spec(s) | {plan.completed.length} completed
         </text>
       </box>
