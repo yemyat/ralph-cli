@@ -4,6 +4,35 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-16 12:00] - Fix Lint Errors in TUI Tests
+
+**Commit:** `ffa8cb4` fix: lint errors in TUI tests (imports, regex, formatting)
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS (98 tests)
+- `bun run build` → PASS
+
+**Files changed:**
+- src/__tests__/tui.test.tsx (fixed import order, moved regex to top-level, fixed formatting)
+
+**What was done:**
+1. Fixed import organization (node:path before @opentui packages)
+2. Moved regex literal to top-level scope (SCROLL_POSITION_REGEX constant)
+3. Fixed formatting of createTestRenderer calls per Biome style rules
+
+**Learnings:**
+- Biome organizeImports requires node: imports before external packages
+- Regex literals used in function scope trigger useTopLevelRegex lint error
+- Biome formatting prefers function call arguments on separate lines with specific indentation
+
+---
+
 ## [2026-01-16 10:00] - OpenTUI Migration
 
 **Commit:** `65571d2` feat: migrate TUI from Ink to OpenTUI
