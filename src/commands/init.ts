@@ -9,8 +9,8 @@ import {
   select,
   spinner,
 } from "@clack/prompts";
-import chalk from "chalk";
 import fse from "fs-extra";
+import pc from "picocolors";
 import { getAgent, getAllAgents } from "../agents/index.js";
 import { getProjectConfig, initProject } from "../config.js";
 import {
@@ -84,7 +84,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
   const projectPath = process.cwd();
   const existingConfig = await getProjectConfig(projectPath);
 
-  intro(chalk.cyan("🧑‍🚀 Ralph Wiggum CLI Setup"));
+  intro(pc.cyan("🧑‍🚀 Ralph Wiggum CLI Setup"));
 
   if (existingConfig && !options.force) {
     note(
@@ -205,8 +205,8 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
   outro(
     "Next steps:\n" +
-      `  1. Add specifications to ${chalk.cyan(".ralph-wiggum/specs/")} directory\n` +
-      `  2. Run ${chalk.cyan("ralph-wiggum-cli start plan")} to generate implementation plan\n` +
-      `  3. Run ${chalk.cyan("ralph-wiggum-cli start build")} to start building`
+      `  1. Add specifications to ${pc.cyan(".ralph-wiggum/specs/")} directory\n` +
+      `  2. Run ${pc.cyan("ralph-wiggum-cli start plan")} to generate implementation plan\n` +
+      `  3. Run ${pc.cyan("ralph-wiggum-cli start build")} to start building`
   );
 }

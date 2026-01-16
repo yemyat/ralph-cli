@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import chalk from "chalk";
 import { Command } from "commander";
+import pc from "picocolors";
 import { initCommand } from "./commands/init.js";
 import { listCommand } from "./commands/list.js";
 import { logsCommand } from "./commands/logs.js";
@@ -54,7 +54,7 @@ program
   .action(async (mode, options) => {
     const validModes = ["plan", "build"];
     if (!validModes.includes(mode)) {
-      console.log(chalk.red(`Invalid mode: ${mode}. Use 'plan' or 'build'.`));
+      console.log(pc.red(`Invalid mode: ${mode}. Use 'plan' or 'build'.`));
       return;
     }
     await startCommand(mode as "plan" | "build", {
@@ -106,14 +106,14 @@ program
   .description("List available AI agents")
   .action(async () => {
     const { getAllAgents } = await import("./agents/index.js");
-    console.log(chalk.bold("\n🤖 Available Agents\n"));
+    console.log(pc.bold("\n🤖 Available Agents\n"));
     for (const agent of getAllAgents()) {
       const installed = await agent.checkInstalled();
       const status = installed
-        ? chalk.green("✓ installed")
-        : chalk.red("✗ not installed");
+        ? pc.green("✓ installed")
+        : pc.red("✗ not installed");
       console.log(
-        `  ${chalk.cyan(agent.type.padEnd(8))} ${agent.name.padEnd(15)} ${status}`
+        `  ${pc.cyan(agent.type.padEnd(8))} ${agent.name.padEnd(15)} ${status}`
       );
     }
     console.log();

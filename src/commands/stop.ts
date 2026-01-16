@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import pc from "picocolors";
 import {
   getProjectConfig,
   getProjectSessions,
@@ -10,7 +10,7 @@ export async function stopCommand(): Promise<void> {
   const config = await getProjectConfig(projectPath);
 
   if (!config) {
-    console.log(chalk.red("Ralph is not initialized for this project."));
+    console.log(pc.red("Ralph is not initialized for this project."));
     return;
   }
 
@@ -18,9 +18,7 @@ export async function stopCommand(): Promise<void> {
   const runningSessions = sessions.filter((s) => s.status === "running");
 
   if (runningSessions.length === 0) {
-    console.log(
-      chalk.yellow("No running Ralph sessions found for this project.")
-    );
+    console.log(pc.yellow("No running Ralph sessions found for this project."));
     return;
   }
 
@@ -29,12 +27,12 @@ export async function stopCommand(): Promise<void> {
       try {
         process.kill(session.pid, "SIGTERM");
         console.log(
-          chalk.green(
+          pc.green(
             `✓ Sent stop signal to session ${session.id} (PID: ${session.pid})`
           )
         );
       } catch (_err) {
-        console.log(chalk.gray(`Process ${session.pid} already terminated.`));
+        console.log(pc.gray(`Process ${session.pid} already terminated.`));
       }
     }
 
@@ -43,5 +41,5 @@ export async function stopCommand(): Promise<void> {
     await saveSession(projectPath, session);
   }
 
-  console.log(chalk.green(`\n✓ Stopped ${runningSessions.length} session(s).`));
+  console.log(pc.green(`\n✓ Stopped ${runningSessions.length} session(s).`));
 }

@@ -1,18 +1,18 @@
-import chalk from "chalk";
+import pc from "picocolors";
 import { getAgent } from "../agents/index.js";
 import { getProjectConfig, getProjectSessions } from "../config.js";
 import type { RalphSession } from "../types.js";
 
-function getStatusColor(status: RalphSession["status"]): typeof chalk.green {
+function getStatusColor(status: RalphSession["status"]): typeof pc.green {
   switch (status) {
     case "running":
-      return chalk.green;
+      return pc.green;
     case "paused":
-      return chalk.yellow;
+      return pc.yellow;
     case "completed":
-      return chalk.blue;
+      return pc.blue;
     default:
-      return chalk.gray;
+      return pc.gray;
   }
 }
 
@@ -21,30 +21,30 @@ export async function statusCommand(): Promise<void> {
   const config = await getProjectConfig(projectPath);
 
   if (!config) {
-    console.log(chalk.red("Ralph is not initialized for this project."));
-    console.log(`Run ${chalk.cyan("ralph-wiggum-cli init")} first.`);
+    console.log(pc.red("Ralph is not initialized for this project."));
+    console.log(`Run ${pc.cyan("ralph-wiggum-cli init")} first.`);
     return;
   }
 
   const planAgent = getAgent(config.agents.plan.agent);
   const buildAgent = getAgent(config.agents.build.agent);
 
-  console.log(chalk.bold("\n📋 Project Status\n"));
-  console.log(`  Project:     ${chalk.cyan(config.projectName)}`);
+  console.log(pc.bold("\n📋 Project Status\n"));
+  console.log(`  Project:     ${pc.cyan(config.projectName)}`);
   console.log(
-    `  Plan Agent:  ${chalk.cyan(planAgent.name)} ${chalk.gray(`(model: ${config.agents.plan.model || "default"})`)}`
+    `  Plan Agent:  ${pc.cyan(planAgent.name)} ${pc.gray(`(model: ${config.agents.plan.model || "default"})`)}`
   );
   console.log(
-    `  Build Agent: ${chalk.cyan(buildAgent.name)} ${chalk.gray(`(model: ${config.agents.build.model || "default"})`)}`
+    `  Build Agent: ${pc.cyan(buildAgent.name)} ${pc.gray(`(model: ${config.agents.build.model || "default"})`)}`
   );
-  console.log(`  Created:     ${chalk.gray(config.createdAt)}`);
+  console.log(`  Created:     ${pc.gray(config.createdAt)}`);
 
   const sessions = await getProjectSessions(projectPath);
 
   if (sessions.length === 0) {
-    console.log(chalk.gray("\n  No sessions yet."));
+    console.log(pc.gray("\n  No sessions yet."));
   } else {
-    console.log(chalk.bold("\n📊 Sessions:\n"));
+    console.log(pc.bold("\n📊 Sessions:\n"));
 
     const sortedSessions = sessions.sort(
       (a, b) =>
@@ -55,13 +55,13 @@ export async function statusCommand(): Promise<void> {
       const statusColor = getStatusColor(session.status);
 
       console.log(
-        `  ${chalk.cyan(session.id)} | ${statusColor(session.status.padEnd(10))} | ${session.mode.padEnd(5)} | ${chalk.gray(`${session.iteration} iter`)} | ${chalk.gray(new Date(session.startedAt).toLocaleString())}`
+        `  ${pc.cyan(session.id)} | ${statusColor(session.status.padEnd(10))} | ${session.mode.padEnd(5)} | ${pc.gray(`${session.iteration} iter`)} | ${pc.gray(new Date(session.startedAt).toLocaleString())}`
       );
     }
 
     if (sortedSessions.length > 5) {
       console.log(
-        chalk.gray(`\n  ... and ${sortedSessions.length - 5} more sessions.`)
+        pc.gray(`\n  ... and ${sortedSessions.length - 5} more sessions.`)
       );
     }
   }

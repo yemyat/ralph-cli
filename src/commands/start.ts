@@ -1,9 +1,9 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import chalk from "chalk";
 import fse from "fs-extra";
 import ora from "ora";
+import pc from "picocolors";
 import { getAgent } from "../agents/index.js";
 import {
   getProjectConfig,
@@ -28,8 +28,8 @@ export async function startCommand(
   const config = await getProjectConfig(projectPath);
 
   if (!config) {
-    console.log(chalk.red("Ralph is not initialized for this project."));
-    console.log(`Run ${chalk.cyan("ralph-wiggum-cli init")} first.`);
+    console.log(pc.red("Ralph is not initialized for this project."));
+    console.log(`Run ${pc.cyan("ralph-wiggum-cli init")} first.`);
     return;
   }
 
@@ -38,13 +38,11 @@ export async function startCommand(
 
   if (runningSessions.length > 0) {
     console.log(
-      chalk.yellow("There's already a running Ralph session for this project.")
+      pc.yellow("There's already a running Ralph session for this project.")
     );
-    console.log(`  Session ID: ${chalk.cyan(runningSessions[0].id)}`);
-    console.log(`  Mode: ${chalk.cyan(runningSessions[0].mode)}`);
-    console.log(
-      `\nUse ${chalk.cyan("ralph-wiggum-cli stop")} to stop it first.`
-    );
+    console.log(`  Session ID: ${pc.cyan(runningSessions[0].id)}`);
+    console.log(`  Mode: ${pc.cyan(runningSessions[0].mode)}`);
+    console.log(`\nUse ${pc.cyan("ralph-wiggum-cli stop")} to stop it first.`);
     return;
   }
 
@@ -57,7 +55,7 @@ export async function startCommand(
   const isInstalled = await agentInstance.checkInstalled();
 
   if (!isInstalled) {
-    console.log(chalk.red(`\n${agentInstance.name} is not installed.\n`));
+    console.log(pc.red(`\n${agentInstance.name} is not installed.\n`));
     console.log(agentInstance.getInstallInstructions());
     return;
   }
@@ -67,8 +65,8 @@ export async function startCommand(
   const promptPath = join(ralphDir, promptFile);
 
   if (!(await fse.pathExists(promptPath))) {
-    console.log(chalk.red(`Prompt file not found: ${promptFile}`));
-    console.log(`Run ${chalk.cyan("ralph-wiggum-cli init")} to create it.`);
+    console.log(pc.red(`Prompt file not found: ${promptFile}`));
+    console.log(`Run ${pc.cyan("ralph-wiggum-cli init")} to create it.`);
     return;
   }
 
@@ -85,17 +83,17 @@ export async function startCommand(
     model,
   };
 
-  console.log(chalk.green(`\n🚀 Starting Ralph in ${mode} mode...\n`));
-  console.log(`  Session ID: ${chalk.cyan(sessionId)}`);
-  console.log(`  Agent:      ${chalk.cyan(agentInstance.name)}`);
-  console.log(`  Model:      ${chalk.cyan(model || "default")}`);
-  console.log(`  Prompt:     ${chalk.cyan(promptFile)}`);
+  console.log(pc.green(`\n🚀 Starting Ralph in ${mode} mode...\n`));
+  console.log(`  Session ID: ${pc.cyan(sessionId)}`);
+  console.log(`  Agent:      ${pc.cyan(agentInstance.name)}`);
+  console.log(`  Model:      ${pc.cyan(model || "default")}`);
+  console.log(`  Prompt:     ${pc.cyan(promptFile)}`);
   if (maxIterations > 0) {
-    console.log(`  Max Iter:   ${chalk.cyan(maxIterations)}`);
+    console.log(`  Max Iter:   ${pc.cyan(maxIterations)}`);
   }
-  console.log(`  Log:        ${chalk.gray(logFile)}`);
+  console.log(`  Log:        ${pc.gray(logFile)}`);
   console.log();
-  console.log(chalk.gray("Press Ctrl+C to stop the loop.\n"));
+  console.log(pc.gray("Press Ctrl+C to stop the loop.\n"));
 
   await runRalphLoop(
     projectPath,
@@ -127,14 +125,14 @@ async function runRalphLoop(
     const timestamp = new Date().toISOString();
     logStream.write(`[${timestamp}] ${msg}\n`);
     if (verbose) {
-      console.log(chalk.gray(`[${timestamp}]`), msg);
+      console.log(pc.gray(`[${timestamp}]`), msg);
     }
   };
 
   log(`Starting Ralph loop - Session ${session.id}`);
 
   const handleSignal = async () => {
-    console.log(chalk.yellow("\n\nStopping Ralph loop..."));
+    console.log(pc.yellow("\n\nStopping Ralph loop..."));
     session.status = "stopped";
     session.stoppedAt = new Date().toISOString();
     await saveSession(projectPath, session);
@@ -149,9 +147,7 @@ async function runRalphLoop(
   try {
     while (true) {
       if (maxIterations > 0 && iteration >= maxIterations) {
-        console.log(
-          chalk.green(`\n✓ Reached max iterations: ${maxIterations}`)
-        );
+        console.log(pc.green(`\n✓ Reached max iterations: ${maxIterations}`));
         break;
       }
 
@@ -229,7 +225,7 @@ async function runRalphLoop(
 
         if (doneDetected) {
           console.log(
-            chalk.green("\n✓ All tasks completed! Agent signaled DONE.")
+            pc.green("\n✓ All tasks completed! Agent signaled DONE.")
           );
           break;
         }
@@ -252,7 +248,7 @@ async function runRalphLoop(
       }
 
       console.log(
-        chalk.gray(`\n${"=".repeat(20)} LOOP ${iteration} ${"=".repeat(20)}\n`)
+        pc.gray(`\n${"=".repeat(20)} LOOP ${iteration} ${"=".repeat(20)}\n`)
       );
     }
 

@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import pc from "picocolors";
 import { getAgent } from "../agents/index.js";
 import { getProjectConfig, getProjectSessions } from "../config.js";
 
@@ -7,9 +7,9 @@ export async function listCommand(): Promise<void> {
   const config = await getProjectConfig(projectPath);
 
   if (!config) {
-    console.log(chalk.yellow("\nNo Ralph project found in current directory."));
+    console.log(pc.yellow("\nNo Ralph project found in current directory."));
     console.log(
-      `Run ${chalk.cyan("ralph-wiggum-cli init")} to initialize a project.`
+      `Run ${pc.cyan("ralph-wiggum-cli init")} to initialize a project.`
     );
     return;
   }
@@ -20,18 +20,18 @@ export async function listCommand(): Promise<void> {
   const runningSessions = sessions.filter((s) => s.status === "running");
 
   const statusIndicator =
-    runningSessions.length > 0 ? chalk.green("●") : chalk.gray("○");
+    runningSessions.length > 0 ? pc.green("●") : pc.gray("○");
 
-  console.log(chalk.bold("\n📁 Ralph Project\n"));
-  console.log(`${statusIndicator} ${chalk.cyan(config.projectName)}`);
+  console.log(pc.bold("\n📁 Ralph Project\n"));
+  console.log(`${statusIndicator} ${pc.cyan(config.projectName)}`);
   console.log(
-    `    Plan:     ${chalk.gray(planAgent.name)} ${chalk.gray(`(${config.agents.plan.model || "default"})`)}`
+    `    Plan:     ${pc.gray(planAgent.name)} ${pc.gray(`(${config.agents.plan.model || "default"})`)}`
   );
   console.log(
-    `    Build:    ${chalk.gray(buildAgent.name)} ${chalk.gray(`(${config.agents.build.model || "default"})`)}`
+    `    Build:    ${pc.gray(buildAgent.name)} ${pc.gray(`(${config.agents.build.model || "default"})`)}`
   );
   console.log(
-    `    Sessions: ${chalk.gray(sessions.length)} total, ${chalk.green(runningSessions.length)} running`
+    `    Sessions: ${pc.gray(sessions.length)} total, ${pc.green(runningSessions.length)} running`
   );
   console.log();
 }
