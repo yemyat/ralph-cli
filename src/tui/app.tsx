@@ -1,5 +1,8 @@
-import { Box, Text, useApp, useInput, useStdout } from "ink";
-import Spinner from "ink-spinner";
+import {
+  useKeyboard,
+  useRenderer,
+  useTerminalDimensions,
+} from "@opentui/react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getProjectSessions, saveSession } from "../config.js";
@@ -8,6 +11,7 @@ import { ConfirmDialog } from "./confirm-dialog.js";
 import { DetailView, type FocusedPanel } from "./detail-view.js";
 import { HelpOverlay } from "./help-overlay.js";
 import { Kanban } from "./kanban.js";
+import { LoadingSpinner } from "./loading-spinner.js";
 import {
   appendToLog,
   getLatestSessionLog,
@@ -32,9 +36,10 @@ const DOUBLE_TAP_TIMEOUT = 300;
 
 const COLUMN_ORDER: TaskStatus[] = ["backlog", "in_progress", "completed"];
 
-export function App({ projectPath }: AppProps): React.ReactElement {
-  const { exit } = useApp();
-  const { stdout } = useStdout();
+export function App({ projectPath }: AppProps): React.ReactNode {
+  const renderer = useRenderer();
+  const { width: terminalWidth, height: terminalHeight } =
+    useTerminalDimensions();
 
   // State
   const [loading, setLoading] = useState(true);
@@ -80,6 +85,12 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     null
   );
   const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Exit function
+  const exit = useCallback(() => {
+    renderer.destroy();
+    process.exit(0);
+  }, [renderer]);
 
   // Get tasks for current column
   const getTasksForColumn = useCallback(
@@ -506,12 +517,12 @@ export function App({ projectPath }: AppProps): React.ReactElement {
 
   // Handle column navigation
   const handleColumnNav = useCallback(
-    (input: string, leftArrow?: boolean, rightArrow?: boolean): boolean => {
-      if (leftArrow || input === "h") {
+    (input: string, isLeftArrow?: boolean, isRightArrow?: boolean): boolean => {
+      if (isLeftArrow || input === "h") {
         navigateColumn(-1);
         return true;
       }
-      if (rightArrow || input === "l") {
+      if (isRightArrow || input === "l") {
         navigateColumn(1);
         return true;
       }
@@ -525,29 +536,29 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     (
       input: string,
       key: {
-        leftArrow?: boolean;
-        rightArrow?: boolean;
-        upArrow?: boolean;
-        downArrow?: boolean;
-        return?: boolean;
+        isLeftArrow?: boolean;
+        isRightArrow?: boolean;
+        isUpArrow?: boolean;
+        isDownArrow?: boolean;
+        isReturn?: boolean;
       },
       tasks: Task[]
     ): boolean => {
       // Column navigation
-      if (handleColumnNav(input, key.leftArrow, key.rightArrow)) {
+      if (handleColumnNav(input, key.isLeftArrow, key.isRightArrow)) {
         return true;
       }
 
       // Vertical navigation
-      if (key.upArrow || input === "k") {
+      if (key.isUpArrow || input === "k") {
         return handleVerticalNav("up", tasks);
       }
-      if (key.downArrow || input === "j") {
+      if (key.isDownArrow || input === "j") {
         return handleVerticalNav("down", tasks);
       }
 
       // Open task
-      if (key.return || input === "o") {
+      if (key.isReturn || input === "o") {
         return handleOpenTask(tasks);
       }
 
@@ -561,13 +572,13 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     (
       input: string,
       key: {
-        leftArrow?: boolean;
-        rightArrow?: boolean;
-        upArrow?: boolean;
-        downArrow?: boolean;
-        return?: boolean;
+        isLeftArrow?: boolean;
+        isRightArrow?: boolean;
+        isUpArrow?: boolean;
+        isDownArrow?: boolean;
+        isReturn?: boolean;
         ctrl?: boolean;
-        escape?: boolean;
+        isEscape?: boolean;
       }
     ) => {
       const tasks = getTasksForColumn(activeColumn);
@@ -618,27 +629,27 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     (
       input: string,
       key: {
-        return?: boolean;
-        escape?: boolean;
-        backspace?: boolean;
-        delete?: boolean;
+        isReturn?: boolean;
+        isEscape?: boolean;
+        isBackspace?: boolean;
+        isDelete?: boolean;
       }
     ) => {
       // Cancel search
-      if (key.escape) {
+      if (key.isEscape) {
         setMode("normal");
         setSearchQuery("");
         return;
       }
 
       // Select current match
-      if (key.return) {
+      if (key.isReturn) {
         selectSearchMatch();
         return;
       }
 
       // Backspace
-      if (key.backspace || key.delete) {
+      if (key.isBackspace || key.isDelete) {
         setSearchQuery((prev) => prev.slice(0, -1));
         return;
       }
@@ -656,21 +667,21 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     (
       input: string,
       key: {
-        return?: boolean;
-        escape?: boolean;
-        backspace?: boolean;
-        delete?: boolean;
+        isReturn?: boolean;
+        isEscape?: boolean;
+        isBackspace?: boolean;
+        isDelete?: boolean;
       }
     ) => {
       // Cancel command
-      if (key.escape) {
+      if (key.isEscape) {
         setMode("normal");
         setCommandBuffer("");
         return;
       }
 
       // Execute command
-      if (key.return) {
+      if (key.isReturn) {
         if (commandBuffer === ":q" || commandBuffer === ":quit") {
           exit();
         }
@@ -680,7 +691,7 @@ export function App({ projectPath }: AppProps): React.ReactElement {
       }
 
       // Backspace
-      if (key.backspace || key.delete) {
+      if (key.isBackspace || key.isDelete) {
         if (commandBuffer.length > 1) {
           setCommandBuffer((prev) => prev.slice(0, -1));
         } else {
@@ -749,25 +760,25 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     (
       input: string,
       key: {
-        leftArrow?: boolean;
-        rightArrow?: boolean;
-        upArrow?: boolean;
-        downArrow?: boolean;
-        return?: boolean;
+        isLeftArrow?: boolean;
+        isRightArrow?: boolean;
+        isUpArrow?: boolean;
+        isDownArrow?: boolean;
+        isReturn?: boolean;
         ctrl?: boolean;
-        escape?: boolean;
-        backspace?: boolean;
-        delete?: boolean;
+        isEscape?: boolean;
+        isBackspace?: boolean;
+        isDelete?: boolean;
       }
     ) => {
       // Handle dialogs and overlays first
-      if (handleForceKillDialogInput(input, key.escape ?? false)) {
+      if (handleForceKillDialogInput(input, key.isEscape ?? false)) {
         return;
       }
-      if (handleStopDialogInput(input, key.escape ?? false)) {
+      if (handleStopDialogInput(input, key.isEscape ?? false)) {
         return;
       }
-      if (handleHelpOverlayInput(input, key.escape ?? false)) {
+      if (handleHelpOverlayInput(input, key.isEscape ?? false)) {
         return;
       }
 
@@ -805,10 +816,9 @@ export function App({ projectPath }: AppProps): React.ReactElement {
 
   // Calculate viewport height for panels (terminal height minus chrome)
   const getPanelViewportHeight = useCallback((): number => {
-    const termHeight = stdout?.rows || 24;
     // Account for header, borders, padding
-    return Math.max(1, termHeight - 7);
-  }, [stdout]);
+    return Math.max(1, terminalHeight - 7);
+  }, [terminalHeight]);
 
   // Scroll the focused panel by a given amount
   const scrollFocusedPanel = useCallback(
@@ -892,8 +902,8 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     (
       input: string,
       key: {
-        upArrow?: boolean;
-        downArrow?: boolean;
+        isUpArrow?: boolean;
+        isDownArrow?: boolean;
         ctrl?: boolean;
       }
     ): boolean => {
@@ -912,13 +922,13 @@ export function App({ projectPath }: AppProps): React.ReactElement {
       }
 
       // j or down arrow - scroll down one line
-      if (key.downArrow || input === "j") {
+      if (key.isDownArrow || input === "j") {
         scrollFocusedPanel(1);
         return true;
       }
 
       // k or up arrow - scroll up one line
-      if (key.upArrow || input === "k") {
+      if (key.isUpArrow || input === "k") {
         scrollFocusedPanel(-1);
         return true;
       }
@@ -946,21 +956,21 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     (
       input: string,
       key: {
-        escape?: boolean;
-        tab?: boolean;
-        upArrow?: boolean;
-        downArrow?: boolean;
+        isEscape?: boolean;
+        isTab?: boolean;
+        isUpArrow?: boolean;
+        isDownArrow?: boolean;
         ctrl?: boolean;
       }
     ) => {
       // Escape or q to exit detail view
-      if (key.escape || input === "q") {
+      if (key.isEscape || input === "q") {
         exitDetailView();
         return;
       }
 
       // Tab to switch panel focus
-      if (key.tab) {
+      if (key.isTab) {
         togglePanelFocus();
         return;
       }
@@ -999,7 +1009,24 @@ export function App({ projectPath }: AppProps): React.ReactElement {
   );
 
   // Keyboard input handling
-  useInput((input, key) => {
+  useKeyboard((keyEvent) => {
+    // Map OpenTUI key event to our handler format
+    const key = {
+      isLeftArrow: keyEvent.name === "left",
+      isRightArrow: keyEvent.name === "right",
+      isUpArrow: keyEvent.name === "up",
+      isDownArrow: keyEvent.name === "down",
+      isReturn: keyEvent.name === "return",
+      isEscape: keyEvent.name === "escape",
+      isBackspace: keyEvent.name === "backspace",
+      isDelete: keyEvent.name === "delete",
+      isTab: keyEvent.name === "tab",
+      ctrl: keyEvent.ctrl,
+    };
+
+    // Get the character input
+    const input = keyEvent.sequence || "";
+
     if (view === "kanban") {
       handleKanbanInput(input, key);
     } else if (view === "detail") {
@@ -1007,40 +1034,37 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     }
   });
 
-  // Calculate available height
-  const terminalHeight = stdout?.rows || 24;
-
   // Loading state
   if (loading) {
     return (
-      <Box flexDirection="column" padding={1}>
-        <Text color="cyan">
-          <Spinner type="dots" /> Loading Ralph Wiggum CLI...
-        </Text>
-      </Box>
+      <box flexDirection="column" padding={1}>
+        <text fg="#00FFFF">
+          <LoadingSpinner /> Loading Ralph Wiggum CLI...
+        </text>
+      </box>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <Box flexDirection="column" padding={1}>
-        <Text color="red">Error: {error}</Text>
-        <Text color="gray">Press q to quit.</Text>
-      </Box>
+      <box flexDirection="column" padding={1}>
+        <text fg="#FF0000">Error: {error}</text>
+        <text fg="#808080">Press q to quit.</text>
+      </box>
     );
   }
 
   // Detail view
   if (view === "detail" && selectedTask) {
     return (
-      <Box flexDirection="column" height={terminalHeight} width="100%">
-        <Box marginBottom={1} paddingX={1}>
-          <Text bold color="cyan">
-            🧑‍🚀 Ralph Wiggum CLI
-          </Text>
-        </Box>
-        <Box flexGrow={1} paddingX={1}>
+      <box flexDirection="column" height={terminalHeight} width="100%">
+        <box marginBottom={1} paddingLeft={1} paddingRight={1}>
+          <text fg="#00FFFF">
+            <strong>🧑‍🚀 Ralph Wiggum CLI</strong>
+          </text>
+        </box>
+        <box flexGrow={1} paddingLeft={1} paddingRight={1}>
           <DetailView
             autoFollow={autoFollow}
             focusedPanel={focusedPanel}
@@ -1051,9 +1075,10 @@ export function App({ projectPath }: AppProps): React.ReactElement {
             specContent={specContent}
             specScrollOffset={specScrollOffset}
             task={selectedTask}
+            terminalWidth={terminalWidth}
           />
-        </Box>
-      </Box>
+        </box>
+      </box>
     );
   }
 
@@ -1065,58 +1090,58 @@ export function App({ projectPath }: AppProps): React.ReactElement {
     plan.stopped.length;
 
   // Build status bar text based on mode
-  const getStatusBarText = (): React.ReactElement => {
+  const getStatusBarContent = (): React.ReactNode => {
     if (mode === "search") {
       return (
-        <Text>
-          <Text color="yellow">/</Text>
-          <Text color="white">{searchQuery}</Text>
-          <Text color="gray">_</Text>
+        <text>
+          <span fg="#FFFF00">/</span>
+          <span fg="#FFFFFF">{searchQuery}</span>
+          <span fg="#808080">_</span>
           {searchMatches.length > 0 && (
-            <Text color="gray">
+            <span fg="#808080">
               {" "}
               ({searchMatchIndex + 1}/{searchMatches.length})
-            </Text>
+            </span>
           )}
-        </Text>
+        </text>
       );
     }
     if (mode === "command") {
       return (
-        <Text>
-          <Text color="yellow">{commandBuffer}</Text>
-          <Text color="gray">_</Text>
-        </Text>
+        <text>
+          <span fg="#FFFF00">{commandBuffer}</span>
+          <span fg="#808080">_</span>
+        </text>
       );
     }
     // Show stop hint when in In Progress column
     if (activeColumn === "in_progress" && plan.inProgress.length > 0) {
       return (
-        <Text color="gray">
+        <text fg="#808080">
           [hjkl] move [o] open [s] stop [/] search [?] help [:q] quit
-        </Text>
+        </text>
       );
     }
     return (
-      <Text color="gray">
+      <text fg="#808080">
         [hjkl] move [o] open [/] search [?] help [:q] quit
-      </Text>
+      </text>
     );
   };
 
   // Show help overlay
   if (showHelp) {
     return (
-      <Box flexDirection="column" height={terminalHeight} width="100%">
-        <HelpOverlay height={terminalHeight} width={stdout?.columns || 80} />
-      </Box>
+      <box flexDirection="column" height={terminalHeight} width="100%">
+        <HelpOverlay height={terminalHeight} width={terminalWidth} />
+      </box>
     );
   }
 
   // Show stop confirmation dialog
   if (showStopConfirm && taskToStop) {
     return (
-      <Box
+      <box
         alignItems="center"
         flexDirection="column"
         height={terminalHeight}
@@ -1128,14 +1153,14 @@ export function App({ projectPath }: AppProps): React.ReactElement {
           type="confirm-stop"
           visible={true}
         />
-      </Box>
+      </box>
     );
   }
 
   // Show force kill confirmation dialog
   if (showForceKillConfirm && taskToStop) {
     return (
-      <Box
+      <box
         alignItems="center"
         flexDirection="column"
         height={terminalHeight}
@@ -1147,30 +1172,35 @@ export function App({ projectPath }: AppProps): React.ReactElement {
           type="force-kill"
           visible={true}
         />
-      </Box>
+      </box>
     );
   }
 
   return (
-    <Box flexDirection="column" height={terminalHeight} width="100%">
+    <box flexDirection="column" height={terminalHeight} width="100%">
       {/* Header */}
-      <Box justifyContent="space-between" marginBottom={1} paddingX={1}>
-        <Text bold color="cyan">
-          🧑‍🚀 Ralph Wiggum CLI
-        </Text>
-        {getStatusBarText()}
-      </Box>
+      <box
+        justifyContent="space-between"
+        marginBottom={1}
+        paddingLeft={1}
+        paddingRight={1}
+      >
+        <text fg="#00FFFF">
+          <strong>🧑‍🚀 Ralph Wiggum CLI</strong>
+        </text>
+        {getStatusBarContent()}
+      </box>
 
       {/* Kanban Board */}
-      <Box flexGrow={1} paddingX={1}>
+      <box flexGrow={1} paddingLeft={1} paddingRight={1}>
         {totalTasks === 0 ? (
-          <Box flexDirection="column" paddingY={2}>
-            <Text color="yellow">No specs found in IMPLEMENTATION_PLAN.md</Text>
-            <Text color="gray">
+          <box flexDirection="column" paddingBottom={2} paddingTop={2}>
+            <text fg="#FFFF00">No specs found in IMPLEMENTATION_PLAN.md</text>
+            <text fg="#808080">
               Run `ralph-wiggum-cli start plan` to generate the implementation
               plan.
-            </Text>
-          </Box>
+            </text>
+          </box>
         ) : (
           <Kanban
             activeColumn={activeColumn}
@@ -1180,16 +1210,17 @@ export function App({ projectPath }: AppProps): React.ReactElement {
             selectedIndex={selectedIndex}
             stopped={plan.stopped}
             stoppingTaskId={stoppingTaskId}
+            terminalWidth={terminalWidth}
           />
         )}
-      </Box>
+      </box>
 
       {/* Footer */}
-      <Box marginTop={1} paddingX={1}>
-        <Text color="gray" dimColor>
+      <box marginTop={1} paddingLeft={1} paddingRight={1}>
+        <text fg="#808080">
           {totalTasks} spec(s) | {plan.completed.length} completed
-        </Text>
-      </Box>
-    </Box>
+        </text>
+      </box>
+    </box>
   );
 }

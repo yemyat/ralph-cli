@@ -7,7 +7,6 @@ Progress orchestrator tracking spec completion status.
 
 ## Backlog
 <!-- Specs not yet started, in priority order -->
-- specs/005-opentui-tui-migration.md
 
 ## Completed
 <!-- Specs fully implemented and verified -->
@@ -16,3 +15,4 @@ Progress orchestrator tracking spec completion status.
 - specs/002-vim-keybindings.md
 - specs/003-scrollable-panels.md
 - specs/004-stop-in-progress-tasks.md
+- specs/005-opentui-tui-migration.md

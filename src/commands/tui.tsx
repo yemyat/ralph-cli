@@ -1,0 +1,53 @@
+import { createCliRenderer } from "@opentui/core";
+import { createRoot } from "@opentui/react";
+import chalk from "chalk";
+import { getProjectConfig } from "../config.js";
+import { App } from "../tui/app.js";
+
+export async function tuiCommand(): Promise<void> {
+  // Check if running under Bun
+  if (!process.versions.bun) {
+    console.log(
+      chalk.red(
+        "Error: The TUI requires Bun runtime. OpenTUI uses native modules that only work with Bun."
+      )
+    );
+    console.log(
+      `Run with: ${chalk.cyan("bun run ralph-wiggum-cli")} or install globally with ${chalk.cyan("bun install -g ralph-wiggum-cli")}`
+    );
+    process.exit(1);
+  }
+
+  const projectPath = process.cwd();
+  const config = await getProjectConfig(projectPath);
+
+  if (!config) {
+    console.log(chalk.red("Ralph is not initialized for this project."));
+    console.log(`Run ${chalk.cyan("ralph-wiggum-cli init")} first.`);
+    return;
+  }
+
+  // Clear screen and render the TUI with OpenTUI
+  console.clear();
+
+  try {
+    const renderer = await createCliRenderer({
+      exitOnCtrlC: false, // We handle Ctrl+C ourselves for clean exit
+    });
+
+    createRoot(renderer).render(<App projectPath={projectPath} />);
+  } catch (err) {
+    console.log(
+      chalk.red("Error: Failed to initialize OpenTUI render library.")
+    );
+    console.log(
+      chalk.gray(
+        "This may be due to missing native binaries for your platform."
+      )
+    );
+    if (err instanceof Error) {
+      console.log(chalk.gray(`Details: ${err.message}`));
+    }
+    process.exit(1);
+  }
+}

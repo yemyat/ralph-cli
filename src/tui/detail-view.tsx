@@ -1,4 +1,3 @@
-import { Box, Text } from "ink";
 import type React from "react";
 import { LogViewer } from "./log-viewer.js";
 import { SpecViewer } from "./spec-viewer.js";
@@ -16,6 +15,7 @@ interface DetailViewProps {
   specScrollOffset: number;
   logsScrollOffset: number;
   autoFollow: boolean;
+  terminalWidth: number;
 }
 
 export function DetailView({
@@ -28,7 +28,8 @@ export function DetailView({
   specScrollOffset,
   logsScrollOffset,
   autoFollow,
-}: DetailViewProps): React.ReactElement {
+  terminalWidth,
+}: DetailViewProps): React.ReactNode {
   // Build hint text based on context
   const getHintText = (): string => {
     const hints = ["[Esc] back", "[Tab] switch", "[j/k] scroll"];
@@ -41,15 +42,13 @@ export function DetailView({
   // For backlog items, show spec only (full width)
   if (task.status === "backlog") {
     return (
-      <Box flexDirection="column" width="100%">
-        <Box justifyContent="space-between" marginBottom={1}>
-          <Text bold color="cyan">
-            {task.name}
-          </Text>
-          <Text color="gray" dimColor>
-            [Esc] back [j/k] scroll
-          </Text>
-        </Box>
+      <box flexDirection="column" width="100%">
+        <box justifyContent="space-between" marginBottom={1}>
+          <text fg="#00FFFF">
+            <strong>{task.name}</strong>
+          </text>
+          <text fg="#808080">[Esc] back [j/k] scroll</text>
+        </box>
         <SpecViewer
           content={specContent}
           height={height - 3}
@@ -57,26 +56,24 @@ export function DetailView({
           scrollOffset={specScrollOffset}
           title="Spec"
         />
-      </Box>
+      </box>
     );
   }
 
   // For in_progress and completed, show split view
   const panelHeight = height - 3;
-  const panelWidth = Math.floor((process.stdout.columns - 4) / 2);
+  const panelWidth = Math.floor((terminalWidth - 4) / 2);
 
   return (
-    <Box flexDirection="column" width="100%">
-      <Box justifyContent="space-between" marginBottom={1}>
-        <Text bold color="cyan">
-          {task.name}
-        </Text>
-        <Text color="gray" dimColor>
-          {getHintText()}
-        </Text>
-      </Box>
-      <Box flexDirection="row" width="100%">
-        <Box width={panelWidth}>
+    <box flexDirection="column" width="100%">
+      <box justifyContent="space-between" marginBottom={1}>
+        <text fg="#00FFFF">
+          <strong>{task.name}</strong>
+        </text>
+        <text fg="#808080">{getHintText()}</text>
+      </box>
+      <box flexDirection="row" width="100%">
+        <box width={panelWidth}>
           <SpecViewer
             content={specContent}
             height={panelHeight}
@@ -84,8 +81,8 @@ export function DetailView({
             scrollOffset={specScrollOffset}
             title="Spec"
           />
-        </Box>
-        <Box width={panelWidth}>
+        </box>
+        <box width={panelWidth}>
           <LogViewer
             autoFollow={autoFollow}
             content={logContent}
@@ -94,8 +91,8 @@ export function DetailView({
             isStreaming={isStreaming && task.status === "in_progress"}
             scrollOffset={logsScrollOffset}
           />
-        </Box>
-      </Box>
-    </Box>
+        </box>
+      </box>
+    </box>
   );
 }

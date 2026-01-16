@@ -1,4 +1,3 @@
-import { Box, Text } from "ink";
 import type React from "react";
 
 interface SpecViewerProps {
@@ -10,75 +9,75 @@ interface SpecViewerProps {
 }
 
 // Render a single markdown line with styling
-function renderMarkdownLine(line: string, index: number): React.ReactElement {
+function renderMarkdownLine(line: string, index: number): React.ReactNode {
   const trimmed = line.trim();
 
   // Headers
   if (trimmed.startsWith("# ")) {
     return (
-      <Text bold color="cyan" key={index}>
-        {trimmed.slice(2)}
-      </Text>
+      <text fg="#00FFFF" key={index}>
+        <strong>{trimmed.slice(2)}</strong>
+      </text>
     );
   }
   if (trimmed.startsWith("## ")) {
     return (
-      <Text bold color="blue" key={index}>
-        {trimmed}
-      </Text>
+      <text fg="#0000FF" key={index}>
+        <strong>{trimmed}</strong>
+      </text>
     );
   }
   if (trimmed.startsWith("### ")) {
     return (
-      <Text bold color="white" key={index}>
-        {trimmed}
-      </Text>
+      <text fg="#FFFFFF" key={index}>
+        <strong>{trimmed}</strong>
+      </text>
     );
   }
 
   // Completed tasks
   if (trimmed.startsWith("- [x]") || trimmed.startsWith("- [X]")) {
     return (
-      <Text color="green" key={index}>
+      <text fg="#00FF00" key={index}>
         ✓ {trimmed.slice(6)}
-      </Text>
+      </text>
     );
   }
 
   // Incomplete tasks
   if (trimmed.startsWith("- [ ]")) {
     return (
-      <Text color="yellow" key={index}>
+      <text fg="#FFFF00" key={index}>
         ○ {trimmed.slice(6)}
-      </Text>
+      </text>
     );
   }
 
   // Regular list items
   if (trimmed.startsWith("- ")) {
-    return <Text key={index}>• {trimmed.slice(2)}</Text>;
+    return <text key={index}>• {trimmed.slice(2)}</text>;
   }
 
   // Comments
   if (trimmed.startsWith("<!--")) {
     return (
-      <Text color="gray" dimColor key={index}>
+      <text fg="#808080" key={index}>
         {trimmed}
-      </Text>
+      </text>
     );
   }
 
   // Code blocks
   if (trimmed.startsWith("```")) {
     return (
-      <Text color="gray" key={index}>
+      <text fg="#808080" key={index}>
         {trimmed}
-      </Text>
+      </text>
     );
   }
 
   // Regular text
-  return <Text key={index}>{line}</Text>;
+  return <text key={index}>{line}</text>;
 }
 
 export function SpecViewer({
@@ -87,7 +86,7 @@ export function SpecViewer({
   height,
   isFocused = false,
   scrollOffset = 0,
-}: SpecViewerProps): React.ReactElement {
+}: SpecViewerProps): React.ReactNode {
   const lines = content.split("\n");
   const totalLines = lines.length;
 
@@ -114,7 +113,8 @@ export function SpecViewer({
   const scrollPosition = `${currentLine}-${endLine}/${totalLines}`;
 
   // Border color changes based on focus
-  const borderColor = isFocused ? "cyan" : "blue";
+  const borderColor = isFocused ? "#00FFFF" : "#0000FF";
+  const titleColor = isFocused ? "#00FFFF" : "#0000FF";
 
   // Build scroll indicator string
   const getScrollIndicator = (): string => {
@@ -132,35 +132,33 @@ export function SpecViewer({
   const scrollIndicator = getScrollIndicator();
 
   return (
-    <Box
+    <box
+      border
       borderColor={borderColor}
-      borderStyle={isFocused ? "bold" : "single"}
+      borderStyle={isFocused ? "double" : "single"}
       flexDirection="column"
       height={height}
-      paddingX={1}
+      paddingLeft={1}
+      paddingRight={1}
       width="100%"
     >
       {/* Header with title and scroll info */}
-      <Box justifyContent="space-between" marginBottom={1}>
-        <Text bold color={isFocused ? "cyan" : "blue"}>
-          📄 {title}
-        </Text>
-        <Box>
-          <Text color="gray" dimColor>
-            {scrollIndicator}{" "}
-          </Text>
-          <Text color="gray" dimColor>
-            [{scrollPosition}]
-          </Text>
-        </Box>
-      </Box>
+      <box justifyContent="space-between" marginBottom={1}>
+        <text fg={titleColor}>
+          <strong>📄 {title}</strong>
+        </text>
+        <box>
+          <text fg="#808080">{scrollIndicator} </text>
+          <text fg="#808080">[{scrollPosition}]</text>
+        </box>
+      </box>
 
       {/* Content area */}
-      <Box flexDirection="column" overflowY="hidden">
+      <box flexDirection="column">
         {displayLines.map((line, index) =>
           renderMarkdownLine(line, clampedOffset + index)
         )}
-      </Box>
-    </Box>
+      </box>
+    </box>
   );
 }

@@ -1,7 +1,7 @@
-import { Box, Text } from "ink";
-import Spinner from "ink-spinner";
+import { TextAttributes } from "@opentui/core";
 import type React from "react";
 import { Card } from "./card.js";
+import { LoadingSpinner } from "./loading-spinner.js";
 import type { Task, TaskStatus } from "./utils.js";
 
 interface ColumnProps {
@@ -20,21 +20,28 @@ function Column({
   isActiveColumn,
   columnWidth,
   stoppingTaskId,
-}: ColumnProps): React.ReactElement {
-  const headerColor = isActiveColumn ? "cyan" : "white";
+}: ColumnProps): React.ReactNode {
+  const headerColor = isActiveColumn ? "#00FFFF" : "#FFFFFF";
+  const borderColor = isActiveColumn ? "#00FFFF" : "#808080";
 
-  const renderTask = (task: Task, index: number): React.ReactElement => {
+  const renderTask = (task: Task, index: number): React.ReactNode => {
     const isStopping = task.id === stoppingTaskId;
     const isSelected = isActiveColumn && index === selectedIndex;
 
     if (isStopping) {
+      // Compute attributes for stopping task
+      let attrs = TextAttributes.BOLD;
+      if (isSelected) {
+        // biome-ignore lint/suspicious/noBitwiseOperators: intentional bitwise OR for TextAttributes
+        attrs = TextAttributes.BOLD | TextAttributes.INVERSE;
+      }
       return (
-        <Box key={task.id}>
-          <Text bold color="yellow" inverse={isSelected}>
+        <box key={task.id}>
+          <text attributes={attrs} fg="#FFFF00">
             {" "}
-            <Spinner type="dots" /> {task.name} (Stopping...){" "}
-          </Text>
-        </Box>
+            <LoadingSpinner /> {task.name} (Stopping...){" "}
+          </text>
+        </box>
       );
     }
 
@@ -49,26 +56,26 @@ function Column({
   };
 
   return (
-    <Box
-      borderColor={isActiveColumn ? "cyan" : "gray"}
+    <box
+      border
+      borderColor={borderColor}
       borderStyle="single"
       flexDirection="column"
-      paddingX={1}
+      paddingLeft={1}
+      paddingRight={1}
       width={columnWidth}
     >
-      <Box justifyContent="center" marginBottom={1}>
-        <Text bold color={headerColor}>
-          {title}
-        </Text>
-      </Box>
+      <box justifyContent="center" marginBottom={1}>
+        <text fg={headerColor}>
+          <strong>{title}</strong>
+        </text>
+      </box>
       {tasks.length === 0 ? (
-        <Text color="gray" dimColor>
-          (empty)
-        </Text>
+        <text fg="#808080">(empty)</text>
       ) : (
         tasks.map((task, index) => renderTask(task, index))
       )}
-    </Box>
+    </box>
   );
 }
 
@@ -80,6 +87,7 @@ interface KanbanProps {
   activeColumn: TaskStatus;
   selectedIndex: number;
   stoppingTaskId?: string | null;
+  terminalWidth: number;
 }
 
 export function Kanban({
@@ -90,16 +98,17 @@ export function Kanban({
   activeColumn,
   selectedIndex,
   stoppingTaskId,
-}: KanbanProps): React.ReactElement {
+  terminalWidth,
+}: KanbanProps): React.ReactNode {
   // Calculate column widths based on terminal size
-  const columnWidth = Math.floor(process.stdout.columns / 3) - 2;
+  const columnWidth = Math.floor(terminalWidth / 3) - 2;
 
   // Combine backlog and stopped tasks for display in backlog column
   // Stopped tasks appear first with their special icon
   const backlogWithStopped = [...stopped, ...backlog];
 
   return (
-    <Box flexDirection="row" width="100%">
+    <box flexDirection="row" width="100%">
       <Column
         columnWidth={columnWidth}
         isActiveColumn={
@@ -130,6 +139,6 @@ export function Kanban({
         tasks={completed}
         title="COMPLETED"
       />
-    </Box>
+    </box>
   );
 }

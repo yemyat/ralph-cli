@@ -4,6 +4,66 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-16 10:00] - OpenTUI Migration
+
+**Commit:** `65571d2` feat: migrate TUI from Ink to OpenTUI
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS (98 tests including 8 new TUI tests)
+- `bun run build` → PASS
+
+**Files changed:**
+- package.json (added @opentui/core, @opentui/react; removed ink, ink-spinner, inquirer, @types/inquirer)
+- bun.lock (updated dependencies)
+- tsconfig.json (changed moduleResolution to "bundler", added jsxImportSource for OpenTUI)
+- src/commands/tui.tsx (renamed from .ts, now uses OpenTUI createCliRenderer/createRoot)
+- src/commands/tui.ts (deleted)
+- src/tui/app.tsx (ported from Ink to OpenTUI, using useKeyboard, useRenderer, useTerminalDimensions)
+- src/tui/kanban.tsx (ported to OpenTUI, using TextAttributes for styling)
+- src/tui/card.tsx (ported to OpenTUI, using TextAttributes.BOLD | TextAttributes.INVERSE)
+- src/tui/detail-view.tsx (ported to OpenTUI primitives)
+- src/tui/spec-viewer.tsx (ported to OpenTUI primitives)
+- src/tui/log-viewer.tsx (ported to OpenTUI primitives)
+- src/tui/help-overlay.tsx (ported to OpenTUI primitives)
+- src/tui/confirm-dialog.tsx (ported to OpenTUI primitives)
+- src/tui/loading-spinner.tsx (new custom spinner component replacing ink-spinner)
+- src/__tests__/tui.test.tsx (new headless TUI tests using @opentui/core/testing)
+- .ralph-wiggum/specs/005-opentui-tui-migration.md (marked tasks complete)
+- .ralph-wiggum/IMPLEMENTATION_PLAN.md (moved spec to Completed)
+
+**What was done:**
+1. Added OpenTUI dependencies (@opentui/core and @opentui/react v0.1.73)
+2. Removed Ink-based dependencies (ink, ink-spinner, inquirer, @types/inquirer)
+3. Updated tsconfig.json for OpenTUI JSX support (moduleResolution: bundler, jsxImportSource)
+4. Renamed src/commands/tui.ts to .tsx and ported to OpenTUI renderer
+5. Added Bun runtime check to exit with clear error if not running under Bun
+6. Ported all TUI components from Ink to OpenTUI:
+   - useInput → useKeyboard for keyboard handling
+   - useApp → useRenderer for exit handling
+   - useStdout → useTerminalDimensions for dimensions
+   - React.ReactElement → React.ReactNode for return types
+   - Text bold/inverse → TextAttributes bitwise OR flags
+7. Created custom LoadingSpinner component using useState/useEffect intervals
+8. Added 8 headless TUI tests using @opentui/core/testing createTestRenderer
+9. Tests verify column headers, task display, footer counts, detail view, search mode, scroll indicators
+10. All 12 acceptance criteria verified and passing
+
+**Learnings:**
+- OpenTUI uses `box` and `text` primitives similar to Ink, but with different prop names
+- TextAttributes use bitwise OR to combine flags (BOLD | INVERSE)
+- biome-ignore comments needed for intentional bitwise operators
+- OpenTUI testing utilities (createTestRenderer, mockInput, captureCharFrame) work well for headless tests
+- renderer.idle() helpful for waiting for async state updates in tests
+- Return types must be React.ReactNode instead of React.ReactElement
+
+---
+
 ## [2026-01-13 19:00] - Stop In-Progress Tasks
 
 **Commit:** `574277f` feat: add stop in-progress tasks functionality to TUI

@@ -1,6 +1,5 @@
-import { Box, Text } from "ink";
-import Spinner from "ink-spinner";
 import type React from "react";
+import { LoadingSpinner } from "./loading-spinner.js";
 
 interface LogViewerProps {
   content: string;
@@ -12,7 +11,7 @@ interface LogViewerProps {
 }
 
 // Render a single log line with styling
-function renderLogLine(line: string, index: number): React.ReactElement {
+function renderLogLine(line: string, index: number): React.ReactNode {
   const trimmed = line.trim();
 
   // Success indicators
@@ -22,9 +21,9 @@ function renderLogLine(line: string, index: number): React.ReactElement {
     trimmed.includes("success")
   ) {
     return (
-      <Text color="green" key={index}>
+      <text fg="#00FF00" key={index}>
         {line}
-      </Text>
+      </text>
     );
   }
 
@@ -36,9 +35,9 @@ function renderLogLine(line: string, index: number): React.ReactElement {
     trimmed.includes("Error")
   ) {
     return (
-      <Text color="red" key={index}>
+      <text fg="#FF0000" key={index}>
         {line}
-      </Text>
+      </text>
     );
   }
 
@@ -49,23 +48,23 @@ function renderLogLine(line: string, index: number): React.ReactElement {
     trimmed.includes("WARN")
   ) {
     return (
-      <Text color="yellow" key={index}>
+      <text fg="#FFFF00" key={index}>
         {line}
-      </Text>
+      </text>
     );
   }
 
   // Command indicators
   if (trimmed.startsWith(">") || trimmed.startsWith("$")) {
     return (
-      <Text color="cyan" key={index}>
+      <text fg="#00FFFF" key={index}>
         {line}
-      </Text>
+      </text>
     );
   }
 
   // Regular text
-  return <Text key={index}>{line}</Text>;
+  return <text key={index}>{line}</text>;
 }
 
 export function LogViewer({
@@ -75,7 +74,7 @@ export function LogViewer({
   isFocused = false,
   scrollOffset = 0,
   autoFollow = true,
-}: LogViewerProps): React.ReactElement {
+}: LogViewerProps): React.ReactNode {
   const lines = content.split("\n");
   const totalLines = lines.length;
 
@@ -106,7 +105,8 @@ export function LogViewer({
     totalLines > 0 ? `${currentLine}-${endLine}/${totalLines}` : "0/0";
 
   // Border color changes based on focus
-  const borderColor = isFocused ? "cyan" : "green";
+  const borderColor = isFocused ? "#00FFFF" : "#00FF00";
+  const titleColor = isFocused ? "#00FFFF" : "#00FF00";
 
   // Build scroll indicator string
   const getScrollIndicator = (): string => {
@@ -127,50 +127,46 @@ export function LogViewer({
   const followLabel = autoFollow ? " (following)" : "";
 
   return (
-    <Box
+    <box
+      border
       borderColor={borderColor}
-      borderStyle={isFocused ? "bold" : "single"}
+      borderStyle={isFocused ? "double" : "single"}
       flexDirection="column"
       height={height}
-      paddingX={1}
+      paddingLeft={1}
+      paddingRight={1}
       width="100%"
     >
       {/* Header with title, streaming indicator, and scroll info */}
-      <Box justifyContent="space-between" marginBottom={1}>
-        <Box>
-          <Text bold color={isFocused ? "cyan" : "green"}>
-            📜 Logs{followLabel}
-          </Text>
+      <box justifyContent="space-between" marginBottom={1}>
+        <box>
+          <text fg={titleColor}>
+            <strong>📜 Logs{followLabel}</strong>
+          </text>
           {isStreaming && (
-            <Text color="yellow">
+            <text fg="#FFFF00">
               {" "}
-              <Spinner type="dots" />
-            </Text>
+              <LoadingSpinner />
+            </text>
           )}
-        </Box>
-        <Box>
-          <Text color="gray" dimColor>
-            {scrollIndicator}{" "}
-          </Text>
-          <Text color="gray" dimColor>
-            [{scrollPosition}]
-          </Text>
-        </Box>
-      </Box>
+        </box>
+        <box>
+          <text fg="#808080">{scrollIndicator} </text>
+          <text fg="#808080">[{scrollPosition}]</text>
+        </box>
+      </box>
 
       {/* Content area */}
-      <Box flexDirection="column" overflowY="hidden">
+      <box flexDirection="column">
         {displayLines.length === 0 ||
         (displayLines.length === 1 && displayLines[0] === "") ? (
-          <Text color="gray" dimColor>
-            No logs available.
-          </Text>
+          <text fg="#808080">No logs available.</text>
         ) : (
           displayLines.map((line, index) =>
             renderLogLine(line, effectiveOffset + index)
           )
         )}
-      </Box>
-    </Box>
+      </box>
+    </box>
   );
 }

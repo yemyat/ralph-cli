@@ -1,4 +1,3 @@
-import { Box, Text } from "ink";
 import type React from "react";
 
 interface HelpOverlayProps {
@@ -9,99 +8,102 @@ interface HelpOverlayProps {
 export function HelpOverlay({
   width,
   height,
-}: HelpOverlayProps): React.ReactElement {
+}: HelpOverlayProps): React.ReactNode {
   const overlayWidth = Math.min(70, width - 4);
   const overlayHeight = Math.min(18, height - 4);
 
   return (
-    <Box
+    <box
       alignItems="center"
       flexDirection="column"
       height={height}
       justifyContent="center"
       width={width}
     >
-      <Box
-        borderColor="cyan"
+      <box
+        border
+        borderColor="#00FFFF"
         borderStyle="double"
         flexDirection="column"
         height={overlayHeight}
-        paddingX={2}
-        paddingY={1}
+        paddingBottom={1}
+        paddingLeft={2}
+        paddingRight={2}
+        paddingTop={1}
         width={overlayWidth}
       >
-        <Box justifyContent="center" marginBottom={1}>
-          <Text bold color="cyan">
-            ⌨️ Keybindings
-          </Text>
-        </Box>
+        <box justifyContent="center" marginBottom={1}>
+          <text fg="#00FFFF">
+            <strong>⌨️ Keybindings</strong>
+          </text>
+        </box>
 
-        <Box flexDirection="row" justifyContent="space-between">
+        <box flexDirection="row" justifyContent="space-between">
           {/* Navigation column */}
-          <Box flexDirection="column" width="33%">
-            <Text bold color="yellow">
-              Navigation
-            </Text>
-            <Text>
-              <Text color="cyan">h/l</Text> left/right
-            </Text>
-            <Text>
-              <Text color="cyan">j/k</Text> down/up
-            </Text>
-            <Text>
-              <Text color="cyan">gg</Text> first item
-            </Text>
-            <Text>
-              <Text color="cyan">G</Text> last item
-            </Text>
-            <Text>
-              <Text color="cyan">←→↑↓</Text> arrows
-            </Text>
-          </Box>
+          <box flexDirection="column" width="33%">
+            <text fg="#FFFF00">
+              <strong>Navigation</strong>
+            </text>
+            <text>
+              <span fg="#00FFFF">h/l</span> left/right
+            </text>
+            <text>
+              <span fg="#00FFFF">j/k</span> down/up
+            </text>
+            <text>
+              <span fg="#00FFFF">gg</span> first item
+            </text>
+            <text>
+              <span fg="#00FFFF">G</span> last item
+            </text>
+            <text>
+              <span fg="#00FFFF">←→↑↓</span> arrows
+            </text>
+          </box>
 
           {/* Actions column */}
-          <Box flexDirection="column" width="33%">
-            <Text bold color="yellow">
-              Actions
-            </Text>
-            <Text>
-              <Text color="cyan">Enter/o</Text> open
-            </Text>
-            <Text>
-              <Text color="cyan">Esc/q</Text> back
-            </Text>
-            <Text>
-              <Text color="cyan">:q</Text> quit
-            </Text>
-            <Text>
-              <Text color="cyan">?</Text> help
-            </Text>
-          </Box>
+          <box flexDirection="column" width="33%">
+            <text fg="#FFFF00">
+              <strong>Actions</strong>
+            </text>
+            <text>
+              <span fg="#00FFFF">Enter/o</span> open
+            </text>
+            <text>
+              <span fg="#00FFFF">Esc/q</span> back
+            </text>
+            <text>
+              <span fg="#00FFFF">:q</span> quit
+            </text>
+            <text>
+              <span fg="#00FFFF">?</span> help
+            </text>
+          </box>
 
           {/* Search column */}
-          <Box flexDirection="column" width="33%">
-            <Text bold color="yellow">
-              Search
-            </Text>
-            <Text>
-              <Text color="cyan">/</Text> start search
-            </Text>
-            <Text>
-              <Text color="cyan">n/N</Text> next/prev
-            </Text>
-            <Text>
-              <Text color="cyan">Enter</Text> select
-            </Text>
-            <Text>
-              <Text color="cyan">Esc</Text> cancel
-            </Text>
-          </Box>
-        </Box>
+          <box flexDirection="column" width="33%">
+            <text fg="#FFFF00">
+              <strong>Search</strong>
+            </text>
+            <text>
+              <span fg="#00FFFF">/</span> start search
+            </text>
+            <text>
+              <span fg="#00FFFF">n/N</span> next/prev
+            </text>
+            <text>
+              <span fg="#00FFFF">Enter</span> select
+            </text>
+            <text>
+              <span fg="#00FFFF">Esc</span> cancel
+            </text>
+          </box>
+        </box>
 
-        <Box justifyContent="center" marginTop={1}>
-          <Text color="gray">[Esc] close</Text>
-        </Box>
-      </Box>
-    </Box>
+        <box justifyContent="center" marginTop={1}>
+          <text fg="#808080">[Esc] close</text>
+        </box>
+      </box>
+    </box>
   );
 }
