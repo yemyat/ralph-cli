@@ -5,11 +5,7 @@ import fse from "fs-extra";
 import ora from "ora";
 import pc from "picocolors";
 import { getAgent } from "../agents/index";
-import {
-  getProjectConfig,
-  getProjectSessions,
-  saveSession,
-} from "../config";
+import { getProjectConfig, getProjectSessions, saveSession } from "../config";
 import type { AgentType, RalphSession } from "../types";
 import { getRalphDir, getSessionLogFile } from "../utils/paths";
 
@@ -119,6 +115,7 @@ async function runRalphLoop(
 ): Promise<void> {
   let iteration = 0;
   let doneDetected = false;
+  let currentChild: ReturnType<typeof spawn> | null = null;
   const logStream = fse.createWriteStream(logFile, { flags: "a" });
 
   const log = (msg: string) => {
@@ -133,6 +130,12 @@ async function runRalphLoop(
 
   const handleSignal = async () => {
     console.log(pc.yellow("\n\nStopping Ralph loop..."));
+
+    if (currentChild && !currentChild.killed) {
+      currentChild.kill("SIGTERM");
+      console.log(pc.gray("Terminated agent process"));
+    }
+
     session.status = "stopped";
     session.stoppedAt = new Date().toISOString();
     await saveSession(projectPath, session);
@@ -170,16 +173,16 @@ async function runRalphLoop(
         await new Promise<void>((resolve, reject) => {
           let stdoutBuffer = "";
 
-          const child = spawn(cmdOptions.command, cmdOptions.args, {
+          currentChild = spawn(cmdOptions.command, cmdOptions.args, {
             cwd: process.cwd(),
             stdio: ["pipe", "pipe", "pipe"],
             env: { ...process.env, ...cmdOptions.env },
           });
 
-          child.stdin.write(promptContent);
-          child.stdin.end();
+          currentChild.stdin?.write(promptContent);
+          currentChild.stdin?.end();
 
-          child.stdout.on("data", (data) => {
+          currentChild.stdout?.on("data", (data) => {
             const output = data.toString();
             log(`[stdout] ${output}`);
             if (verbose) {
@@ -188,7 +191,7 @@ async function runRalphLoop(
             stdoutBuffer += output;
           });
 
-          child.stderr.on("data", (data) => {
+          currentChild.stderr?.on("data", (data) => {
             const output = data.toString();
             log(`[stderr] ${output}`);
             if (verbose) {
@@ -196,12 +199,12 @@ async function runRalphLoop(
             }
           });
 
-          child.on("error", (err) => {
+          currentChild.on("error", (err) => {
             log(`Error: ${err.message}`);
             reject(err);
           });
 
-          child.on("close", (code) => {
+          currentChild.on("close", (code) => {
             log(`Iteration ${iteration} completed with exit code ${code}`);
 
             const tailOutput = stdoutBuffer.slice(-2000);
@@ -217,7 +220,7 @@ async function runRalphLoop(
             }
           });
 
-          session.pid = child.pid;
+          session.pid = currentChild.pid;
           saveSession(projectPath, session);
         });
 
