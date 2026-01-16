@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import { createTestRenderer } from "@opentui/core/testing";
 import { createRoot } from "@opentui/react";
-import { join } from "node:path";
 import fse from "fs-extra";
 import { App } from "../tui/app.js";
+
+// Regex for scroll position indicator format [x-y/z]
+const SCROLL_POSITION_REGEX = /\[\d+-\d+\/\d+\]/;
 
 // Test directory for mocked project
 const TEST_DIR = join(import.meta.dir, ".test-tui");
@@ -78,11 +81,12 @@ describe("TUI Headless Tests", () => {
   });
 
   test("Initial frame contains column headers (BACKLOG, IN PROGRESS, COMPLETED)", async () => {
-    const { renderer, renderOnce, captureCharFrame } =
-      await createTestRenderer({
+    const { renderer, renderOnce, captureCharFrame } = await createTestRenderer(
+      {
         width: 120,
         height: 30,
-      });
+      }
+    );
 
     createRoot(renderer).render(<App projectPath={TEST_DIR} />);
 
@@ -101,11 +105,12 @@ describe("TUI Headless Tests", () => {
   });
 
   test("Frame shows tasks from implementation plan", async () => {
-    const { renderer, renderOnce, captureCharFrame } =
-      await createTestRenderer({
+    const { renderer, renderOnce, captureCharFrame } = await createTestRenderer(
+      {
         width: 120,
         height: 30,
-      });
+      }
+    );
 
     createRoot(renderer).render(<App projectPath={TEST_DIR} />);
 
@@ -123,11 +128,12 @@ describe("TUI Headless Tests", () => {
   });
 
   test("Frame shows correct task count in footer", async () => {
-    const { renderer, renderOnce, captureCharFrame } =
-      await createTestRenderer({
+    const { renderer, renderOnce, captureCharFrame } = await createTestRenderer(
+      {
         width: 120,
         height: 30,
-      });
+      }
+    );
 
     createRoot(renderer).render(<App projectPath={TEST_DIR} />);
 
@@ -177,11 +183,12 @@ describe("TUI Headless Tests", () => {
   });
 
   test("Kanban view shows correct status indicators", async () => {
-    const { renderer, renderOnce, captureCharFrame } =
-      await createTestRenderer({
+    const { renderer, renderOnce, captureCharFrame } = await createTestRenderer(
+      {
         width: 120,
         height: 30,
-      });
+      }
+    );
 
     createRoot(renderer).render(<App projectPath={TEST_DIR} />);
 
@@ -224,11 +231,12 @@ describe("TUI Headless Tests", () => {
   });
 
   test("Status bar shows navigation hints", async () => {
-    const { renderer, renderOnce, captureCharFrame } =
-      await createTestRenderer({
+    const { renderer, renderOnce, captureCharFrame } = await createTestRenderer(
+      {
         width: 120,
         height: 30,
-      });
+      }
+    );
 
     createRoot(renderer).render(<App projectPath={TEST_DIR} />);
 
@@ -266,7 +274,7 @@ describe("TUI Headless Tests", () => {
     const frame = captureCharFrame();
 
     // Detail view should show scroll position in format [x-y/z]
-    expect(frame).toMatch(/\[\d+-\d+\/\d+\]/);
+    expect(frame).toMatch(SCROLL_POSITION_REGEX);
 
     renderer.destroy();
   });
