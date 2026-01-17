@@ -4,6 +4,55 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-17 21:00] - Telegram Notifications
+
+**Commit:** `602c9e8` feat: add telegram notifications on iteration completion
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS (211 tests, +23 new)
+- `bun run build` → PASS
+
+**Files changed:**
+- src/types.ts (added TelegramConfig, NotificationsConfig types)
+- src/config.ts (updated InitProjectOptions and initProject to include notifications)
+- src/utils/telegram.ts (NEW - sendTelegramNotification, formatNotificationMessage)
+- src/utils/plan-parser.ts (NEW - getCurrentSpec, extractCurrentSpecFromContent)
+- src/commands/init.ts (added Telegram prompts and config flow)
+- src/commands/start.ts (added notification calls after iterations)
+- src/__tests__/telegram.test.ts (NEW - 9 unit tests)
+- src/__tests__/plan-parser.test.ts (NEW - 14 unit tests)
+- .ralph-wiggum/specs/011-telegram-notifications.md (marked complete)
+- .ralph-wiggum/IMPLEMENTATION_PLAN.md (moved spec to Completed)
+
+**What was done:**
+1. Added TelegramConfig and NotificationsConfig types to src/types.ts
+2. Created src/utils/telegram.ts with sendTelegramNotification() function
+3. Created src/utils/plan-parser.ts to extract current spec from IMPLEMENTATION_PLAN.md
+4. Updated init command to prompt for Telegram bot token and chat ID
+5. Updated start command to send notifications on:
+   - Iteration success
+   - Iteration failure
+   - Loop completed (DONE marker)
+   - Loop stopped by user
+6. Notifications include current spec name in build mode
+7. Notification failures are non-blocking (logged but don't crash loop)
+8. Added 23 unit tests covering formatNotificationMessage, sendTelegramNotification, and plan parsing
+
+**Learnings:**
+- Telegram Bot API uses simple POST to `https://api.telegram.org/bot<token>/sendMessage`
+- Markdown link format `[Label](specs/xxx.md)` requires separate regex from checkbox format
+- @clack/prompts `confirm()` returns boolean, `text()` returns string - both can be cancelled
+- Cognitive complexity limits in Biome can be reduced by extracting helper functions
+- `unknown` cast needed when mocking fetch in tests due to Bun's strict typing
+
+---
+
 ## [2026-01-16 23:30] - Reorganize Component Structure
 
 **Commit:** `a1b2c3d` feat: reorganize TUI components into hierarchical structure

@@ -2,6 +2,7 @@ import { basename } from "node:path";
 import fse from "fs-extra";
 import type {
   AgentType,
+  NotificationsConfig,
   ProjectState,
   RalphConfig,
   RalphSession,
@@ -50,6 +51,7 @@ export interface InitProjectOptions {
   planModel?: string;
   buildAgent: AgentType;
   buildModel?: string;
+  notifications?: NotificationsConfig;
 }
 
 export async function initProject(
@@ -70,6 +72,7 @@ export async function initProject(
         model: options.buildModel,
       },
     },
+    notifications: options.notifications,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

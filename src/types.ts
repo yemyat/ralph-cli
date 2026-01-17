@@ -12,6 +12,16 @@ export interface AgentConfig {
   model?: string;
 }
 
+export interface TelegramConfig {
+  botToken: string;
+  chatId: string;
+  enabled: boolean;
+}
+
+export interface NotificationsConfig {
+  telegram?: TelegramConfig;
+}
+
 export interface RalphConfig {
   projectName: string;
   /** @deprecated Use agents.plan and agents.build instead */
@@ -22,6 +32,7 @@ export interface RalphConfig {
     plan: AgentConfig;
     build: AgentConfig;
   };
+  notifications?: NotificationsConfig;
   maxIterations?: number;
   createdAt: string;
   updatedAt: string;

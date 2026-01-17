@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import {
   cancel,
+  confirm,
   intro,
   isCancel,
   log,
@@ -8,6 +9,7 @@ import {
   outro,
   select,
   spinner,
+  text,
 } from "@clack/prompts";
 import fse from "fs-extra";
 import pc from "picocolors";
@@ -21,7 +23,7 @@ import {
   PROMPT_PLAN,
   SPEC_TEMPLATE,
 } from "../templates/prompts";
-import type { AgentType } from "../types";
+import type { AgentType, TelegramConfig } from "../types";
 import { getRalphDir, getSpecsDir, RALPH_LOGS_DIR } from "../utils/paths";
 
 interface InitOptions {
@@ -32,6 +34,8 @@ interface InitOptions {
   buildAgent?: AgentType;
   buildModel?: string;
   force?: boolean;
+  telegramBotToken?: string;
+  telegramChatId?: string;
 }
 
 async function addLogsToGitignore(projectPath: string): Promise<void> {
@@ -80,6 +84,114 @@ async function createProjectFiles(projectPath: string): Promise<void> {
   await addLogsToGitignore(projectPath);
 }
 
+async function promptForTelegramConfig(
+  options: InitOptions
+): Promise<TelegramConfig | undefined> {
+  // If both token and chat ID are provided via CLI options, use them directly
+  if (options.telegramBotToken && options.telegramChatId) {
+    return {
+      botToken: options.telegramBotToken,
+      chatId: options.telegramChatId,
+      enabled: true,
+    };
+  }
+
+  // Ask user if they want to enable Telegram notifications
+  const enableTelegram = await confirm({
+    message: "Enable Telegram notifications?",
+    initialValue: false,
+  });
+
+  if (isCancel(enableTelegram) || !enableTelegram) {
+    return undefined;
+  }
+
+  // Prompt for bot token
+  const botToken = await text({
+    message: "Enter your Telegram bot token:",
+    placeholder: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+    validate: (value) => {
+      if (!value || value.trim().length === 0) {
+        return "Bot token is required";
+      }
+      // Basic validation for Telegram bot token format
+      if (!value.includes(":")) {
+        return "Invalid bot token format (should contain ':')";
+      }
+      return undefined;
+    },
+  });
+
+  if (isCancel(botToken)) {
+    return undefined;
+  }
+
+  // Prompt for chat ID
+  const chatId = await text({
+    message: "Enter your Telegram chat ID:",
+    placeholder: "-1001234567890 or 123456789",
+    validate: (value) => {
+      if (!value || value.trim().length === 0) {
+        return "Chat ID is required";
+      }
+      return undefined;
+    },
+  });
+
+  if (isCancel(chatId)) {
+    return undefined;
+  }
+
+  return {
+    botToken: botToken.trim(),
+    chatId: chatId.trim(),
+    enabled: true,
+  };
+}
+
+interface AgentOption {
+  label: string;
+  value: AgentType;
+}
+
+async function selectAgent(
+  message: string,
+  agentOptions: AgentOption[],
+  initialValue: AgentType
+): Promise<AgentType> {
+  const result = await select({
+    message,
+    options: agentOptions,
+    initialValue,
+  });
+
+  if (isCancel(result)) {
+    cancel("Setup cancelled");
+    process.exit(0);
+  }
+  return result as AgentType;
+}
+
+interface AgentCheckResult {
+  success: boolean;
+  name: string;
+  instructions?: string;
+}
+
+async function checkAgentInstalled(
+  agentInstance: ReturnType<typeof getAgent>
+): Promise<AgentCheckResult> {
+  const installed = await agentInstance.checkInstalled();
+  if (!installed) {
+    return {
+      success: false,
+      name: agentInstance.name,
+      instructions: agentInstance.getInstallInstructions(),
+    };
+  }
+  return { success: true, name: agentInstance.name };
+}
+
 export async function initCommand(options: InitOptions): Promise<void> {
   const projectPath = process.cwd();
   const existingConfig = await getProjectConfig(projectPath);
@@ -109,31 +221,19 @@ export async function initCommand(options: InitOptions): Promise<void> {
   let buildAgent: AgentType = options.buildAgent || options.agent || "claude";
 
   if (!(options.planAgent || options.agent)) {
-    const result = await select({
-      message: "Select an AI agent for PLANNING:",
-      options: agentOptions,
-      initialValue: "claude",
-    });
-
-    if (isCancel(result)) {
-      cancel("Setup cancelled");
-      process.exit(0);
-    }
-    planAgent = result as AgentType;
+    planAgent = await selectAgent(
+      "Select an AI agent for PLANNING:",
+      agentOptions,
+      "claude"
+    );
   }
 
   if (!(options.buildAgent || options.agent)) {
-    const result = await select({
-      message: "Select an AI agent for BUILDING:",
-      options: agentOptions,
-      initialValue: planAgent,
-    });
-
-    if (isCancel(result)) {
-      cancel("Setup cancelled");
-      process.exit(0);
-    }
-    buildAgent = result as AgentType;
+    buildAgent = await selectAgent(
+      "Select an AI agent for BUILDING:",
+      agentOptions,
+      planAgent
+    );
   }
 
   const planAgentInstance = getAgent(planAgent);
@@ -144,51 +244,57 @@ export async function initCommand(options: InitOptions): Promise<void> {
   // Check if agents are installed
   s.start("Checking agent installations...");
 
-  const planInstalled = await planAgentInstance.checkInstalled();
-  if (!planInstalled) {
+  const planCheck = await checkAgentInstalled(planAgentInstance);
+  if (!planCheck.success) {
     s.stop("Agent check failed");
-    log.error(`${planAgentInstance.name} (plan agent) is not installed.`);
-    note(
-      planAgentInstance.getInstallInstructions(),
-      "Installation instructions"
-    );
+    log.error(`${planCheck.name} (plan agent) is not installed.`);
+    note(planCheck.instructions || "", "Installation instructions");
     log.info("After installing, run `ralph-wiggum-cli init` again.");
     outro("Setup incomplete");
     return;
   }
 
-  const buildInstalled = await buildAgentInstance.checkInstalled();
-  if (!buildInstalled) {
+  const buildCheck = await checkAgentInstalled(buildAgentInstance);
+  if (!buildCheck.success) {
     s.stop("Agent check failed");
-    log.error(`${buildAgentInstance.name} (build agent) is not installed.`);
-    note(
-      buildAgentInstance.getInstallInstructions(),
-      "Installation instructions"
-    );
+    log.error(`${buildCheck.name} (build agent) is not installed.`);
+    note(buildCheck.instructions || "", "Installation instructions");
     log.info("After installing, run `ralph-wiggum-cli init` again.");
     outro("Setup incomplete");
     return;
   }
 
-  s.message("Creating project configuration...");
+  s.stop("Agents verified");
+
+  // Prompt for Telegram notifications
+  const telegramConfig = await promptForTelegramConfig(options);
+
+  const s2 = spinner();
+  s2.start("Creating project configuration...");
 
   const config = await initProject(projectPath, {
     planAgent,
     planModel: options.planModel || options.model,
     buildAgent,
     buildModel: options.buildModel || options.model,
+    notifications: telegramConfig ? { telegram: telegramConfig } : undefined,
   });
 
   await createProjectFiles(projectPath);
 
-  s.stop("Project configured");
+  s2.stop("Project configured");
 
   log.success("Ralph initialized successfully!");
+
+  const telegramStatus = config.notifications?.telegram?.enabled
+    ? pc.green("enabled")
+    : pc.gray("disabled");
 
   note(
     `Project:     ${config.projectName}\n` +
       `Plan Agent:  ${planAgentInstance.name} (model: ${config.agents.plan.model || "default"})\n` +
-      `Build Agent: ${buildAgentInstance.name} (model: ${config.agents.build.model || "default"})`,
+      `Build Agent: ${buildAgentInstance.name} (model: ${config.agents.build.model || "default"})\n` +
+      `Telegram:    ${telegramStatus}`,
     "Configuration"
   );
 

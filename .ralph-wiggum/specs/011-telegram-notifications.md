@@ -69,29 +69,29 @@ Status: Completed
 ```
 
 ## Tasks
-- [ ] Add `TelegramConfig` type to `src/types.ts`
-- [ ] Add `notifications` field to `RalphConfig` interface
-- [ ] Create `src/utils/telegram.ts` with `sendTelegramNotification()` function
-- [ ] Create `src/utils/plan-parser.ts` to extract current spec from IMPLEMENTATION_PLAN.md
-- [ ] Update `src/commands/init.ts` to prompt for Telegram config
-- [ ] Update `src/commands/start.ts` to send notifications after iterations (include current spec in build mode)
-- [ ] Handle notification failures gracefully (log warning, don't crash loop)
+- [x] Add `TelegramConfig` type to `src/types.ts`
+- [x] Add `notifications` field to `RalphConfig` interface
+- [x] Create `src/utils/telegram.ts` with `sendTelegramNotification()` function
+- [x] Create `src/utils/plan-parser.ts` to extract current spec from IMPLEMENTATION_PLAN.md
+- [x] Update `src/commands/init.ts` to prompt for Telegram config
+- [x] Update `src/commands/start.ts` to send notifications after iterations (include current spec in build mode)
+- [x] Handle notification failures gracefully (log warning, don't crash loop)
 
 ## Acceptance Criteria
-- [ ] Given Telegram is configured, when an iteration completes successfully, then a success notification is sent
-- [ ] Given Telegram is configured, when an iteration fails, then a failure notification is sent
-- [ ] Given Telegram is configured, when the loop completes (DONE marker), then a completion notification is sent
-- [ ] Given Telegram is NOT configured, when an iteration completes, then no notification is attempted
-- [ ] Given Telegram API fails, when sending notification, then the loop continues (notification failure is non-blocking)
+- [x] Given Telegram is configured, when an iteration completes successfully, then a success notification is sent
+- [x] Given Telegram is configured, when an iteration fails, then a failure notification is sent
+- [x] Given Telegram is configured, when the loop completes (DONE marker), then a completion notification is sent
+- [x] Given Telegram is NOT configured, when an iteration completes, then no notification is attempted
+- [x] Given Telegram API fails, when sending notification, then the loop continues (notification failure is non-blocking)
 
 ## Success Metrics
 - Notifications arrive within 5 seconds of iteration completion
 - Zero loop crashes due to notification failures
 
 ## Testing Requirements
-- [ ] Unit test: `sendTelegramNotification()` with mocked fetch
-- [ ] Unit test: graceful handling of network errors
-- [ ] Integration test: init flow with Telegram prompts
+- [x] Unit test: `sendTelegramNotification()` with mocked fetch
+- [x] Unit test: graceful handling of network errors
+- [x] Integration test: init flow with Telegram prompts
 
 ## Notes
 - Use Telegram Bot API: `https://api.telegram.org/bot<token>/sendMessage`
