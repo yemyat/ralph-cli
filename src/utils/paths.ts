@@ -26,3 +26,9 @@ export function getSessionLogFile(
 export function getSpecsDir(projectPath: string): string {
   return join(getRalphDir(projectPath), "specs");
 }
+
+export const IMPLEMENTATION_FILE = "implementation.json";
+
+export function getImplementationFile(projectPath: string): string {
+  return join(getRalphDir(projectPath), IMPLEMENTATION_FILE);
+}

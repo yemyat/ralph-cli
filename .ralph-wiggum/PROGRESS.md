@@ -4,6 +4,61 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## [2026-01-17 23:30] - Task-Level Orchestration
+
+**Commit:** `26ecb09` feat: add task-level orchestration for build mode
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- `bun run typecheck` → PASS
+- `bun run lint` → PASS
+- `bun run test` → PASS (217 tests)
+- `bun run build` → PASS
+
+**Files changed:**
+- src/types.ts (added Implementation, SpecEntry, TaskEntry, TaskStatusType, QualityGate, QualityGateResult types)
+- src/utils/paths.ts (added IMPLEMENTATION_FILE, getImplementationFile())
+- src/utils/implementation.ts (NEW - parseImplementation, saveImplementation, getNextPendingTask, task status helpers)
+- src/utils/task-prompts.ts (NEW - generateTaskPrompt, generateRetryPrompt)
+- src/utils/quality-gates.ts (NEW - runQualityGates, DEFAULT_QUALITY_GATES, gate result helpers)
+- src/templates/prompts.ts (updated PROMPT_PLAN for implementation.json, updated PROMPT_BUILD for task-level)
+- src/commands/init.ts (creates implementation.json on init)
+- src/commands/start.ts (added task-level orchestration loop, helper functions for task handling)
+- src/agents/base.ts (made promptFile optional in AgentOptions)
+- src/__tests__/templates.test.ts (updated tests for new prompt structure)
+- .ralph-wiggum/specs/012-task-level-orchestration.md (marked complete)
+- .ralph-wiggum/IMPLEMENTATION_PLAN.md (moved spec to Completed)
+
+**What was done:**
+1. Added TypeScript types for task-level orchestration (Implementation, SpecEntry, TaskEntry, QualityGate)
+2. Created implementation.json path utilities and template
+3. Created implementation parsing/saving functions with task navigation helpers
+4. Created task prompt generation with context injection and retry prompts with failure details
+5. Implemented external quality gate runner that executes bun run typecheck/lint/test/build
+6. Updated Plan mode prompt to output implementation.json structure
+7. Updated Build mode prompt for task-level focus (task markers, no commits/tests)
+8. Refactored start.ts with task-level loop that:
+   - Reads implementation.json to find next pending task
+   - Generates task-specific prompt
+   - Spawns agent for one task
+   - Runs quality gates externally after task completion
+   - Retries with failure context if gates fail
+   - Commits after spec completion
+9. Updated init command to create implementation.json alongside IMPLEMENTATION_PLAN.md
+10. Added TASK_DONE/TASK_BLOCKED markers for task completion signaling
+
+**Learnings:**
+- Cognitive complexity limits require aggressive function extraction for complex loops
+- Biome lint requires removing async from functions that don't await
+- Task-level orchestration reduces agent context size by focusing on one task at a time
+- External quality gate execution provides deterministic verification (vs agent self-checks)
+- Keeping IMPLEMENTATION_PLAN.md for backward compatibility ensures existing TUI works
+
+---
+
 ## [2026-01-17 21:00] - Telegram Notifications
 
 **Commit:** `602c9e8` feat: add telegram notifications on iteration completion

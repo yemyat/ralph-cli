@@ -24,6 +24,10 @@ import {
   SPEC_TEMPLATE,
 } from "../templates/prompts";
 import type { AgentType, TelegramConfig } from "../types";
+import {
+  createEmptyImplementation,
+  saveImplementation,
+} from "../utils/implementation";
 import { getRalphDir, getSpecsDir, RALPH_LOGS_DIR } from "../utils/paths";
 
 interface InitOptions {
@@ -75,6 +79,13 @@ async function createProjectFiles(projectPath: string): Promise<void> {
   );
   await ensureFile(join(ralphDir, "PROGRESS.md"), PROGRESS_TEMPLATE);
   await ensureFile(join(ralphDir, "GUARDRAILS.md"), GUARDRAILS_TEMPLATE);
+
+  // Create implementation.json for task-level orchestration
+  const implPath = join(ralphDir, "implementation.json");
+  if (!(await fse.pathExists(implPath))) {
+    const emptyImpl = createEmptyImplementation();
+    await saveImplementation(projectPath, emptyImpl, "user");
+  }
 
   const specsFiles = await fse.readdir(specsDir);
   if (specsFiles.length === 0) {
@@ -302,7 +313,8 @@ export async function initCommand(options: InitOptions): Promise<void> {
     "- PROMPT_plan.md         (planning mode prompt)\n" +
       "- PROMPT_build.md        (building mode prompt)\n" +
       "- GUARDRAILS.md          (compliance rules)\n" +
-      "- IMPLEMENTATION_PLAN.md (progress orchestrator)\n" +
+      "- implementation.json    (task-level orchestration)\n" +
+      "- IMPLEMENTATION_PLAN.md (legacy progress tracker)\n" +
       "- PROGRESS.md            (audit trail)\n" +
       "- specs/                 (specs with tasks + acceptance criteria)\n" +
       "- logs/                  (session logs, gitignored)",

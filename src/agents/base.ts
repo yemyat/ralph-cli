@@ -2,7 +2,7 @@ import type { AgentCommand, AgentType } from "../types";
 
 export interface AgentOptions {
   model?: string;
-  promptFile: string;
+  promptFile?: string;
   verbose?: boolean;
 }
 

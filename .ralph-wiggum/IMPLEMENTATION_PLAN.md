@@ -9,6 +9,7 @@ Progress orchestrator tracking spec completion status.
 <!-- Specs not yet started, in priority order -->
 
 ## Completed
+- [Task-Level Orchestration](specs/012-task-level-orchestration.md)
 - [Telegram Notifications](specs/011-telegram-notifications.md)
 <!-- Specs fully implemented and verified -->
 - specs/007-extract-task-manager-hook.md

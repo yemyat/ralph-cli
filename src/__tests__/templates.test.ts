@@ -16,8 +16,8 @@ describe("Template Constants", () => {
       // Should reference specs directory
       expect(PROMPT_PLAN).toContain(".ralph-wiggum/specs");
 
-      // Should reference IMPLEMENTATION_PLAN.md
-      expect(PROMPT_PLAN).toContain("IMPLEMENTATION_PLAN.md");
+      // Should reference implementation.json (task-level orchestration)
+      expect(PROMPT_PLAN).toContain("implementation.json");
 
       // Should mention parallel subagents
       expect(PROMPT_PLAN).toContain("subagent");
@@ -39,21 +39,18 @@ describe("Template Constants", () => {
     });
 
     it("contains expected sections for build mode", () => {
-      // Should reference specs directory
-      expect(PROMPT_BUILD).toContain(".ralph-wiggum/specs");
+      // Task-level build mode - prompt is simpler since Ralph handles orchestration
+      expect(PROMPT_BUILD).toContain("GUARDRAILS.md");
 
-      // Should reference IMPLEMENTATION_PLAN.md
-      expect(PROMPT_BUILD).toContain("IMPLEMENTATION_PLAN.md");
+      // Should mention task completion markers
+      expect(PROMPT_BUILD).toContain("<TASK_DONE>");
+      expect(PROMPT_BUILD).toContain("<TASK_BLOCKED");
 
-      // Should mention parallel subagents
-      expect(PROMPT_BUILD).toContain("subagent");
+      // Should explain that Ralph handles quality gates externally
+      expect(PROMPT_BUILD).toContain("Quality gates");
 
-      // Should mention testing
-      expect(PROMPT_BUILD).toContain("tests");
-
-      // Should mention git operations
-      expect(PROMPT_BUILD).toContain("git commit");
-      expect(PROMPT_BUILD).toContain("git push");
+      // Should instruct agent not to commit (Ralph handles this)
+      expect(PROMPT_BUILD).toContain("Do NOT commit");
     });
   });
 

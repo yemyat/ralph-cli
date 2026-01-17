@@ -6,9 +6,33 @@ import ora from "ora";
 import pc from "picocolors";
 import { getAgent } from "../agents/index";
 import { getProjectConfig, getProjectSessions, saveSession } from "../config";
-import type { AgentType, RalphConfig, RalphSession } from "../types";
+import type {
+  AgentType,
+  Implementation,
+  QualityGateResult,
+  RalphConfig,
+  RalphSession,
+  SpecEntry,
+  TaskEntry,
+} from "../types";
+import {
+  getNextPendingTask,
+  markTaskBlocked,
+  markTaskCompleted,
+  markTaskFailed,
+  markTaskInProgress,
+  parseImplementation,
+  resetTaskToPending,
+  saveImplementation,
+} from "../utils/implementation";
 import { getRalphDir, getSessionLogFile } from "../utils/paths";
 import { getCurrentSpec } from "../utils/plan-parser";
+import {
+  DEFAULT_QUALITY_GATES,
+  getFailedGates,
+  runQualityGates,
+} from "../utils/quality-gates";
+import { generateRetryPrompt, generateTaskPrompt } from "../utils/task-prompts";
 import {
   type NotificationPayload,
   type NotificationStatus,
@@ -88,11 +112,19 @@ export async function startCommand(
     model,
   };
 
+  // Check if we should use task-level orchestration for build mode
+  const impl = mode === "build" ? await parseImplementation(projectPath) : null;
+  const useTaskLevel = mode === "build" && impl && impl.specs.length > 0;
+
   console.log(pc.green(`\n🚀 Starting Ralph in ${mode} mode...\n`));
   console.log(`  Session ID: ${pc.cyan(sessionId)}`);
   console.log(`  Agent:      ${pc.cyan(agentInstance.name)}`);
   console.log(`  Model:      ${pc.cyan(model || "default")}`);
-  console.log(`  Prompt:     ${pc.cyan(promptFile)}`);
+  if (useTaskLevel) {
+    console.log(`  Mode:       ${pc.cyan("task-level orchestration")}`);
+  } else {
+    console.log(`  Prompt:     ${pc.cyan(promptFile)}`);
+  }
   if (maxIterations > 0) {
     console.log(`  Max Iter:   ${pc.cyan(maxIterations)}`);
   }
@@ -100,19 +132,37 @@ export async function startCommand(
   console.log();
   console.log(pc.gray("Press Ctrl+C to stop the loop.\n"));
 
-  await runRalphLoop(
-    projectPath,
-    config,
-    session,
-    logFile,
-    promptPath,
-    agentInstance,
-    maxIterations,
-    options.verbose
-  );
+  if (useTaskLevel) {
+    // Use task-level orchestration for build mode
+    await runTaskLevelLoop(
+      projectPath,
+      config,
+      session,
+      logFile,
+      agentInstance,
+      {
+        maxRetries: 3,
+        verbose: options.verbose,
+      }
+    );
+  } else {
+    // Use legacy spec-level orchestration
+    await runRalphLoop(
+      projectPath,
+      config,
+      session,
+      logFile,
+      promptPath,
+      agentInstance,
+      maxIterations,
+      options.verbose
+    );
+  }
 }
 
 const DONE_MARKER = "<STATUS>DONE</STATUS>";
+const TASK_DONE_MARKER = "<TASK_DONE>";
+const TASK_BLOCKED_REGEX = /<TASK_BLOCKED\s+reason="([^"]+)">/;
 
 function getGitBranch(): string | undefined {
   try {
@@ -328,5 +378,460 @@ async function runRalphLoop(
     log(`Loop completed after ${iteration} iterations`);
   } finally {
     logStream.close();
+  }
+}
+
+// ============================================================================
+// Task-Level Orchestration (New)
+// ============================================================================
+
+interface TaskLoopOptions {
+  maxRetries?: number;
+  verbose?: boolean;
+}
+
+interface TaskLoopContext {
+  projectPath: string;
+  config: RalphConfig;
+  session: RalphSession;
+  agentInstance: ReturnType<typeof getAgent>;
+  maxRetries: number;
+  verbose?: boolean;
+  log: (msg: string) => void;
+  setCurrentChild: (child: ReturnType<typeof spawn>) => void;
+}
+
+/**
+ * Handle a blocked task result.
+ */
+async function handleBlockedTask(
+  impl: Implementation,
+  spec: SpecEntry,
+  task: TaskEntry,
+  reason: string | undefined,
+  ctx: TaskLoopContext
+): Promise<void> {
+  console.log(pc.yellow(`  ⚠ Task blocked: ${reason}`));
+  ctx.log(`Task blocked: ${reason}`);
+  markTaskBlocked(impl, spec.id, task.id, reason || "Unknown");
+  await saveImplementation(ctx.projectPath, impl);
+}
+
+/**
+ * Handle quality gates passed.
+ */
+async function handleGatesPassed(
+  impl: Implementation,
+  spec: SpecEntry,
+  task: TaskEntry,
+  ctx: TaskLoopContext
+): Promise<void> {
+  console.log(pc.green("  ✓ All quality gates passed"));
+  ctx.log("All quality gates passed");
+  markTaskCompleted(impl, spec.id, task.id);
+  await saveImplementation(ctx.projectPath, impl);
+  await notifyTelegram(ctx.config, ctx.session, "iteration_success", ctx.log);
+
+  // Check if spec is complete
+  const updatedSpec = impl.specs.find((s) => s.id === spec.id);
+  if (updatedSpec?.status === "completed") {
+    console.log(pc.green(`\n✓ Spec completed: ${spec.name}`));
+    ctx.log(`Spec completed: ${spec.name}`);
+    await commitSpecCompletion(ctx.projectPath, spec.name, ctx.log);
+  }
+}
+
+/**
+ * Handle quality gates failed.
+ */
+async function handleGatesFailed(
+  impl: Implementation,
+  spec: SpecEntry,
+  task: TaskEntry,
+  failedGates: QualityGateResult[],
+  ctx: TaskLoopContext
+): Promise<void> {
+  const retryCount = task.retryCount || 0;
+
+  if (retryCount < ctx.maxRetries) {
+    console.log(
+      pc.yellow(
+        `  ⚠ Quality gates failed (retry ${retryCount + 1}/${ctx.maxRetries})`
+      )
+    );
+    ctx.log(
+      `Quality gates failed, retrying (${retryCount + 1}/${ctx.maxRetries})`
+    );
+
+    markTaskFailed(impl, spec.id, task.id);
+    resetTaskToPending(impl, spec.id, task.id);
+    await saveImplementation(ctx.projectPath, impl);
+
+    await runRetryTask(
+      ctx.projectPath,
+      spec,
+      task,
+      failedGates,
+      retryCount,
+      ctx.agentInstance,
+      ctx.session,
+      ctx.log,
+      ctx.verbose,
+      ctx.setCurrentChild
+    );
+  } else {
+    console.log(pc.red("  ✗ Max retries exceeded for task"));
+    ctx.log(`Max retries exceeded for task ${task.id}`);
+    markTaskFailed(impl, spec.id, task.id);
+    await saveImplementation(ctx.projectPath, impl);
+    await notifyTelegram(ctx.config, ctx.session, "iteration_failure", ctx.log);
+  }
+}
+
+/**
+ * Handle task error.
+ */
+async function handleTaskError(
+  impl: Implementation,
+  spec: SpecEntry,
+  task: TaskEntry,
+  ctx: TaskLoopContext
+): Promise<void> {
+  console.log(pc.red("  ✗ Task failed"));
+  ctx.log(`Task failed: ${task.id}`);
+  markTaskFailed(impl, spec.id, task.id);
+  await saveImplementation(ctx.projectPath, impl);
+  await notifyTelegram(ctx.config, ctx.session, "iteration_failure", ctx.log);
+}
+
+/**
+ * Run the task-level build loop.
+ * Processes one task at a time with external quality gates.
+ */
+async function runTaskLevelLoop(
+  projectPath: string,
+  config: RalphConfig,
+  session: RalphSession,
+  logFile: string,
+  agentInstance: ReturnType<typeof getAgent>,
+  options: TaskLoopOptions = {}
+): Promise<void> {
+  const { maxRetries = 3, verbose } = options;
+  const logStream = fse.createWriteStream(logFile, { flags: "a" });
+  let currentChild: ReturnType<typeof spawn> | null = null;
+
+  const log = (msg: string) => {
+    const timestamp = new Date().toISOString();
+    logStream.write(`[${timestamp}] ${msg}\n`);
+    if (verbose) {
+      console.log(pc.gray(`[${timestamp}]`), msg);
+    }
+  };
+
+  log(`Starting task-level loop - Session ${session.id}`);
+  await notifyTelegram(config, session, "loop_started", log);
+
+  const handleSignal = async () => {
+    console.log(pc.yellow("\n\nStopping Ralph loop..."));
+    if (currentChild && !currentChild.killed) {
+      currentChild.kill("SIGTERM");
+      console.log(pc.gray("Terminated agent process"));
+    }
+    session.status = "stopped";
+    session.stoppedAt = new Date().toISOString();
+    await saveSession(projectPath, session);
+    log("Loop stopped by user");
+    await notifyTelegram(config, session, "loop_stopped", log);
+    logStream.close();
+    process.exit(0);
+  };
+
+  process.on("SIGINT", handleSignal);
+  process.on("SIGTERM", handleSignal);
+
+  const ctx: TaskLoopContext = {
+    projectPath,
+    config,
+    session,
+    agentInstance,
+    maxRetries,
+    verbose,
+    log,
+    setCurrentChild: (child) => {
+      currentChild = child;
+    },
+  };
+
+  try {
+    while (true) {
+      const impl = await parseImplementation(projectPath);
+      if (!impl) {
+        console.log(pc.red("No implementation.json found."));
+        break;
+      }
+
+      const next = getNextPendingTask(impl);
+      if (!next) {
+        console.log(pc.green("\n✓ All tasks completed!"));
+        await notifyTelegram(config, session, "loop_completed", log);
+        break;
+      }
+
+      const { spec, task } = next;
+      session.iteration++;
+      await saveSession(projectPath, session);
+
+      console.log(
+        pc.cyan(`\n📋 Task ${session.iteration}: ${task.description}`)
+      );
+      console.log(pc.gray(`   Spec: ${spec.name}`));
+      log(`Starting task: ${task.id} - ${task.description}`);
+
+      // Mark task as in progress
+      markTaskInProgress(impl, spec.id, task.id);
+      await saveImplementation(projectPath, impl);
+
+      // Run the task
+      const result = await runSingleTask(
+        projectPath,
+        spec,
+        task,
+        agentInstance,
+        session,
+        log,
+        verbose,
+        ctx.setCurrentChild
+      );
+
+      // Handle result based on status
+      if (result.status === "blocked") {
+        await handleBlockedTask(impl, spec, task, result.reason, ctx);
+        continue;
+      }
+
+      if (result.status === "done") {
+        await handleDoneResult(impl, spec, task, projectPath, ctx);
+      } else {
+        await handleTaskError(impl, spec, task, ctx);
+      }
+
+      console.log(pc.gray(`\n${"=".repeat(50)}\n`));
+    }
+
+    session.status = "completed";
+    await saveSession(projectPath, session);
+    log("Task-level loop completed");
+  } finally {
+    logStream.close();
+  }
+}
+
+/**
+ * Handle a done task result - run quality gates.
+ */
+async function handleDoneResult(
+  impl: Implementation,
+  spec: SpecEntry,
+  task: TaskEntry,
+  projectPath: string,
+  ctx: TaskLoopContext
+): Promise<void> {
+  console.log(pc.gray("\n  Running quality gates..."));
+  ctx.log("Running quality gates");
+
+  const gateResults = await runQualityGates(
+    DEFAULT_QUALITY_GATES,
+    projectPath,
+    {
+      onGateStart: (gate) => console.log(pc.gray(`    ⏳ ${gate.name}...`)),
+      onGateComplete: (r) => {
+        const icon = r.passed ? pc.green("✓") : pc.red("✗");
+        console.log(`    ${icon} ${r.name}`);
+      },
+    }
+  );
+
+  const failedGates = getFailedGates(gateResults);
+
+  if (failedGates.length === 0) {
+    await handleGatesPassed(impl, spec, task, ctx);
+  } else {
+    await handleGatesFailed(impl, spec, task, failedGates, ctx);
+  }
+}
+
+interface TaskResult {
+  status: "done" | "blocked" | "error";
+  reason?: string;
+  output: string;
+}
+
+/**
+ * Run a single task with the agent.
+ */
+function runSingleTask(
+  projectPath: string,
+  spec: SpecEntry,
+  task: TaskEntry,
+  agentInstance: ReturnType<typeof getAgent>,
+  session: RalphSession,
+  log: (msg: string) => void,
+  verbose?: boolean,
+  onSpawn?: (child: ReturnType<typeof spawn>) => void
+): Promise<TaskResult> {
+  const taskPrompt = generateTaskPrompt(spec, task);
+  return executeAgentWithPrompt(
+    projectPath,
+    taskPrompt,
+    agentInstance,
+    session,
+    log,
+    verbose,
+    onSpawn
+  );
+}
+
+/**
+ * Run a retry task with failure context.
+ */
+function runRetryTask(
+  projectPath: string,
+  spec: SpecEntry,
+  task: TaskEntry,
+  failedGates: QualityGateResult[],
+  retryCount: number,
+  agentInstance: ReturnType<typeof getAgent>,
+  session: RalphSession,
+  log: (msg: string) => void,
+  verbose?: boolean,
+  onSpawn?: (child: ReturnType<typeof spawn>) => void
+): Promise<TaskResult> {
+  const retryPrompt = generateRetryPrompt(spec, task, failedGates, retryCount);
+  return executeAgentWithPrompt(
+    projectPath,
+    retryPrompt,
+    agentInstance,
+    session,
+    log,
+    verbose,
+    onSpawn
+  );
+}
+
+/**
+ * Execute agent with a given prompt and parse result.
+ */
+function executeAgentWithPrompt(
+  projectPath: string,
+  prompt: string,
+  agentInstance: ReturnType<typeof getAgent>,
+  session: RalphSession,
+  log: (msg: string) => void,
+  verbose?: boolean,
+  onSpawn?: (child: ReturnType<typeof spawn>) => void
+): Promise<TaskResult> {
+  const cmdOptions = agentInstance.buildCommand({
+    model: session.model,
+    verbose,
+  });
+
+  return new Promise((resolve) => {
+    let stdoutBuffer = "";
+
+    const child = spawn(cmdOptions.command, cmdOptions.args, {
+      cwd: projectPath,
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { ...process.env, ...cmdOptions.env },
+    });
+
+    onSpawn?.(child);
+    session.pid = child.pid;
+    saveSession(projectPath, session);
+
+    child.stdin?.write(prompt);
+    child.stdin?.end();
+
+    child.stdout?.on("data", (data) => {
+      const output = data.toString();
+      log(`[stdout] ${output}`);
+      if (verbose) {
+        process.stdout.write(output);
+      }
+      stdoutBuffer += output;
+    });
+
+    child.stderr?.on("data", (data) => {
+      const output = data.toString();
+      log(`[stderr] ${output}`);
+      if (verbose) {
+        process.stderr.write(output);
+      }
+    });
+
+    child.on("error", (err) => {
+      log(`Error: ${err.message}`);
+      resolve({ status: "error", output: stdoutBuffer, reason: err.message });
+    });
+
+    child.on("close", (code) => {
+      log(`Agent exited with code ${code}`);
+
+      // Check for task markers
+      if (stdoutBuffer.includes(TASK_DONE_MARKER)) {
+        log("Detected TASK_DONE marker");
+        resolve({ status: "done", output: stdoutBuffer });
+        return;
+      }
+
+      const blockedMatch = stdoutBuffer.match(TASK_BLOCKED_REGEX);
+      if (blockedMatch) {
+        log(`Detected TASK_BLOCKED marker: ${blockedMatch[1]}`);
+        resolve({
+          status: "blocked",
+          output: stdoutBuffer,
+          reason: blockedMatch[1],
+        });
+        return;
+      }
+
+      // No explicit marker - treat as done if exit code is 0
+      if (code === 0) {
+        resolve({ status: "done", output: stdoutBuffer });
+      } else {
+        resolve({
+          status: "error",
+          output: stdoutBuffer,
+          reason: `Process exited with code ${code}`,
+        });
+      }
+    });
+  });
+}
+
+/**
+ * Commit after spec completion.
+ */
+async function commitSpecCompletion(
+  projectPath: string,
+  specName: string,
+  log: (msg: string) => void
+): Promise<void> {
+  try {
+    const { execSync } = await import("node:child_process");
+    execSync("git add -A", { cwd: projectPath, stdio: "pipe" });
+    execSync(`git commit -m "feat: ${specName}"`, {
+      cwd: projectPath,
+      stdio: "pipe",
+    });
+    const branch = execSync("git branch --show-current", {
+      cwd: projectPath,
+      encoding: "utf-8",
+    }).trim();
+    execSync(`git push origin ${branch}`, { cwd: projectPath, stdio: "pipe" });
+    log(`Committed and pushed: feat: ${specName}`);
+    console.log(pc.green(`  📦 Committed and pushed: ${specName}`));
+  } catch (e) {
+    log(`Git commit/push failed: ${e}`);
+    console.log(pc.yellow("  ⚠ Git commit/push failed"));
   }
 }
