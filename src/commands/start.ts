@@ -181,7 +181,8 @@ async function notifyTelegram(
   config: RalphConfig,
   session: RalphSession,
   status: NotificationStatus,
-  log: (msg: string) => void
+  log: (msg: string) => void,
+  taskDescription?: string
 ): Promise<void> {
   const telegramConfig = config.notifications?.telegram;
   if (!telegramConfig?.enabled) {
@@ -196,6 +197,7 @@ async function notifyTelegram(
     status,
     workingDirectory: process.cwd(),
     branch: getGitBranch(),
+    taskDescription,
   };
 
   const success = await sendTelegramNotification(telegramConfig, payload);
@@ -430,7 +432,13 @@ async function handleGatesPassed(
   ctx.log("All quality gates passed");
   markTaskCompleted(impl, spec.id, task.id);
   await saveImplementation(ctx.projectPath, impl);
-  await notifyTelegram(ctx.config, ctx.session, "iteration_success", ctx.log);
+  await notifyTelegram(
+    ctx.config,
+    ctx.session,
+    "iteration_success",
+    ctx.log,
+    task.description
+  );
 
   // Check if spec is complete
   const updatedSpec = impl.specs.find((s) => s.id === spec.id);
@@ -484,7 +492,13 @@ async function handleGatesFailed(
     ctx.log(`Max retries exceeded for task ${task.id}`);
     markTaskFailed(impl, spec.id, task.id);
     await saveImplementation(ctx.projectPath, impl);
-    await notifyTelegram(ctx.config, ctx.session, "iteration_failure", ctx.log);
+    await notifyTelegram(
+      ctx.config,
+      ctx.session,
+      "iteration_failure",
+      ctx.log,
+      task.description
+    );
   }
 }
 
@@ -501,7 +515,13 @@ async function handleTaskError(
   ctx.log(`Task failed: ${task.id}`);
   markTaskFailed(impl, spec.id, task.id);
   await saveImplementation(ctx.projectPath, impl);
-  await notifyTelegram(ctx.config, ctx.session, "iteration_failure", ctx.log);
+  await notifyTelegram(
+    ctx.config,
+    ctx.session,
+    "iteration_failure",
+    ctx.log,
+    task.description
+  );
 }
 
 /**

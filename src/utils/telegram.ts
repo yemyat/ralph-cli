@@ -18,6 +18,7 @@ export interface NotificationPayload {
   status: NotificationStatus;
   workingDirectory?: string;
   branch?: string;
+  taskDescription?: string;
 }
 
 /**
@@ -39,6 +40,10 @@ export function formatNotificationMessage(
 
   if (payload.branch) {
     lines.push(`Branch: ${payload.branch}`);
+  }
+
+  if (payload.taskDescription) {
+    lines.push(`Task: ${payload.taskDescription}`);
   }
 
   if (payload.workingDirectory) {
