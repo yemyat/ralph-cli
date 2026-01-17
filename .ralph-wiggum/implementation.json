@@ -4,6 +4,77 @@
   "updatedBy": "build-mode",
   "specs": [
     {
+      "id": "configurable-quality-gates",
+      "file": "specs/014-configurable-quality-gates.md",
+      "name": "Configurable Quality Gates",
+      "priority": 1,
+      "status": "pending",
+      "context": "Add qualityGates array to implementation.json root so teams can define project-specific build verification commands. Affects: src/types.ts (Implementation interface), src/utils/quality-gates.ts (parseQualityGates utility), src/utils/implementation.ts (createEmptyImplementation template), build mode task verification. Remove DEFAULT_QUALITY_GATES constant - no hardcoded defaults.",
+      "tasks": [
+        {
+          "id": "configurable-quality-gates-1",
+          "description": "Update `Implementation` interface in `src/types.ts` to include optional `qualityGates?: string[]`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Implementation interface has optional qualityGates property typed as string[]"
+          ]
+        },
+        {
+          "id": "configurable-quality-gates-2",
+          "description": "Create `parseQualityGates(commands: string[]): QualityGate[]` utility in `src/utils/quality-gates.ts`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Function converts string array to QualityGate[] objects",
+            "Gate name is extracted from last word of command (e.g., 'bun run typecheck' → 'typecheck')",
+            "All gates are marked as required: true"
+          ]
+        },
+        {
+          "id": "configurable-quality-gates-3",
+          "description": "Update build mode to read gates from implementation.json (skip if not defined)",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Build mode reads qualityGates from implementation.json",
+            "If qualityGates is undefined or empty, quality gate verification is skipped"
+          ]
+        },
+        {
+          "id": "configurable-quality-gates-4",
+          "description": "Update `createEmptyImplementation()` in `src/utils/implementation.ts` to include sample `qualityGates` array",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Template includes sample qualityGates array with common commands",
+            "ralph init creates implementation.json with sample gates"
+          ]
+        },
+        {
+          "id": "configurable-quality-gates-5",
+          "description": "Remove or deprecate `DEFAULT_QUALITY_GATES` constant",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "DEFAULT_QUALITY_GATES constant is removed or marked deprecated",
+            "No hardcoded quality gate defaults remain"
+          ]
+        },
+        {
+          "id": "configurable-quality-gates-6",
+          "description": "Add unit tests for `parseQualityGates`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test: parseQualityGates converts string array to QualityGate[]",
+            "Test: Empty array results in empty QualityGate[]",
+            "Test: Gate name extraction works for various command formats"
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Given implementation.json has qualityGates array, when build mode runs, then those commands are used for verification",
+        "Given implementation.json has no qualityGates key, when build mode runs, then quality gate verification is skipped",
+        "Given a quality gate command fails, when verifying a task, then the task is marked as failed",
+        "Given ralph init is run, when implementation.json is created, then it contains sample qualityGates array"
+      ]
+    },
+    {
       "id": "task-level-build-loop-integration-test",
       "file": "specs/013-task-level-build-loop-integration-test.md",
       "name": "Task-Level Build Loop Integration Test",
