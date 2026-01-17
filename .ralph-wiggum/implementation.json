@@ -1,6 +1,85 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-17T13:49:52.041Z",
-  "updatedBy": "user",
-  "specs": []
+  "updatedAt": "2026-01-17T15:45:00Z",
+  "updatedBy": "plan-mode",
+  "specs": [
+    {
+      "id": "task-level-build-loop-integration-test",
+      "file": "specs/013-task-level-build-loop-integration-test.md",
+      "name": "Task-Level Build Loop Integration Test",
+      "priority": 3,
+      "status": "pending",
+      "context": "Spec requires integration tests for task-level orchestration in build mode. Should extend existing e2e-loop.test.ts pattern (src/__tests__/e2e-loop.test.ts) with mock agent that captures prompts to temp files. Tests verify task isolation (agent gets one task, not full spec) and retry context injection. Existing infrastructure: task-prompts.ts (generateTaskPrompt, generateRetryPrompt), implementation.ts (task state management), quality-gates.ts (runQualityGates), start.ts (runTaskLevelLoop at line 511).",
+      "tasks": [
+        {
+          "id": "task-level-build-loop-integration-test-1",
+          "description": "Create mock agent script that captures received prompt to temp file and outputs configurable markers",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Mock script writes prompt to temp file for assertions",
+            "Mock script outputs <TASK_DONE> or <TASK_BLOCKED> based on env var",
+            "Mock script is executable and works with bun"
+          ]
+        },
+        {
+          "id": "task-level-build-loop-integration-test-2",
+          "description": "Create mock quality gate script with configurable exit codes via env var",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Script returns exit code based on MOCK_GATE_EXIT_CODE env var",
+            "Script outputs mock failure messages when exit code is non-zero"
+          ]
+        },
+        {
+          "id": "task-level-build-loop-integration-test-3",
+          "description": "Write test: 3 tasks spawn 3 separate sessions with isolated prompts",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Given spec with 3 tasks, when build loop runs, then 3 separate agent sessions are spawned",
+            "Each captured prompt file contains only its corresponding task description"
+          ]
+        },
+        {
+          "id": "task-level-build-loop-integration-test-4",
+          "description": "Write test: captured prompt contains ONLY current task, not other tasks",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Given task 2 of 3, when agent is spawned, then prompt contains ONLY task 2 description",
+            "Prompt does not contain task 1 or task 3 descriptions"
+          ]
+        },
+        {
+          "id": "task-level-build-loop-integration-test-5",
+          "description": "Write test: quality gate failure triggers retry with failure output in prompt",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Given quality gates fail with 'typecheck: error TS123', when retry spawns, then prompt includes 'typecheck: error TS123'"
+          ]
+        },
+        {
+          "id": "task-level-build-loop-integration-test-6",
+          "description": "Write test: implementation.json task status updates to completed after success",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Given all 3 tasks complete successfully, when build loop finishes, then all 3 tasks show status 'completed' in implementation.json"
+          ]
+        },
+        {
+          "id": "task-level-build-loop-integration-test-7",
+          "description": "Write test: blocked task gets marked with reason from TASK_BLOCKED marker",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Given agent outputs '<TASK_BLOCKED reason=\"missing API key\">', when build loop processes, then task status is 'blocked' with blockedReason 'missing API key'"
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Test proves task isolation (agent never sees full spec, only current task)",
+        "Test proves retry includes failure context",
+        "CI passes with mocked agent tests (no real AI calls)",
+        "Tests run without network/AI dependencies",
+        "Tests follow pattern from existing e2e-loop.test.ts"
+      ]
+    }
+  ]
 }
