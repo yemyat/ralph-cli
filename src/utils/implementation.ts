@@ -247,3 +247,30 @@ export function getImplementationProgress(impl: Implementation): {
 
   return { completedSpecs, totalSpecs, completedTasks, totalTasks };
 }
+
+/**
+ * Get the current spec ID from implementation.json.
+ * Returns the in_progress spec ID, or first pending spec ID if none in progress.
+ */
+export async function getCurrentSpecId(
+  projectPath: string
+): Promise<string | null> {
+  const impl = await parseImplementation(projectPath);
+  if (!impl) {
+    return null;
+  }
+
+  // First look for in_progress spec
+  const inProgress = impl.specs.find((s) => s.status === "in_progress");
+  if (inProgress) {
+    return inProgress.id;
+  }
+
+  // Then look for first pending spec
+  const pending = impl.specs.find((s) => s.status === "pending");
+  if (pending) {
+    return pending.id;
+  }
+
+  return null;
+}

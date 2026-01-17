@@ -3,25 +3,98 @@
 
 import { join } from "node:path";
 import fse from "fs-extra";
+import type { SpecEntry } from "../../types";
+import {
+  parseImplementation,
+  saveImplementation,
+} from "../../utils/implementation";
 import { getLogsDir, getRalphDir, getSpecsDir } from "../../utils/paths";
-import type { ParsedPlan } from "../types";
-import { detectSection, parseImplementationPlanContent } from "./plan-parser";
+import type { ParsedPlan, Task, TaskStatus } from "../types";
+
+// Top-level regex for lint compliance
+const LEADING_NUMBERS_REGEX = /^\d+-/;
 
 /**
- * Parse IMPLEMENTATION_PLAN.md from the project path.
- * Combines file I/O with pure parsing logic.
+ * Convert a spec filename to a readable title.
+ * Example: "011-telegram-notifications" -> "Telegram Notifications"
+ */
+function specIdToName(specId: string): string {
+  // Remove leading numbers (e.g., "011-")
+  const withoutNumbers = specId.replace(LEADING_NUMBERS_REGEX, "");
+  // Convert kebab-case to Title Case
+  return withoutNumbers
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+/**
+ * Map spec status to TUI task status.
+ */
+function mapSpecStatusToTaskStatus(specStatus: string): TaskStatus {
+  switch (specStatus) {
+    case "in_progress":
+      return "in_progress";
+    case "completed":
+      return "completed";
+    case "blocked":
+      return "stopped";
+    default:
+      return "backlog";
+  }
+}
+
+/**
+ * Convert SpecEntry to TUI Task format.
+ */
+function specToTask(spec: SpecEntry): Task {
+  return {
+    id: spec.file,
+    name: spec.name || specIdToName(spec.id),
+    specPath: spec.file,
+    status: mapSpecStatusToTaskStatus(spec.status),
+  };
+}
+
+/**
+ * Parse implementation.json from the project path.
+ * Returns a ParsedPlan structure for TUI consumption.
  */
 export async function parseImplementationPlan(
   projectPath: string
 ): Promise<ParsedPlan> {
-  const planPath = join(getRalphDir(projectPath), "IMPLEMENTATION_PLAN.md");
+  const impl = await parseImplementation(projectPath);
 
-  if (!(await fse.pathExists(planPath))) {
+  if (!impl) {
     return { inProgress: [], backlog: [], completed: [], stopped: [] };
   }
 
-  const content = await fse.readFile(planPath, "utf-8");
-  return parseImplementationPlanContent(content);
+  const result: ParsedPlan = {
+    inProgress: [],
+    backlog: [],
+    completed: [],
+    stopped: [],
+  };
+
+  for (const spec of impl.specs) {
+    const task = specToTask(spec);
+    switch (task.status) {
+      case "in_progress":
+        result.inProgress.push(task);
+        break;
+      case "completed":
+        result.completed.push(task);
+        break;
+      case "stopped":
+        result.stopped.push(task);
+        break;
+      default:
+        result.backlog.push(task);
+        break;
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -126,98 +199,29 @@ export async function appendToLog(
   }
 }
 
-// Helper: find task and backlog positions in lines
-function findTaskAndBacklogPositions(
-  lines: string[],
-  specPath: string
-): { taskLineIndex: number; backlogIndex: number } {
-  let currentSection: string | null = null;
-  let backlogIndex = -1;
-  let taskLineIndex = -1;
-
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trim();
-    const section = detectSection(trimmed);
-
-    if (section) {
-      currentSection = section;
-      if (section === "backlog") {
-        backlogIndex = i;
-      }
-      continue;
-    }
-
-    // Only look for task in in_progress section, but continue scanning for backlog
-    if (
-      taskLineIndex === -1 &&
-      currentSection === "in_progress" &&
-      trimmed.includes(specPath)
-    ) {
-      taskLineIndex = i;
-    }
-  }
-
-  return { taskLineIndex, backlogIndex };
-}
-
-// Helper: find insertion index in backlog (after header and comments)
-function findBacklogInsertIndex(lines: string[], startIndex: number): number {
-  let insertIndex = startIndex;
-  while (insertIndex < lines.length) {
-    const line = lines[insertIndex].trim();
-    const isCommentOrEmpty = line.startsWith("<!--") || line === "";
-    if (isCommentOrEmpty) {
-      insertIndex++;
-    } else {
-      break;
-    }
-  }
-  return insertIndex;
-}
-
 /**
- * Move a task from In Progress to Backlog with [stopped] marker.
- * Updates the IMPLEMENTATION_PLAN.md file in place.
+ * Mark a spec as stopped/blocked in implementation.json.
+ * Updates the status of the spec with matching file path.
  */
 export async function markTaskAsStopped(
   projectPath: string,
   specPath: string
 ): Promise<void> {
-  const planPath = join(getRalphDir(projectPath), "IMPLEMENTATION_PLAN.md");
+  const impl = await parseImplementation(projectPath);
 
-  if (!(await fse.pathExists(planPath))) {
+  if (!impl) {
     return;
   }
 
-  const content = await fse.readFile(planPath, "utf-8");
-  const lines = content.split("\n");
-
-  const { taskLineIndex, backlogIndex } = findTaskAndBacklogPositions(
-    lines,
-    specPath
-  );
-
-  // If task not found or backlog section not found, return
-  if (taskLineIndex === -1 || backlogIndex === -1) {
+  // Find the spec by file path
+  const spec = impl.specs.find((s) => s.file === specPath);
+  if (!spec) {
     return;
   }
 
-  // Remove task from In Progress
-  lines.splice(taskLineIndex, 1);
+  // Mark spec as blocked (stopped in TUI terminology)
+  spec.status = "blocked";
 
-  // Find the first line after backlog header to insert (accounting for removal)
-  const adjustedBacklogIndex =
-    backlogIndex > taskLineIndex ? backlogIndex - 1 : backlogIndex;
-
-  // Create the stopped task line with marker
-  const stoppedLine = `- [stopped] ${specPath}`;
-
-  // Find where to insert in backlog (after header and any comments)
-  const insertIndex = findBacklogInsertIndex(lines, adjustedBacklogIndex + 1);
-
-  // Insert the stopped task at the beginning of backlog
-  lines.splice(insertIndex, 0, stoppedLine);
-
-  // Write back to file
-  await fse.writeFile(planPath, lines.join("\n"));
+  // Save the updated implementation
+  await saveImplementation(projectPath, impl, "user");
 }

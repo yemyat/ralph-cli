@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import fse from "fs-extra";
+import type { Implementation } from "../../../types";
 import {
   appendToLog,
   getAllSpecs,
@@ -15,7 +16,6 @@ const TEST_DIR = join(import.meta.dir, ".test-file-ops");
 
 // Top-level regex patterns for lint compliance
 const TIMESTAMP_REGEX = /\[\d{4}-\d{2}-\d{2}T.*\] new message/;
-const IN_PROGRESS_TASK_REGEX = /## In Progress\n- specs\/running\.md/;
 
 async function setupTestProject(): Promise<void> {
   await fse.ensureDir(join(TEST_DIR, ".ralph-wiggum/specs"));
@@ -24,6 +24,15 @@ async function setupTestProject(): Promise<void> {
 
 async function cleanupTestProject(): Promise<void> {
   await fse.remove(TEST_DIR);
+}
+
+function createImplementation(specs: Implementation["specs"]): Implementation {
+  return {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    updatedBy: "user",
+    specs,
+  };
 }
 
 describe("file-operations", () => {
@@ -37,16 +46,21 @@ describe("file-operations", () => {
   });
 
   describe("parseImplementationPlan", () => {
-    test("parses plan from project path", async () => {
-      await fse.writeFile(
-        join(TEST_DIR, ".ralph-wiggum/IMPLEMENTATION_PLAN.md"),
-        `## In Progress
-- specs/task.md
-
-## Backlog
-
-## Completed
-`
+    test("parses plan from implementation.json", async () => {
+      const impl = createImplementation([
+        {
+          id: "task",
+          file: "specs/task.md",
+          name: "Task",
+          priority: 1,
+          status: "in_progress",
+          tasks: [],
+          acceptanceCriteria: [],
+        },
+      ]);
+      await fse.writeJson(
+        join(TEST_DIR, ".ralph-wiggum/implementation.json"),
+        impl
       );
 
       const result = await parseImplementationPlan(TEST_DIR);
@@ -54,7 +68,7 @@ describe("file-operations", () => {
       expect(result.inProgress[0].specPath).toBe("specs/task.md");
     });
 
-    test("returns empty arrays when plan file missing", async () => {
+    test("returns empty arrays when implementation.json missing", async () => {
       const result = await parseImplementationPlan(TEST_DIR);
       expect(result.inProgress).toHaveLength(0);
       expect(result.backlog).toHaveLength(0);
@@ -166,57 +180,60 @@ describe("file-operations", () => {
   });
 
   describe("markTaskAsStopped", () => {
-    test("moves task from in progress to backlog with stopped marker", async () => {
-      await fse.writeFile(
-        join(TEST_DIR, ".ralph-wiggum/IMPLEMENTATION_PLAN.md"),
-        `## In Progress
-- specs/running.md
-
-## Backlog
-- specs/waiting.md
-
-## Completed
-`
+    test("marks spec as blocked in implementation.json", async () => {
+      const impl = createImplementation([
+        {
+          id: "running",
+          file: "specs/running.md",
+          name: "Running",
+          priority: 1,
+          status: "in_progress",
+          tasks: [],
+          acceptanceCriteria: [],
+        },
+      ]);
+      await fse.writeJson(
+        join(TEST_DIR, ".ralph-wiggum/implementation.json"),
+        impl
       );
 
       await markTaskAsStopped(TEST_DIR, "specs/running.md");
 
-      const content = await fse.readFile(
-        join(TEST_DIR, ".ralph-wiggum/IMPLEMENTATION_PLAN.md"),
-        "utf-8"
+      const updated = await fse.readJson(
+        join(TEST_DIR, ".ralph-wiggum/implementation.json")
       );
-
-      // Task should no longer be in In Progress as a regular item
-      expect(content).not.toMatch(IN_PROGRESS_TASK_REGEX);
-      // Task should be in Backlog with stopped marker
-      expect(content).toContain("[stopped] specs/running.md");
+      expect(updated.specs[0].status).toBe("blocked");
     });
 
-    test("does nothing when plan file missing", async () => {
+    test("does nothing when implementation.json missing", async () => {
       // Should not throw
       await markTaskAsStopped(TEST_DIR, "specs/task.md");
     });
 
-    test("does nothing when task not found in in progress", async () => {
-      await fse.writeFile(
-        join(TEST_DIR, ".ralph-wiggum/IMPLEMENTATION_PLAN.md"),
-        `## In Progress
-
-## Backlog
-- specs/task.md
-
-## Completed
-`
+    test("does nothing when spec not found", async () => {
+      const impl = createImplementation([
+        {
+          id: "task",
+          file: "specs/task.md",
+          name: "Task",
+          priority: 1,
+          status: "pending",
+          tasks: [],
+          acceptanceCriteria: [],
+        },
+      ]);
+      await fse.writeJson(
+        join(TEST_DIR, ".ralph-wiggum/implementation.json"),
+        impl
       );
 
       await markTaskAsStopped(TEST_DIR, "specs/nonexistent.md");
 
-      // File should be unchanged
-      const content = await fse.readFile(
-        join(TEST_DIR, ".ralph-wiggum/IMPLEMENTATION_PLAN.md"),
-        "utf-8"
+      // Status should be unchanged
+      const updated = await fse.readJson(
+        join(TEST_DIR, ".ralph-wiggum/implementation.json")
       );
-      expect(content).not.toContain("[stopped]");
+      expect(updated.specs[0].status).toBe("pending");
     });
   });
 });

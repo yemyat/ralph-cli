@@ -23,21 +23,41 @@ async function setupTestProject(): Promise<void> {
     sessions: [],
   });
 
-  // Create implementation plan
-  await fse.writeFile(
-    join(TEST_DIR, ".ralph-wiggum/IMPLEMENTATION_PLAN.md"),
-    `# Implementation Plan
-
-## In Progress
-- specs/in-progress-spec.md
-
-## Backlog
-- specs/backlog-spec.md
-
-## Completed
-- specs/completed-spec.md
-`
-  );
+  // Create implementation.json
+  await fse.writeJSON(join(TEST_DIR, ".ralph-wiggum/implementation.json"), {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    updatedBy: "user",
+    specs: [
+      {
+        id: "in-progress-spec",
+        file: "specs/in-progress-spec.md",
+        name: "In Progress Spec",
+        priority: 1,
+        status: "in_progress",
+        tasks: [],
+        acceptanceCriteria: [],
+      },
+      {
+        id: "backlog-spec",
+        file: "specs/backlog-spec.md",
+        name: "Backlog Spec",
+        priority: 2,
+        status: "pending",
+        tasks: [],
+        acceptanceCriteria: [],
+      },
+      {
+        id: "completed-spec",
+        file: "specs/completed-spec.md",
+        name: "Completed Spec",
+        priority: 3,
+        status: "completed",
+        tasks: [],
+        acceptanceCriteria: [],
+      },
+    ],
+  });
 
   // Create spec files
   await fse.writeFile(

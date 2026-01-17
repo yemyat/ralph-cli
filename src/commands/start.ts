@@ -16,6 +16,7 @@ import type {
   TaskEntry,
 } from "../types";
 import {
+  getCurrentSpecId,
   getNextPendingTask,
   markTaskBlocked,
   markTaskCompleted,
@@ -26,7 +27,6 @@ import {
   saveImplementation,
 } from "../utils/implementation";
 import { getRalphDir, getSessionLogFile } from "../utils/paths";
-import { getCurrentSpec } from "../utils/plan-parser";
 import {
   DEFAULT_QUALITY_GATES,
   getFailedGates,
@@ -97,7 +97,7 @@ export async function startCommand(
   }
 
   const currentSpec =
-    mode === "build" ? await getCurrentSpec(projectPath) : null;
+    mode === "build" ? await getCurrentSpecId(projectPath) : null;
   const specSuffix = currentSpec ? `-${currentSpec}` : `-${mode}`;
   const sessionId = `${randomUUID().slice(0, 8)}${specSuffix}`;
   const logFile = getSessionLogFile(projectPath, sessionId);

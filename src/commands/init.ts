@@ -17,7 +17,6 @@ import { getAgent, getAllAgents } from "../agents/index";
 import { getProjectConfig, initProject } from "../config";
 import {
   GUARDRAILS_TEMPLATE,
-  IMPLEMENTATION_PLAN_TEMPLATE,
   PROGRESS_TEMPLATE,
   PROMPT_BUILD,
   PROMPT_PLAN,
@@ -73,10 +72,6 @@ async function createProjectFiles(projectPath: string): Promise<void> {
 
   await ensureFile(join(ralphDir, "PROMPT_plan.md"), PROMPT_PLAN);
   await ensureFile(join(ralphDir, "PROMPT_build.md"), PROMPT_BUILD);
-  await ensureFile(
-    join(ralphDir, "IMPLEMENTATION_PLAN.md"),
-    IMPLEMENTATION_PLAN_TEMPLATE
-  );
   await ensureFile(join(ralphDir, "PROGRESS.md"), PROGRESS_TEMPLATE);
   await ensureFile(join(ralphDir, "GUARDRAILS.md"), GUARDRAILS_TEMPLATE);
 
@@ -314,7 +309,6 @@ export async function initCommand(options: InitOptions): Promise<void> {
       "- PROMPT_build.md        (building mode prompt)\n" +
       "- GUARDRAILS.md          (compliance rules)\n" +
       "- implementation.json    (task-level orchestration)\n" +
-      "- IMPLEMENTATION_PLAN.md (legacy progress tracker)\n" +
       "- PROGRESS.md            (audit trail)\n" +
       "- specs/                 (specs with tasks + acceptance criteria)\n" +
       "- logs/                  (session logs, gitignored)",

@@ -416,7 +416,7 @@ export function App({ projectPath }: AppProps): React.ReactNode {
         {totalTasks === 0 ? (
           <box flexDirection="column" paddingBottom={2} paddingTop={2}>
             <text fg={TOKYO_NIGHT.yellow}>
-              No specs found in IMPLEMENTATION_PLAN.md
+              No specs found in implementation.json
             </text>
             <text fg={TOKYO_NIGHT.comment}>
               Run `ralph-wiggum-cli start plan` to generate the implementation
