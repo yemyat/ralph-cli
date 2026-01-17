@@ -110,3 +110,7 @@ All Ralph data is stored in the project's `.ralph-wiggum/` folder:
 ├── specs/                 # Specs with tasks + acceptance criteria
 └── logs/                  # Session logs (gitignored)
 ```
+
+## When you are writing specs
+
+Always ask me questions so that you can strengthen your understanding of my requirements and ensure that the specifications are clear and accurate.
