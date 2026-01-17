@@ -5,6 +5,7 @@ import pc from "picocolors";
 import { initCommand } from "./commands/init";
 import { listCommand } from "./commands/list";
 import { logsCommand } from "./commands/logs";
+import { reinitCommand } from "./commands/reinit";
 import { startCommand } from "./commands/start";
 import { statusCommand } from "./commands/status";
 import { stopCommand } from "./commands/stop";
@@ -42,6 +43,15 @@ program
       buildModel: options.buildModel,
       force: options.force,
     });
+  });
+
+program
+  .command("reinit")
+  .description(
+    "Reinitialize prompts (updates PROMPT_plan.md, PROMPT_build.md, and example.md)"
+  )
+  .action(async () => {
+    await reinitCommand();
   });
 
 program

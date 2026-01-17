@@ -43,7 +43,9 @@ export interface TaskManagerHandlers {
   cancelStop: () => void;
 }
 
-export interface TaskManagerResult extends TaskManagerState, TaskManagerHandlers {}
+export interface TaskManagerResult
+  extends TaskManagerState,
+    TaskManagerHandlers {}
 
 /**
  * Hook for managing task lifecycle: stopping, force-killing, and confirmation dialogs.

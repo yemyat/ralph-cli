@@ -27,7 +27,7 @@ const createMockSession = (
   id: "session-1",
   mode: "build",
   status: "running",
-  pid: 12345,
+  pid: 12_345,
   iteration: 1,
   startedAt: "2026-01-16T12:00:00Z",
   agent: "claude",
@@ -76,12 +76,15 @@ describe("useTaskManager", () => {
         runningSession: createMockSession(),
         logPath: "/project/logs/session-1.log",
       };
-      expect(options.runningSession?.pid).toBe(12345);
+      expect(options.runningSession?.pid).toBe(12_345);
       expect(options.logPath).toContain("session-1.log");
     });
 
     test("options with callbacks", () => {
-      const callResults = { stopCalled: false, updatedSession: null as RalphSession | null };
+      const callResults = {
+        stopCalled: false,
+        updatedSession: null as RalphSession | null,
+      };
 
       const options: TaskManagerOptions = {
         projectPath: "/project",
@@ -113,9 +116,9 @@ describe("useTaskManager", () => {
         projectPath: "/project",
         runningSession: null,
         logPath: null,
-        gracefulTimeoutMs: 10000,
+        gracefulTimeoutMs: 10_000,
       };
-      expect(options.gracefulTimeoutMs).toBe(10000);
+      expect(options.gracefulTimeoutMs).toBe(10_000);
     });
   });
 

@@ -34,10 +34,7 @@ export function useSessionPolling(
   projectPath: string,
   options: SessionPollingOptions = {}
 ): SessionPollingState {
-  const {
-    getSessions,
-    pollIntervalMs = TIMING.POLL_INTERVAL_MS,
-  } = options;
+  const { getSessions, pollIntervalMs = TIMING.POLL_INTERVAL_MS } = options;
 
   const [runningSession, setRunningSession] = useState<RalphSession | null>(
     null

@@ -1,0 +1,2 @@
+bun run lint:fix
+bunx lint-staged
