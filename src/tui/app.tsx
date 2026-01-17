@@ -5,13 +5,11 @@ import {
 } from "@opentui/react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import {
-  ConfirmDialog,
-  HelpOverlay,
-  LoadingSpinner,
-  Sidebar,
-  TaskDetail,
-} from "./components";
+import { Sidebar } from "./components/layout/sidebar";
+import { ConfirmDialog } from "./components/overlays/confirm-dialog";
+import { HelpOverlay } from "./components/overlays/help-overlay";
+import { LoadingSpinner } from "./components/primitives/loading-spinner";
+import { TaskDetail } from "./components/viewers/task-detail";
 import {
   type KeyEvent,
   useKeyboardNavigation,

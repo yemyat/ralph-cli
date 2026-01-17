@@ -58,7 +58,7 @@
   "lint-staged": {
     "*.{ts,tsx}": [
       "bun run test",
-      "bun run typecheck",
+      "tsc-files --noEmit",
       "bun run lint"
     ]
   },
@@ -74,6 +74,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "react-devtools-core": "^7.0.1",
+    "tsc-files": "^1.1.4",
     "typescript": "^5.9.3",
     "ultracite": "7.0.11"
   }

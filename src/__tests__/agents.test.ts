@@ -1,16 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import { AmpAgent } from "../agents/amp";
 import type { AgentOptions } from "../agents/base";
-import {
-  AmpAgent,
-  ClaudeAgent,
-  CodexAgent,
-  CursorAgent,
-  DroidAgent,
-  GeminiAgent,
-  getAgent,
-  getAllAgents,
-  OpenCodeAgent,
-} from "../agents/index";
+import { ClaudeAgent } from "../agents/claude";
+import { CodexAgent } from "../agents/codex";
+import { CursorAgent } from "../agents/cursor";
+import { DroidAgent } from "../agents/droid";
+import { GeminiAgent } from "../agents/gemini";
+import { getAgent, getAllAgents } from "../agents/index";
+import { OpenCodeAgent } from "../agents/opencode";
 
 describe("Agent Module", () => {
   describe("Agent Registry", () => {

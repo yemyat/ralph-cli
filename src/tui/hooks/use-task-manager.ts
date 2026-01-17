@@ -16,7 +16,7 @@ export interface TaskManagerOptions {
   /** Current log file path */
   logPath: string | null;
   /** Callback when task is stopped (to reload plan) */
-  onTaskStopped?: () => Promise<void>;
+  onTaskStopped?: () => Promise<void> | void;
   /** Callback to update running session state */
   onSessionUpdate?: (session: RalphSession | null) => void;
   /** Graceful shutdown timeout in ms (default: 5000) */

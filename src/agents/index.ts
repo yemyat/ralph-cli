@@ -25,14 +25,3 @@ export function getAgent(type: AgentType): BaseAgent {
 export function getAllAgents(): BaseAgent[] {
   return Object.values(agents);
 }
-
-// Re-export agent classes for direct usage by consumers and tests
-// biome-ignore lint/performance/noBarrelFile: This is a legitimate barrel file for the agents module
-export { AmpAgent } from "./amp";
-export { BaseAgent } from "./base";
-export { ClaudeAgent } from "./claude";
-export { CodexAgent } from "./codex";
-export { CursorAgent } from "./cursor";
-export { DroidAgent } from "./droid";
-export { GeminiAgent } from "./gemini";
-export { OpenCodeAgent } from "./opencode";

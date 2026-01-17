@@ -146,7 +146,7 @@ describe("useSessionPolling", () => {
       expect(result[0].id).toBe("s1");
     });
 
-    test("find running session from array", async () => {
+    test("find running session from array", () => {
       const sessions = [
         createMockSession({ id: "s1", status: "completed" }),
         createMockSession({ id: "s2", status: "running" }),

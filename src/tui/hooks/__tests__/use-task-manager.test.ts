@@ -90,7 +90,7 @@ describe("useTaskManager", () => {
         projectPath: "/project",
         runningSession: createMockSession(),
         logPath: null,
-        onTaskStopped: async () => {
+        onTaskStopped: () => {
           callResults.stopCalled = true;
         },
         onSessionUpdate: (session) => {
@@ -175,10 +175,10 @@ describe("useTaskManager", () => {
   describe("TaskManagerHandlers type shape", () => {
     test("TaskManagerHandlers has expected functions", () => {
       const mockHandlers: TaskManagerHandlers = {
-        initiateStop: () => {},
-        confirmStop: async () => {},
-        forceKill: async () => {},
-        cancelStop: () => {},
+        initiateStop: () => undefined,
+        confirmStop: async () => undefined,
+        forceKill: async () => undefined,
+        cancelStop: () => undefined,
       };
 
       expect(typeof mockHandlers.initiateStop).toBe("function");
@@ -196,10 +196,10 @@ describe("useTaskManager", () => {
         taskToStop: null,
         stoppingTaskId: null,
         // Handlers
-        initiateStop: () => {},
-        confirmStop: async () => {},
-        forceKill: async () => {},
-        cancelStop: () => {},
+        initiateStop: () => undefined,
+        confirmStop: () => Promise.resolve(),
+        forceKill: () => Promise.resolve(),
+        cancelStop: () => undefined,
       };
 
       // State properties
