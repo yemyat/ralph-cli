@@ -18,7 +18,6 @@ import { getProjectConfig, initProject } from "../config";
 import {
   GUARDRAILS_TEMPLATE,
   PROGRESS_TEMPLATE,
-  PROMPT_BUILD,
   PROMPT_PLAN,
   SPEC_TEMPLATE,
 } from "../templates/prompts";
@@ -71,7 +70,6 @@ async function createProjectFiles(projectPath: string): Promise<void> {
   const specsDir = getSpecsDir(projectPath);
 
   await ensureFile(join(ralphDir, "PROMPT_plan.md"), PROMPT_PLAN);
-  await ensureFile(join(ralphDir, "PROMPT_build.md"), PROMPT_BUILD);
   await ensureFile(join(ralphDir, "PROGRESS.md"), PROGRESS_TEMPLATE);
   await ensureFile(join(ralphDir, "GUARDRAILS.md"), GUARDRAILS_TEMPLATE);
 

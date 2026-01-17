@@ -47,9 +47,7 @@ program
 
 program
   .command("reinit")
-  .description(
-    "Reinitialize prompts (updates PROMPT_plan.md, PROMPT_build.md, and example.md)"
-  )
+  .description("Reinitialize prompts (updates PROMPT_plan.md and example.md)")
   .action(async () => {
     await reinitCommand();
   });

@@ -86,11 +86,18 @@ export async function startCommand(
     return;
   }
 
-  const promptFile = mode === "plan" ? "PROMPT_plan.md" : "PROMPT_build.md";
   const ralphDir = getRalphDir(projectPath);
+
+  // Check if we should use task-level orchestration for build mode
+  const impl = mode === "build" ? await parseImplementation(projectPath) : null;
+  const useTaskLevel = mode === "build" && impl && impl.specs.length > 0;
+
+  // Only check for prompt file if needed (plan mode or legacy build mode)
+  const promptFile = mode === "plan" ? "PROMPT_plan.md" : "PROMPT_build.md";
   const promptPath = join(ralphDir, promptFile);
 
-  if (!(await fse.pathExists(promptPath))) {
+  // Plan mode always needs PROMPT_plan.md; build mode only needs file for legacy mode
+  if (mode === "plan" && !(await fse.pathExists(promptPath))) {
     console.log(pc.red(`Prompt file not found: ${promptFile}`));
     console.log(`Run ${pc.cyan("ralph-wiggum-cli init")} to create it.`);
     return;
@@ -111,10 +118,6 @@ export async function startCommand(
     agent,
     model,
   };
-
-  // Check if we should use task-level orchestration for build mode
-  const impl = mode === "build" ? await parseImplementation(projectPath) : null;
-  const useTaskLevel = mode === "build" && impl && impl.specs.length > 0;
 
   console.log(pc.green(`\n🚀 Starting Ralph in ${mode} mode...\n`));
   console.log(`  Session ID: ${pc.cyan(sessionId)}`);
@@ -445,7 +448,6 @@ async function handleGatesPassed(
   if (updatedSpec?.status === "completed") {
     console.log(pc.green(`\n✓ Spec completed: ${spec.name}`));
     ctx.log(`Spec completed: ${spec.name}`);
-    await commitSpecCompletion(ctx.projectPath, spec.name, ctx.log);
   }
 }
 
@@ -833,32 +835,4 @@ function executeAgentWithPrompt(
       }
     });
   });
-}
-
-/**
- * Commit after spec completion.
- */
-async function commitSpecCompletion(
-  projectPath: string,
-  specName: string,
-  log: (msg: string) => void
-): Promise<void> {
-  try {
-    const { execSync } = await import("node:child_process");
-    execSync("git add -A", { cwd: projectPath, stdio: "pipe" });
-    execSync(`git commit -m "feat: ${specName}"`, {
-      cwd: projectPath,
-      stdio: "pipe",
-    });
-    const branch = execSync("git branch --show-current", {
-      cwd: projectPath,
-      encoding: "utf-8",
-    }).trim();
-    execSync(`git push origin ${branch}`, { cwd: projectPath, stdio: "pipe" });
-    log(`Committed and pushed: feat: ${specName}`);
-    console.log(pc.green(`  📦 Committed and pushed: ${specName}`));
-  } catch (e) {
-    log(`Git commit/push failed: ${e}`);
-    console.log(pc.yellow("  ⚠ Git commit/push failed"));
-  }
 }

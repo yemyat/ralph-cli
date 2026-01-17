@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import fse from "fs-extra";
 import { initProject } from "../config";
-import { PROMPT_BUILD, PROMPT_PLAN, SPEC_TEMPLATE } from "../templates/prompts";
+import { PROMPT_PLAN, SPEC_TEMPLATE } from "../templates/prompts";
 import { getRalphDir, getSpecsDir } from "../utils/paths";
 
 const TEST_DIR = join(
@@ -21,7 +21,6 @@ async function reinitPrompts(projectPath: string): Promise<boolean> {
 
   const specsDir = getSpecsDir(projectPath);
   await fse.writeFile(join(ralphDir, "PROMPT_plan.md"), PROMPT_PLAN);
-  await fse.writeFile(join(ralphDir, "PROMPT_build.md"), PROMPT_BUILD);
   await fse.writeFile(join(specsDir, "example.md"), SPEC_TEMPLATE);
 
   return true;
@@ -60,7 +59,6 @@ describe("Reinit Command", () => {
       await fse.ensureDir(specsDir);
 
       await fse.writeFile(join(ralphDir, "PROMPT_plan.md"), "old content");
-      await fse.writeFile(join(ralphDir, "PROMPT_build.md"), "old content");
 
       const result = await reinitPrompts(projectPath);
 
@@ -70,13 +68,8 @@ describe("Reinit Command", () => {
         join(ralphDir, "PROMPT_plan.md"),
         "utf-8"
       );
-      const buildContent = await fse.readFile(
-        join(ralphDir, "PROMPT_build.md"),
-        "utf-8"
-      );
 
       expect(planContent).toBe(PROMPT_PLAN);
-      expect(buildContent).toBe(PROMPT_BUILD);
     });
 
     it("creates example.md in specs directory", async () => {

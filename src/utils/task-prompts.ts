@@ -1,6 +1,7 @@
 // src/utils/task-prompts.ts
 // Generate focused task prompts for task-level orchestration
 
+import { PROMPT_BUILD } from "../templates/prompts";
 import type { QualityGateResult, SpecEntry, TaskEntry } from "../types";
 import { getCompletedTasks } from "./implementation";
 
@@ -27,11 +28,16 @@ function formatAcceptanceCriteria(criteria: string[] | undefined): string {
 /**
  * Generate a focused prompt for a single task.
  * This is injected when spawning an agent for one task.
+ * Includes PROMPT_BUILD context at the top for rules and workflow.
  */
 export function generateTaskPrompt(spec: SpecEntry, task: TaskEntry): string {
   const completedTasks = getCompletedTasks(spec);
 
-  return `# Task: ${task.description}
+  return `${PROMPT_BUILD}
+
+---
+
+# Task: ${task.description}
 
 ## Spec Context
 
