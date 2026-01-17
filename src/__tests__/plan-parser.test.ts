@@ -7,6 +7,7 @@ import {
   extractCurrentSpecFromContent,
   extractSpecName,
   getCurrentSpec,
+  getCurrentSpecTitle,
   specNameToTitle,
 } from "../utils/plan-parser";
 
@@ -199,6 +200,115 @@ describe("Plan Parser Utilities", () => {
       );
 
       const result = await getCurrentSpec(projectPath);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("getCurrentSpecTitle()", () => {
+    it("extracts title from spec file H1 heading", async () => {
+      const projectPath = join(TEST_DIR, "test-project-title");
+      const ralphDir = getRalphDir(projectPath);
+      await fse.ensureDir(join(ralphDir, "specs"));
+
+      const planContent = `# Implementation Plan
+
+## In Progress
+- specs/011-telegram-notifications.md
+
+## Backlog
+`;
+      await fse.writeFile(
+        join(ralphDir, "IMPLEMENTATION_PLAN.md"),
+        planContent
+      );
+
+      const specContent = `# Telegram Notifications on Iteration Completion
+
+## Problem to solve
+As a developer running long Ralph loops...
+`;
+      await fse.writeFile(
+        join(ralphDir, "specs", "011-telegram-notifications.md"),
+        specContent
+      );
+
+      const result = await getCurrentSpecTitle(projectPath);
+
+      expect(result).toBe("Telegram Notifications on Iteration Completion");
+    });
+
+    it("falls back to title conversion when spec file doesn't exist", async () => {
+      const projectPath = join(TEST_DIR, "test-project-no-spec-file");
+      const ralphDir = getRalphDir(projectPath);
+      await fse.ensureDir(ralphDir);
+
+      const planContent = `# Implementation Plan
+
+## In Progress
+- specs/011-telegram-notifications.md
+
+## Backlog
+`;
+      await fse.writeFile(
+        join(ralphDir, "IMPLEMENTATION_PLAN.md"),
+        planContent
+      );
+
+      const result = await getCurrentSpecTitle(projectPath);
+
+      expect(result).toBe("Telegram Notifications");
+    });
+
+    it("falls back to title conversion when spec has no H1 heading", async () => {
+      const projectPath = join(TEST_DIR, "test-project-no-heading");
+      const ralphDir = getRalphDir(projectPath);
+      await fse.ensureDir(join(ralphDir, "specs"));
+
+      const planContent = `# Implementation Plan
+
+## In Progress
+- specs/011-feature.md
+
+## Backlog
+`;
+      await fse.writeFile(
+        join(ralphDir, "IMPLEMENTATION_PLAN.md"),
+        planContent
+      );
+
+      const specContent = `Some content without a proper heading.
+
+## Problem to solve
+`;
+      await fse.writeFile(
+        join(ralphDir, "specs", "011-feature.md"),
+        specContent
+      );
+
+      const result = await getCurrentSpecTitle(projectPath);
+
+      expect(result).toBe("Feature");
+    });
+
+    it("returns null when no spec in progress", async () => {
+      const projectPath = join(TEST_DIR, "test-project-no-in-progress");
+      const ralphDir = getRalphDir(projectPath);
+      await fse.ensureDir(ralphDir);
+
+      const planContent = `# Implementation Plan
+
+## In Progress
+
+## Backlog
+- specs/011-telegram-notifications.md
+`;
+      await fse.writeFile(
+        join(ralphDir, "IMPLEMENTATION_PLAN.md"),
+        planContent
+      );
+
+      const result = await getCurrentSpecTitle(projectPath);
 
       expect(result).toBeNull();
     });

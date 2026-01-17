@@ -32,6 +32,37 @@ export async function getCurrentSpec(
 }
 
 /**
+ * Extract the title from the current spec file.
+ * Reads the spec file and extracts the first H1 heading.
+ *
+ * @param projectPath - Path to the project root
+ * @returns The spec title or null if not found
+ */
+export async function getCurrentSpecTitle(
+  projectPath: string
+): Promise<string | null> {
+  const specName = await getCurrentSpec(projectPath);
+  if (!specName) {
+    return null;
+  }
+
+  const specPath = join(getRalphDir(projectPath), "specs", `${specName}.md`);
+
+  if (!(await fse.pathExists(specPath))) {
+    return specNameToTitle(specName);
+  }
+
+  const content = await fse.readFile(specPath, "utf-8");
+  const firstLine = content.split("\n")[0]?.trim();
+
+  if (firstLine?.startsWith("# ")) {
+    return firstLine.slice(2).trim();
+  }
+
+  return specNameToTitle(specName);
+}
+
+/**
  * Extract the current spec from IMPLEMENTATION_PLAN.md content.
  * Looks for the first spec in the "In Progress" section.
  *

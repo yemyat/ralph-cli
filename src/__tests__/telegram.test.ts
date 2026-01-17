@@ -76,6 +76,27 @@ describe("Telegram Utilities", () => {
       expect(message).toContain("Status: Stopped by user");
     });
 
+    it("formats loop started message correctly", () => {
+      const payload: NotificationPayload = {
+        projectName: "my-project",
+        mode: "build",
+        sessionId: "mno345",
+        iteration: 0,
+        status: "loop_started",
+        currentSpec: "Telegram Notifications on Iteration Completion",
+      };
+
+      const message = formatNotificationMessage(payload);
+
+      expect(message).toContain("[Ralph] my-project");
+      expect(message).toContain("Mode: build");
+      expect(message).toContain("Iteration: 0 🚀");
+      expect(message).toContain(
+        "Spec: Telegram Notifications on Iteration Completion"
+      );
+      expect(message).toContain("Status: Loop started");
+    });
+
     it("omits spec line for plan mode (no spec)", () => {
       const payload: NotificationPayload = {
         projectName: "my-project",

@@ -4,6 +4,7 @@
 import type { TelegramConfig } from "../types";
 
 export type NotificationStatus =
+  | "loop_started"
   | "iteration_success"
   | "iteration_failure"
   | "loop_completed"
@@ -47,6 +48,8 @@ export function formatNotificationMessage(
 
 function getStatusEmoji(status: NotificationStatus): string {
   switch (status) {
+    case "loop_started":
+      return "🚀";
     case "iteration_success":
       return "✓";
     case "iteration_failure":
@@ -62,6 +65,8 @@ function getStatusEmoji(status: NotificationStatus): string {
 
 function getStatusText(status: NotificationStatus): string {
   switch (status) {
+    case "loop_started":
+      return "Loop started";
     case "iteration_success":
       return "Completed";
     case "iteration_failure":

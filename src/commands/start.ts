@@ -8,7 +8,7 @@ import { getAgent } from "../agents/index";
 import { getProjectConfig, getProjectSessions, saveSession } from "../config";
 import type { AgentType, RalphConfig, RalphSession } from "../types";
 import { getRalphDir, getSessionLogFile } from "../utils/paths";
-import { getCurrentSpec } from "../utils/plan-parser";
+import { getCurrentSpecTitle } from "../utils/plan-parser";
 import {
   type NotificationPayload,
   type NotificationStatus,
@@ -169,6 +169,11 @@ async function runRalphLoop(
 
   log(`Starting Ralph loop - Session ${session.id}`);
 
+  // Send loop started notification
+  const initialSpec =
+    session.mode === "build" ? await getCurrentSpecTitle(projectPath) : null;
+  await notifyTelegram(config, session, "loop_started", initialSpec, log);
+
   const handleSignal = async () => {
     console.log(pc.yellow("\n\nStopping Ralph loop..."));
 
@@ -184,7 +189,7 @@ async function runRalphLoop(
 
     // Send stopped notification
     const currentSpec =
-      session.mode === "build" ? await getCurrentSpec(projectPath) : null;
+      session.mode === "build" ? await getCurrentSpecTitle(projectPath) : null;
     await notifyTelegram(config, session, "loop_stopped", currentSpec, log);
 
     logStream.close();
@@ -275,7 +280,9 @@ async function runRalphLoop(
 
         // Get current spec for notification (build mode only)
         const currentSpec =
-          session.mode === "build" ? await getCurrentSpec(projectPath) : null;
+          session.mode === "build"
+            ? await getCurrentSpecTitle(projectPath)
+            : null;
 
         if (doneDetected) {
           // Send loop completed notification
@@ -319,7 +326,9 @@ async function runRalphLoop(
 
         // Send iteration failure notification
         const currentSpec =
-          session.mode === "build" ? await getCurrentSpec(projectPath) : null;
+          session.mode === "build"
+            ? await getCurrentSpecTitle(projectPath)
+            : null;
         await notifyTelegram(
           config,
           session,
