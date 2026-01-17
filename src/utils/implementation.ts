@@ -14,6 +14,12 @@ export function createEmptyImplementation(): Implementation {
     updatedAt: new Date().toISOString(),
     updatedBy: "user",
     specs: [],
+    qualityGates: [
+      "bun run typecheck",
+      "bun run lint",
+      "bun run test",
+      "bun run build",
+    ],
   };
 }
 

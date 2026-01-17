@@ -28,8 +28,8 @@ import {
 } from "../utils/implementation";
 import { getRalphDir, getSessionLogFile } from "../utils/paths";
 import {
-  DEFAULT_QUALITY_GATES,
   getFailedGates,
+  parseQualityGates,
   runQualityGates,
 } from "../utils/quality-gates";
 import { generateRetryPrompt, generateTaskPrompt } from "../utils/task-prompts";
@@ -648,6 +648,7 @@ async function runTaskLevelLoop(
 
 /**
  * Handle a done task result - run quality gates.
+ * If qualityGates is not defined in implementation.json, skip verification.
  */
 async function handleDoneResult(
   impl: Implementation,
@@ -656,20 +657,26 @@ async function handleDoneResult(
   projectPath: string,
   ctx: TaskLoopContext
 ): Promise<void> {
+  // Skip quality gate verification if not defined or empty
+  const qualityGateCommands = impl.qualityGates;
+  if (!qualityGateCommands || qualityGateCommands.length === 0) {
+    console.log(pc.gray("\n  Skipping quality gates (not configured)"));
+    ctx.log("Quality gates skipped - not configured in implementation.json");
+    await handleGatesPassed(impl, spec, task, ctx);
+    return;
+  }
+
   console.log(pc.gray("\n  Running quality gates..."));
   ctx.log("Running quality gates");
 
-  const gateResults = await runQualityGates(
-    DEFAULT_QUALITY_GATES,
-    projectPath,
-    {
-      onGateStart: (gate) => console.log(pc.gray(`    ⏳ ${gate.name}...`)),
-      onGateComplete: (r) => {
-        const icon = r.passed ? pc.green("✓") : pc.red("✗");
-        console.log(`    ${icon} ${r.name}`);
-      },
-    }
-  );
+  const gates = parseQualityGates(qualityGateCommands);
+  const gateResults = await runQualityGates(gates, projectPath, {
+    onGateStart: (gate) => console.log(pc.gray(`    ⏳ ${gate.name}...`)),
+    onGateComplete: (r) => {
+      const icon = r.passed ? pc.green("✓") : pc.red("✗");
+      console.log(`    ${icon} ${r.name}`);
+    },
+  });
 
   const failedGates = getFailedGates(gateResults);
 

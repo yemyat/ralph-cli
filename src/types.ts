@@ -97,6 +97,7 @@ export interface Implementation {
   updatedAt: string;
   updatedBy: "plan-mode" | "build-mode" | "user";
   specs: SpecEntry[];
+  qualityGates?: string[];
 }
 
 export interface QualityGate {

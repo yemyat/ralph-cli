@@ -7,15 +7,32 @@ import type { QualityGate, QualityGateResult } from "../types";
 
 const execAsync = promisify(exec);
 
+const WHITESPACE_REGEX = /\s+/;
+
 /**
- * Default quality gates for TypeScript/Bun projects.
+ * Parse quality gate commands from string array to QualityGate objects.
+ * Gate name is extracted from the last word of the command.
+ * All parsed gates are marked as required.
+ *
+ * @example
+ * parseQualityGates(['bun run typecheck', 'bun run test'])
+ * // Returns: [
+ * //   { name: 'typecheck', command: 'bun run typecheck', required: true },
+ * //   { name: 'test', command: 'bun run test', required: true }
+ * // ]
  */
-export const DEFAULT_QUALITY_GATES: QualityGate[] = [
-  { name: "typecheck", command: "bun run typecheck", required: true },
-  { name: "lint", command: "bun run lint", required: false },
-  { name: "test", command: "bun run test", required: true },
-  { name: "build", command: "bun run build", required: true },
-];
+export function parseQualityGates(commands: string[]): QualityGate[] {
+  return commands.map((command) => {
+    const trimmed = command.trim();
+    const words = trimmed.split(WHITESPACE_REGEX);
+    const name = words.at(-1) || trimmed;
+    return {
+      name,
+      command: trimmed,
+      required: true,
+    };
+  });
+}
 
 /**
  * Run a single quality gate and return the result.
