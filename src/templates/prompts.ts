@@ -119,6 +119,10 @@ The task prompt includes:
 - Follow existing code conventions
 - Make all changes needed for the task to pass its acceptance criteria
 
+### 4. Commit the code changes
+- Commit the code changes to the repository based on any commit message guidelines.
+- If no guidelines are provided, use "git log" to inspect existing commits and learn patterns from there.
+
 ### 4. Signal Completion
 
 When the task is done, output exactly:
