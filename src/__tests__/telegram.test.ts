@@ -12,19 +12,17 @@ describe("Telegram Utilities", () => {
       const payload: NotificationPayload = {
         projectName: "my-project",
         mode: "build",
-        sessionId: "abc123",
+        sessionId: "abc123-011-telegram-notifications",
         iteration: 5,
         status: "iteration_success",
-        currentSpec: "011-telegram-notifications",
       };
 
       const message = formatNotificationMessage(payload);
 
       expect(message).toContain("[Ralph] my-project");
       expect(message).toContain("Mode: build");
-      expect(message).toContain("Session: abc123");
+      expect(message).toContain("Session: abc123-011-telegram-notifications");
       expect(message).toContain("Iteration: 5 ✓");
-      expect(message).toContain("Spec: 011-telegram-notifications");
       expect(message).toContain("Status: Completed");
     });
 
@@ -32,10 +30,9 @@ describe("Telegram Utilities", () => {
       const payload: NotificationPayload = {
         projectName: "my-project",
         mode: "build",
-        sessionId: "def456",
+        sessionId: "def456-007-feature",
         iteration: 3,
         status: "iteration_failure",
-        currentSpec: "007-feature",
       };
 
       const message = formatNotificationMessage(payload);
@@ -48,10 +45,9 @@ describe("Telegram Utilities", () => {
       const payload: NotificationPayload = {
         projectName: "my-project",
         mode: "build",
-        sessionId: "ghi789",
+        sessionId: "ghi789-011-telegram-notifications",
         iteration: 10,
         status: "loop_completed",
-        currentSpec: "011-telegram-notifications",
       };
 
       const message = formatNotificationMessage(payload);
@@ -64,10 +60,9 @@ describe("Telegram Utilities", () => {
       const payload: NotificationPayload = {
         projectName: "my-project",
         mode: "build",
-        sessionId: "jkl012",
+        sessionId: "jkl012-008-feature",
         iteration: 7,
         status: "loop_stopped",
-        currentSpec: "008-feature",
       };
 
       const message = formatNotificationMessage(payload);
@@ -80,10 +75,9 @@ describe("Telegram Utilities", () => {
       const payload: NotificationPayload = {
         projectName: "my-project",
         mode: "build",
-        sessionId: "mno345",
+        sessionId: "mno345-011-telegram-notifications",
         iteration: 0,
         status: "loop_started",
-        currentSpec: "Telegram Notifications on Iteration Completion",
       };
 
       const message = formatNotificationMessage(payload);
@@ -91,26 +85,40 @@ describe("Telegram Utilities", () => {
       expect(message).toContain("[Ralph] my-project");
       expect(message).toContain("Mode: build");
       expect(message).toContain("Iteration: 0 🚀");
-      expect(message).toContain(
-        "Spec: Telegram Notifications on Iteration Completion"
-      );
+      expect(message).toContain("Session: mno345-011-telegram-notifications");
       expect(message).toContain("Status: Loop started");
     });
 
-    it("omits spec line for plan mode (no spec)", () => {
+    it("includes branch and working directory when provided", () => {
+      const payload: NotificationPayload = {
+        projectName: "my-project",
+        mode: "build",
+        sessionId: "abc123-011-feature-x",
+        iteration: 3,
+        status: "iteration_success",
+        branch: "feat/add-feature-x",
+        workingDirectory: "/Users/dev/projects/my-project",
+      };
+
+      const message = formatNotificationMessage(payload);
+
+      expect(message).toContain("Branch: feat/add-feature-x");
+      expect(message).toContain("Dir: /Users/dev/projects/my-project");
+    });
+
+    it("formats plan mode message correctly", () => {
       const payload: NotificationPayload = {
         projectName: "my-project",
         mode: "plan",
-        sessionId: "abc123",
+        sessionId: "abc123-plan",
         iteration: 2,
         status: "iteration_success",
-        // No currentSpec
       };
 
       const message = formatNotificationMessage(payload);
 
       expect(message).toContain("Mode: plan");
-      expect(message).not.toContain("Spec:");
+      expect(message).toContain("Session: abc123-plan");
     });
   });
 
@@ -163,10 +171,9 @@ describe("Telegram Utilities", () => {
       const payload: NotificationPayload = {
         projectName: "test-project",
         mode: "build",
-        sessionId: "xyz789",
+        sessionId: "xyz789-011-telegram",
         iteration: 3,
         status: "iteration_success",
-        currentSpec: "011-telegram",
       };
 
       const result = await sendTelegramNotification(config, payload);

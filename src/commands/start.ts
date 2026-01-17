@@ -8,7 +8,7 @@ import { getAgent } from "../agents/index";
 import { getProjectConfig, getProjectSessions, saveSession } from "../config";
 import type { AgentType, RalphConfig, RalphSession } from "../types";
 import { getRalphDir, getSessionLogFile } from "../utils/paths";
-import { getCurrentSpecTitle } from "../utils/plan-parser";
+import { getCurrentSpec } from "../utils/plan-parser";
 import {
   type NotificationPayload,
   type NotificationStatus,
@@ -72,7 +72,10 @@ export async function startCommand(
     return;
   }
 
-  const sessionId = randomUUID().slice(0, 8);
+  const currentSpec =
+    mode === "build" ? await getCurrentSpec(projectPath) : null;
+  const specSuffix = currentSpec ? `-${currentSpec}` : `-${mode}`;
+  const sessionId = `${randomUUID().slice(0, 8)}${specSuffix}`;
   const logFile = getSessionLogFile(projectPath, sessionId);
 
   const session: RalphSession = {
@@ -111,6 +114,15 @@ export async function startCommand(
 
 const DONE_MARKER = "<STATUS>DONE</STATUS>";
 
+function getGitBranch(): string | undefined {
+  try {
+    const { execSync } = require("node:child_process");
+    return execSync("git branch --show-current", { encoding: "utf-8" }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Send a Telegram notification if configured.
  * Failures are logged but don't crash the loop.
@@ -119,7 +131,6 @@ async function notifyTelegram(
   config: RalphConfig,
   session: RalphSession,
   status: NotificationStatus,
-  currentSpec: string | null,
   log: (msg: string) => void
 ): Promise<void> {
   const telegramConfig = config.notifications?.telegram;
@@ -133,7 +144,8 @@ async function notifyTelegram(
     sessionId: session.id,
     iteration: session.iteration,
     status,
-    currentSpec: currentSpec ?? undefined,
+    workingDirectory: process.cwd(),
+    branch: getGitBranch(),
   };
 
   const success = await sendTelegramNotification(telegramConfig, payload);
@@ -170,9 +182,7 @@ async function runRalphLoop(
   log(`Starting Ralph loop - Session ${session.id}`);
 
   // Send loop started notification
-  const initialSpec =
-    session.mode === "build" ? await getCurrentSpecTitle(projectPath) : null;
-  await notifyTelegram(config, session, "loop_started", initialSpec, log);
+  await notifyTelegram(config, session, "loop_started", log);
 
   const handleSignal = async () => {
     console.log(pc.yellow("\n\nStopping Ralph loop..."));
@@ -188,9 +198,7 @@ async function runRalphLoop(
     log(`Loop stopped by user after ${iteration} iterations`);
 
     // Send stopped notification
-    const currentSpec =
-      session.mode === "build" ? await getCurrentSpecTitle(projectPath) : null;
-    await notifyTelegram(config, session, "loop_stopped", currentSpec, log);
+    await notifyTelegram(config, session, "loop_stopped", log);
 
     logStream.close();
     process.exit(0);
@@ -278,21 +286,9 @@ async function runRalphLoop(
 
         spinner.succeed(`Iteration ${iteration} completed`);
 
-        // Get current spec for notification (build mode only)
-        const currentSpec =
-          session.mode === "build"
-            ? await getCurrentSpecTitle(projectPath)
-            : null;
-
         if (doneDetected) {
           // Send loop completed notification
-          await notifyTelegram(
-            config,
-            session,
-            "loop_completed",
-            currentSpec,
-            log
-          );
+          await notifyTelegram(config, session, "loop_completed", log);
           console.log(
             pc.green("\n✓ All tasks completed! Agent signaled DONE.")
           );
@@ -300,13 +296,7 @@ async function runRalphLoop(
         }
 
         // Send iteration success notification
-        await notifyTelegram(
-          config,
-          session,
-          "iteration_success",
-          currentSpec,
-          log
-        );
+        await notifyTelegram(config, session, "iteration_success", log);
 
         if (session.mode === "build") {
           try {
@@ -325,17 +315,7 @@ async function runRalphLoop(
         log(`Iteration ${iteration} failed: ${err}`);
 
         // Send iteration failure notification
-        const currentSpec =
-          session.mode === "build"
-            ? await getCurrentSpecTitle(projectPath)
-            : null;
-        await notifyTelegram(
-          config,
-          session,
-          "iteration_failure",
-          currentSpec,
-          log
-        );
+        await notifyTelegram(config, session, "iteration_failure", log);
       }
 
       console.log(

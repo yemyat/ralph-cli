@@ -16,7 +16,8 @@ export interface NotificationPayload {
   sessionId: string;
   iteration: number;
   status: NotificationStatus;
-  currentSpec?: string;
+  workingDirectory?: string;
+  branch?: string;
 }
 
 /**
@@ -34,13 +35,17 @@ export function formatNotificationMessage(
     `Mode: ${payload.mode}`,
     `Session: ${payload.sessionId}`,
     `Iteration: ${payload.iteration} ${statusEmoji}`,
-    "",
   ];
 
-  if (payload.currentSpec) {
-    lines.push(`Spec: ${payload.currentSpec}`);
+  if (payload.branch) {
+    lines.push(`Branch: ${payload.branch}`);
   }
 
+  if (payload.workingDirectory) {
+    lines.push(`Dir: ${payload.workingDirectory}`);
+  }
+
+  lines.push("");
   lines.push(`Status: ${statusText}`);
 
   return lines.join("\n");
