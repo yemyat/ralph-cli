@@ -2,6 +2,7 @@
   "version": 1,
   "updatedAt": "2026-01-17T15:02:37.845Z",
   "updatedBy": "build-mode",
+  "qualityGates": ["bun run typecheck", "bun run lint", "bun run test"],
   "specs": [
     {
       "id": "configurable-quality-gates",
