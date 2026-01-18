@@ -114,16 +114,14 @@ export async function startCommand(
   console.log(pc.gray("Press Ctrl+C to stop the loop.\n"));
 
   if (mode === "build") {
-    await runTaskLevelLoop(
+    await runTaskLevelLoop({
       projectPath,
       config,
       session,
       logFile,
-      agentInstance,
-      {
-        maxRetries: 3,
-        verbose: options.verbose,
-      }
-    );
+      agent: agentInstance,
+      maxRetries: 3,
+      verbose: options.verbose,
+    });
   }
 }

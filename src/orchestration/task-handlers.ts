@@ -4,12 +4,7 @@
  */
 
 import pc from "picocolors";
-import type {
-  Implementation,
-  QualityGateResult,
-  SpecEntry,
-  TaskEntry,
-} from "../types";
+import type { Implementation, QualityGateResult } from "../types";
 import {
   markTaskBlocked,
   markTaskCompleted,
@@ -18,18 +13,22 @@ import {
   saveImplementation,
 } from "../utils/implementation";
 import { notifyTelegram } from "./notifications";
-import type { GatesFailedOptions, LoopContext } from "./types";
+import type {
+  BlockedTaskOptions,
+  GatesFailedOptions,
+  LoopContext,
+  TaskContext,
+} from "./types";
 
 /**
  * Handle a blocked task result.
  */
 export async function handleBlockedTask(
   impl: Implementation,
-  spec: SpecEntry,
-  task: TaskEntry,
-  reason: string | undefined,
-  ctx: LoopContext
+  ctx: LoopContext,
+  options: BlockedTaskOptions
 ): Promise<void> {
+  const { spec, task, reason } = options;
   console.log(pc.yellow(`  ⚠ Task blocked: ${reason}`));
   ctx.log(`Task blocked: ${reason}`);
   markTaskBlocked(impl, spec.id, task.id, reason || "Unknown");
@@ -41,21 +40,21 @@ export async function handleBlockedTask(
  */
 export async function handleGatesPassed(
   impl: Implementation,
-  spec: SpecEntry,
-  task: TaskEntry,
-  ctx: LoopContext
+  ctx: LoopContext,
+  taskCtx: TaskContext
 ): Promise<void> {
+  const { spec, task } = taskCtx;
   console.log(pc.green("  ✓ All quality gates passed"));
   ctx.log("All quality gates passed");
   markTaskCompleted(impl, spec.id, task.id);
   await saveImplementation(ctx.projectPath, impl);
-  await notifyTelegram(
-    ctx.config,
-    ctx.session,
-    "iteration_success",
-    ctx.log,
-    task.description
-  );
+  await notifyTelegram({
+    config: ctx.config,
+    session: ctx.session,
+    status: "iteration_success",
+    log: ctx.log,
+    taskDescription: task.description,
+  });
 
   // Check if spec is complete
   const updatedSpec = impl.specs.find((s) => s.id === spec.id);
@@ -66,18 +65,26 @@ export async function handleGatesPassed(
 }
 
 /**
+ * Options for handleGatesFailed.
+ */
+interface GatesFailedHandlerOptions {
+  taskCtx: TaskContext;
+  failedGates: QualityGateResult[];
+  retryOptions: GatesFailedOptions;
+}
+
+/**
  * Handle quality gates failed.
  */
 export async function handleGatesFailed(
   impl: Implementation,
-  spec: SpecEntry,
-  task: TaskEntry,
-  failedGates: QualityGateResult[],
   ctx: LoopContext,
-  options: GatesFailedOptions
+  options: GatesFailedHandlerOptions
 ): Promise<void> {
+  const { taskCtx, failedGates, retryOptions } = options;
+  const { spec, task } = taskCtx;
   const retryCount = task.retryCount || 0;
-  const { maxRetries, runRetryTask } = options;
+  const { maxRetries, runRetryTask } = retryOptions;
 
   if (retryCount < maxRetries) {
     console.log(
@@ -99,12 +106,12 @@ export async function handleGatesFailed(
     ctx.log(`Max retries exceeded for task ${task.id}`);
     markTaskFailed(impl, spec.id, task.id);
     await saveImplementation(ctx.projectPath, impl);
-    await notifyTelegram(
-      ctx.config,
-      ctx.session,
-      "iteration_failure",
-      ctx.log,
-      task.description
-    );
+    await notifyTelegram({
+      config: ctx.config,
+      session: ctx.session,
+      status: "iteration_failure",
+      log: ctx.log,
+      taskDescription: task.description,
+    });
   }
 }

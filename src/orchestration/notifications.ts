@@ -10,6 +10,17 @@ import {
   sendTelegramNotification,
 } from "../utils/telegram";
 
+/**
+ * Options for notifyTelegram.
+ */
+export interface NotifyTelegramOptions {
+  config: RalphConfig;
+  session: RalphSession;
+  status: NotificationStatus;
+  log: (msg: string) => void;
+  taskDescription?: string;
+}
+
 function getGitBranch(): string | undefined {
   try {
     const { execSync } = require("node:child_process");
@@ -24,12 +35,9 @@ function getGitBranch(): string | undefined {
  * Failures are logged but don't crash the loop.
  */
 export async function notifyTelegram(
-  config: RalphConfig,
-  session: RalphSession,
-  status: NotificationStatus,
-  log: (msg: string) => void,
-  taskDescription?: string
+  options: NotifyTelegramOptions
 ): Promise<void> {
+  const { config, session, status, log, taskDescription } = options;
   const telegramConfig = config.notifications?.telegram;
   if (!telegramConfig?.enabled) {
     return;

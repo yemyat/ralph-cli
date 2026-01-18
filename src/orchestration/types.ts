@@ -84,3 +84,50 @@ export interface GatesFailedOptions {
     retryCount: number
   ) => Promise<void>;
 }
+
+/**
+ * Task context containing spec and task info.
+ * Used by task handlers to avoid passing multiple parameters.
+ */
+export interface TaskContext {
+  /** The spec containing the task */
+  spec: SpecEntry;
+  /** The task being processed */
+  task: TaskEntry;
+}
+
+/**
+ * Options for handling a blocked task.
+ */
+export interface BlockedTaskOptions extends TaskContext {
+  /** Reason the task was blocked */
+  reason: string | undefined;
+}
+
+/**
+ * Options for handling done task result.
+ */
+export interface DoneResultOptions extends TaskContext {
+  /** Options for gates failed scenario */
+  gatesFailedOptions: GatesFailedOptions;
+}
+
+/**
+ * Options for running the task-level loop.
+ */
+export interface TaskLevelLoopOptions {
+  /** Path to the project root directory */
+  projectPath: string;
+  /** Ralph configuration */
+  config: RalphConfig;
+  /** Current session state */
+  session: RalphSession;
+  /** Path to the log file */
+  logFile: string;
+  /** Agent instance for executing tasks */
+  agent: BaseAgent;
+  /** Maximum number of retry attempts (default: 3) */
+  maxRetries?: number;
+  /** Enable verbose output */
+  verbose?: boolean;
+}

@@ -6,15 +6,8 @@
 import type { spawn } from "node:child_process";
 import fse from "fs-extra";
 import pc from "picocolors";
-import type { getAgent } from "../agents/index";
 import { saveSession } from "../config";
-import type {
-  Implementation,
-  RalphConfig,
-  RalphSession,
-  SpecEntry,
-  TaskEntry,
-} from "../types";
+import type { Implementation } from "../types";
 import {
   getNextPendingTask,
   markTaskFailed,
@@ -34,33 +27,34 @@ import {
   handleGatesFailed,
   handleGatesPassed,
 } from "./task-handlers";
-import type { GatesFailedOptions, LoopContext } from "./types";
-
-export interface TaskLoopOptions {
-  maxRetries?: number;
-  verbose?: boolean;
-}
+import type {
+  DoneResultOptions,
+  GatesFailedOptions,
+  LoopContext,
+  TaskContext,
+  TaskLevelLoopOptions,
+} from "./types";
 
 /**
  * Handle task error.
  */
 async function handleTaskError(
   impl: Implementation,
-  spec: SpecEntry,
-  task: TaskEntry,
-  ctx: LoopContext
+  ctx: LoopContext,
+  taskCtx: TaskContext
 ): Promise<void> {
+  const { spec, task } = taskCtx;
   console.log(pc.red("  ✗ Task failed"));
   ctx.log(`Task failed: ${task.id}`);
   markTaskFailed(impl, spec.id, task.id);
   await saveImplementation(ctx.projectPath, impl);
-  await notifyTelegram(
-    ctx.config,
-    ctx.session,
-    "iteration_failure",
-    ctx.log,
-    task.description
-  );
+  await notifyTelegram({
+    config: ctx.config,
+    session: ctx.session,
+    status: "iteration_failure",
+    log: ctx.log,
+    taskDescription: task.description,
+  });
 }
 
 /**
@@ -69,17 +63,18 @@ async function handleTaskError(
  */
 async function handleDoneResult(
   impl: Implementation,
-  spec: SpecEntry,
-  task: TaskEntry,
   ctx: LoopContext,
-  gatesFailedOptions: GatesFailedOptions
+  options: DoneResultOptions
 ): Promise<void> {
+  const { spec, task, gatesFailedOptions } = options;
+  const taskCtx: TaskContext = { spec, task };
+
   // Skip quality gate verification if not defined or empty
   const qualityGateCommands = impl.qualityGates;
   if (!qualityGateCommands || qualityGateCommands.length === 0) {
     console.log(pc.gray("\n  Skipping quality gates (not configured)"));
     ctx.log("Quality gates skipped - not configured in implementation.json");
-    await handleGatesPassed(impl, spec, task, ctx);
+    await handleGatesPassed(impl, ctx, taskCtx);
     return;
   }
 
@@ -98,16 +93,13 @@ async function handleDoneResult(
   const failedGates = getFailedGates(gateResults);
 
   if (failedGates.length === 0) {
-    await handleGatesPassed(impl, spec, task, ctx);
+    await handleGatesPassed(impl, ctx, taskCtx);
   } else {
-    await handleGatesFailed(
-      impl,
-      spec,
-      task,
+    await handleGatesFailed(impl, ctx, {
+      taskCtx,
       failedGates,
-      ctx,
-      gatesFailedOptions
-    );
+      retryOptions: gatesFailedOptions,
+    });
   }
 }
 
@@ -116,14 +108,18 @@ async function handleDoneResult(
  * Processes one task at a time with external quality gates.
  */
 export async function runTaskLevelLoop(
-  projectPath: string,
-  config: RalphConfig,
-  session: RalphSession,
-  logFile: string,
-  agentInstance: ReturnType<typeof getAgent>,
-  options: TaskLoopOptions = {}
+  options: TaskLevelLoopOptions
 ): Promise<void> {
-  const { maxRetries = 3, verbose } = options;
+  const {
+    projectPath,
+    config,
+    session,
+    logFile,
+    agent: agentInstance,
+    maxRetries = 3,
+    verbose,
+  } = options;
+
   const logStream = fse.createWriteStream(logFile, { flags: "a" });
   let currentChild: ReturnType<typeof spawn> | null = null;
 
@@ -148,12 +144,12 @@ export async function runTaskLevelLoop(
   loopContext.log(
     `Starting task-level loop - Session ${loopContext.session.id}`
   );
-  await notifyTelegram(
-    loopContext.config,
-    loopContext.session,
-    "loop_started",
-    loopContext.log
-  );
+  await notifyTelegram({
+    config: loopContext.config,
+    session: loopContext.session,
+    status: "loop_started",
+    log: loopContext.log,
+  });
 
   const handleSignal = async () => {
     console.log(pc.yellow("\n\nStopping Ralph loop..."));
@@ -165,12 +161,12 @@ export async function runTaskLevelLoop(
     loopContext.session.stoppedAt = new Date().toISOString();
     await saveSession(loopContext.projectPath, loopContext.session);
     loopContext.log("Loop stopped by user");
-    await notifyTelegram(
-      loopContext.config,
-      loopContext.session,
-      "loop_stopped",
-      loopContext.log
-    );
+    await notifyTelegram({
+      config: loopContext.config,
+      session: loopContext.session,
+      status: "loop_stopped",
+      log: loopContext.log,
+    });
     logStream.close();
     process.exit(0);
   };
@@ -206,12 +202,12 @@ export async function runTaskLevelLoop(
       const next = getNextPendingTask(impl);
       if (!next) {
         console.log(pc.green("\n✓ All tasks completed!"));
-        await notifyTelegram(
-          loopContext.config,
-          loopContext.session,
-          "loop_completed",
-          loopContext.log
-        );
+        await notifyTelegram({
+          config: loopContext.config,
+          session: loopContext.session,
+          status: "loop_completed",
+          log: loopContext.log,
+        });
         break;
       }
 
@@ -240,20 +236,22 @@ export async function runTaskLevelLoop(
 
       // Handle result based on status
       if (result.status === "blocked") {
-        await handleBlockedTask(impl, spec, task, result.reason, loopContext);
+        await handleBlockedTask(impl, loopContext, {
+          spec,
+          task,
+          reason: result.reason,
+        });
         continue;
       }
 
       if (result.status === "done") {
-        await handleDoneResult(
-          impl,
+        await handleDoneResult(impl, loopContext, {
           spec,
           task,
-          loopContext,
-          gatesFailedOptions
-        );
+          gatesFailedOptions,
+        });
       } else {
-        await handleTaskError(impl, spec, task, loopContext);
+        await handleTaskError(impl, loopContext, { spec, task });
       }
 
       console.log(pc.gray(`\n${"=".repeat(50)}\n`));
