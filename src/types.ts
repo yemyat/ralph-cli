@@ -144,22 +144,6 @@ export interface InitProjectOptions {
   notifications?: NotificationsConfig;
 }
 
-// Task prompt interfaces
-
-export interface TaskLike {
-  readonly description: string;
-  readonly status: TaskStatusType;
-  readonly acceptanceCriteria?: readonly string[];
-  readonly blockedReason?: string;
-}
-
-export interface SpecLike {
-  readonly name: string;
-  readonly file: string;
-  readonly context?: string;
-  readonly tasks: readonly TaskLike[];
-}
-
 // Notification types
 
 export type NotificationStatus =

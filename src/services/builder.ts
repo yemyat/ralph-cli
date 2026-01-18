@@ -4,22 +4,18 @@ import pc from "picocolors";
 import { getAgent } from "../agents/index";
 import { Implementation } from "../domain/implementation";
 import { Session } from "../domain/session";
+import type { Spec } from "../domain/spec";
+import type { Task } from "../domain/task";
 import { Workspace } from "../domain/workspace";
 import { PROMPT_BUILD } from "../templates/prompts";
-import type {
-  BuildOptions,
-  HookPayload,
-  RalphConfig,
-  SpecLike,
-  TaskLike,
-} from "../types";
+import type { BuildOptions, HookPayload, RalphConfig } from "../types";
 import { AgentRunner } from "./agent-runner";
 import { ConsoleListener } from "./console-listener";
 import { HookDispatcher } from "./hook-dispatcher";
 import { LoggerService } from "./logger-service";
 import { TelegramListener } from "./notification-service";
 
-function generateTaskPrompt(spec: SpecLike, task: TaskLike): string {
+function generateTaskPrompt(spec: Spec, task: Task): string {
   const acceptanceCriteria = task.acceptanceCriteria?.length
     ? task.acceptanceCriteria.map((ac) => `- [ ] ${ac}`).join("\n")
     : "_No specific acceptance criteria._";
