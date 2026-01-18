@@ -3,13 +3,15 @@ import fse from "fs-extra";
 import pc from "picocolors";
 import { getLogsDir } from "../utils/paths";
 
-function getDatePrefix(): string {
+function getTimestampPrefix(): string {
   const now = new Date();
-  return now.toISOString().split("T")[0];
+  const date = now.toISOString().split("T")[0];
+  const time = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+  return `${date}-${time}`;
 }
 
 function getLogFilePath(name: string): string {
-  return join(getLogsDir(), `${getDatePrefix()}-${name}.log`);
+  return join(getLogsDir(), `${getTimestampPrefix()}-${name}.log`);
 }
 
 export interface LoggerServiceOptions {
