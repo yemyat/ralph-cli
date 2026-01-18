@@ -3,6 +3,7 @@
  * Shared interfaces for the orchestration module.
  */
 
+import type { spawn } from "node:child_process";
 import type { BaseAgent } from "../agents/base";
 import type { RalphConfig, RalphSession } from "../types";
 
@@ -23,4 +24,14 @@ export interface LoopContext {
   log: (msg: string) => void;
   /** Enable verbose output */
   verbose?: boolean;
+}
+
+/**
+ * Options for executing an agent with a prompt.
+ */
+export interface ExecuteAgentOptions {
+  /** The prompt to send to the agent */
+  prompt: string;
+  /** Callback invoked when the child process is spawned */
+  onSpawn?: (child: ReturnType<typeof spawn>) => void;
 }
