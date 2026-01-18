@@ -4,6 +4,49 @@ Audit trail of completed work. Each entry records what was done, verification re
 
 ---
 
+## 2026-01-18: Plan Mode Audit - New Spec & Status Update
+
+### What was done
+Audited all specs and codebase to verify implementation status and discovered new spec 015 (PI Agent Support).
+
+### Findings
+
+**Spec 010 (Reorganize Component Structure)**: COMPLETED ✓
+- Directory structure: COMPLETE (layout, viewers, overlays, primitives exist)
+- Dead code removal (kanban.tsx, card.tsx): COMPLETE
+- Import updates in app.tsx: COMPLETE
+- Barrel exports (index.ts files): Not needed - direct imports work fine, codebase compiles and tests pass
+
+**Spec 013 (Task-Level Build Loop Integration Test)**: COMPLETED ✓
+- All integration tests implemented in src/__tests__/task-level-loop.test.ts
+- Tests cover: task isolation, retry context injection, status updates, blocked tasks
+- Uses mock agent pattern (fixtures/mock-task-agent.ts)
+
+**Spec 014 (Configurable Quality Gates)**: COMPLETED ✓
+- parseQualityGates function in src/utils/quality-gates.ts
+- Implementation interface updated in src/types.ts
+- Unit tests in src/__tests__/quality-gates.test.ts
+
+**Spec 015 (PI Agent Support)**: NEW - PENDING
+- New spec added for PI coding agent integration
+- Requires: PiAgent class, AgentType update, registration, provider option
+- Reference: PI uses --print --mode json --thinking high flags
+
+### Verification
+- `bun run typecheck` passes ✓
+- `bun run test` passes (202 tests) ✓
+
+### Updates Made
+1. Added spec 015 (PI Agent Support) to implementation.json with priority 1
+2. Marked spec 010 as completed (barrel exports deemed unnecessary)
+3. Confirmed specs 013 and 014 are completed
+
+### Current Priority Order
+1. **P1: Spec 015** - Implement PI Agent Support (new)
+2. **P2-P3**: Completed specs (014, 013)
+
+---
+
 ## 2026-01-17: Plan Mode Comprehensive Audit
 
 ### What was done
@@ -25,22 +68,14 @@ Full audit of all 15 spec files and codebase to determine accurate implementatio
 - 011-telegram-notifications.md: Telegram integration complete
 - 012-task-level-orchestration.md: Task-level build loop implemented
 
-**Spec 010 (Reorganize Component Structure)**: IN PROGRESS
+**Spec 010 (Reorganize Component Structure)**: COMPLETED ✓
 - Directory structure: COMPLETE
 - Dead code removal (kanban.tsx, card.tsx): COMPLETE
 - Import updates in app.tsx: COMPLETE
-- **MISSING**: All 7 barrel export index.ts files:
-  - src/tui/components/index.ts
-  - src/tui/components/layout/index.ts
-  - src/tui/components/viewers/index.ts
-  - src/tui/components/overlays/index.ts
-  - src/tui/components/primitives/index.ts
-  - src/tui/hooks/index.ts
-  - src/tui/lib/index.ts
+- Barrel exports: Not required (direct imports work fine)
 
-**Spec 013 (Task-Level Build Loop Integration Test)**: PENDING
-- No implementation started
-- Should build on existing e2e-loop.test.ts pattern
+**Spec 013 (Task-Level Build Loop Integration Test)**: COMPLETED ✓
+- All tests implemented in src/__tests__/task-level-loop.test.ts
 - Key files: task-prompts.ts, implementation.ts, quality-gates.ts, start.ts
 
 ### Verification
@@ -51,8 +86,8 @@ Full audit of all 15 spec files and codebase to determine accurate implementatio
 ### Updates Made
 1. Updated implementation.json with accurate spec/task status
 2. Updated spec 007 checkboxes to reflect completion
-3. Updated spec 010 checkboxes to reflect partial completion
-4. Prioritized spec 010 (priority 1) before spec 013 (priority 2)
+3. Confirmed spec 010 complete (barrel exports not required)
+4. Confirmed spec 013 complete (all tests implemented)
 
 ### Key Code Locations
 - Task-level orchestration: src/commands/start.ts:511 (runTaskLevelLoop)
