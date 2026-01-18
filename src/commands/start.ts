@@ -4,6 +4,7 @@ import fse from "fs-extra";
 import pc from "picocolors";
 import { getAgent } from "../agents/index";
 import { getProjectConfig, getProjectSessions } from "../config";
+import { FILES } from "../constants";
 import { runTaskLevelLoop } from "../orchestration/task-loop";
 import type { AgentType, RalphSession } from "../types";
 import { getCurrentSpecId, parseImplementation } from "../utils/implementation";
@@ -71,7 +72,7 @@ export async function startCommand(
   }
 
   // Plan mode requires PROMPT_plan.md
-  const promptFile = "PROMPT_plan.md";
+  const promptFile = FILES.PROMPT_PLAN;
   const promptPath = join(ralphDir, promptFile);
 
   if (mode === "plan" && !(await fse.pathExists(promptPath))) {
