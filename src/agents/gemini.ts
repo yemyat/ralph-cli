@@ -1,6 +1,9 @@
-import { execSync } from "node:child_process";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import type { AgentCommand } from "../types";
 import { type AgentOptions, BaseAgent } from "./base";
+
+const execAsync = promisify(exec);
 
 export class GeminiAgent extends BaseAgent {
   readonly type = "gemini" as const;
@@ -23,12 +26,12 @@ export class GeminiAgent extends BaseAgent {
     };
   }
 
-  checkInstalled(): Promise<boolean> {
+  async checkInstalled(): Promise<boolean> {
     try {
-      execSync("which gemini", { stdio: "pipe" });
-      return Promise.resolve(true);
+      await execAsync("which gemini");
+      return true;
     } catch {
-      return Promise.resolve(false);
+      return false;
     }
   }
 
