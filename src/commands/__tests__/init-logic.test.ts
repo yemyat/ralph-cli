@@ -143,6 +143,68 @@ describe("init-logic", () => {
       expect(exists).toBe(true);
     });
 
+    it("creates implementation.json with quality gates", async () => {
+      await createProjectFiles(testDir);
+
+      const filePath = join(getRalphDir(testDir), "implementation.json");
+      const content = await fse.readJson(filePath);
+
+      expect(content).toHaveProperty("qualityGates");
+      expect(Array.isArray(content.qualityGates)).toBe(true);
+      expect(content.qualityGates).toContain("bun run typecheck");
+      expect(content.qualityGates).toContain("bun run lint");
+      expect(content.qualityGates).toContain("bun run test");
+      expect(content.qualityGates).toContain("bun run build");
+    });
+
+    it("does NOT overwrite existing PROMPT_plan.md", async () => {
+      const filePath = join(getRalphDir(testDir), "PROMPT_plan.md");
+      const originalContent = "# Custom Plan Prompt\nDo not overwrite this.";
+      await fse.writeFile(filePath, originalContent);
+
+      await createProjectFiles(testDir);
+
+      const content = await fse.readFile(filePath, "utf-8");
+      expect(content).toBe(originalContent);
+    });
+
+    it("does NOT overwrite existing GUARDRAILS.md", async () => {
+      const filePath = join(getRalphDir(testDir), "GUARDRAILS.md");
+      const originalContent = "# Custom Guardrails\nDo not overwrite this.";
+      await fse.writeFile(filePath, originalContent);
+
+      await createProjectFiles(testDir);
+
+      const content = await fse.readFile(filePath, "utf-8");
+      expect(content).toBe(originalContent);
+    });
+
+    it("does NOT overwrite existing implementation.json", async () => {
+      const filePath = join(getRalphDir(testDir), "implementation.json");
+      const originalContent = {
+        version: 1,
+        updatedAt: "2025-01-01T00:00:00.000Z",
+        updatedBy: "user",
+        specs: [
+          {
+            id: "existing-spec",
+            name: "Existing",
+            status: "pending",
+            tasks: [],
+          },
+        ],
+        qualityGates: ["custom-gate"],
+      };
+      await fse.writeJson(filePath, originalContent);
+
+      await createProjectFiles(testDir);
+
+      const content = await fse.readJson(filePath);
+      expect(content.specs).toHaveLength(1);
+      expect(content.specs[0].id).toBe("existing-spec");
+      expect(content.qualityGates).toEqual(["custom-gate"]);
+    });
+
     it("creates example.md in specs directory when empty", async () => {
       await createProjectFiles(testDir);
 
