@@ -1,6 +1,9 @@
-import { execSync } from "node:child_process";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import type { AgentCommand } from "../types";
 import { type AgentOptions, BaseAgent } from "./base";
+
+const execAsync = promisify(exec);
 
 export class AmpAgent extends BaseAgent {
   readonly type = "amp" as const;
@@ -25,12 +28,12 @@ export class AmpAgent extends BaseAgent {
     };
   }
 
-  checkInstalled(): Promise<boolean> {
+  async checkInstalled(): Promise<boolean> {
     try {
-      execSync("which amp", { stdio: "pipe" });
-      return Promise.resolve(true);
+      await execAsync("which amp");
+      return true;
     } catch {
-      return Promise.resolve(false);
+      return false;
     }
   }
 
