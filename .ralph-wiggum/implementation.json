@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T08:54:11.621Z",
+  "updatedAt": "2026-01-18T09:30:43.954Z",
   "updatedBy": "build-mode",
   "qualityGates": [
     "bun run typecheck",
@@ -552,7 +552,7 @@
       "file": "specs/017-options-object-pattern.md",
       "name": "Introduce Options Object Pattern",
       "priority": 7,
-      "status": "in_progress",
+      "status": "completed",
       "context": "Functions have 10+ positional parameters making code hard to read. After spec 016 creates orchestration/, refactor to use LoopContext and named options objects. Depends on: spec 016 (remove-legacy-loop).",
       "tasks": [
         {
@@ -639,12 +639,13 @@
         {
           "id": "options-object-pattern-9",
           "description": "Run tests to verify no regressions",
-          "status": "in_progress",
+          "status": "completed",
           "acceptanceCriteria": [
             "bun run test passes",
             "bun run typecheck passes",
             "No function has more than 3 positional parameters"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:58:26.991Z"
         }
       ],
       "acceptanceCriteria": [
@@ -658,56 +659,62 @@
       "file": "specs/019-unit-tests-orchestration.md",
       "name": "Unit Tests for Orchestration Layer",
       "priority": 8,
-      "status": "pending",
+      "status": "in_progress",
       "context": "After spec 016 extracts orchestration/, add unit tests for each module. Tests should be fast (<1s), use mocks for I/O, and cover handler functions, agent executor, and notifications. Depends on: spec 016 (remove-legacy-loop).",
       "tasks": [
         {
           "id": "unit-tests-orchestration-1",
           "description": "Create `src/orchestration/__tests__/` directory",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Directory exists",
             "Test files follow naming convention"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:59:14.970Z"
         },
         {
           "id": "unit-tests-orchestration-2",
           "description": "Create `task-handlers.test.ts` with test suite",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Tests for handleBlockedTask (3 cases)",
             "Tests for handleGatesPassed (3 cases)",
             "Tests for handleGatesFailed (4 cases)"
-          ]
+          ],
+          "retryCount": 1,
+          "completedAt": "2026-01-18T09:08:27.080Z"
         },
         {
           "id": "unit-tests-orchestration-3",
           "description": "Create `agent-executor.test.ts` with test suite",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Tests for executeAgentWithPrompt (4 cases)",
             "Tests for runSingleTask (2 cases)",
             "Tests for runRetryTask (2 cases)"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:11:29.460Z"
         },
         {
           "id": "unit-tests-orchestration-4",
           "description": "Create `notifications.test.ts` with test suite",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Tests for notifyTelegram (3 cases)",
             "Tests for getGitBranch (2 cases)"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:13:05.958Z"
         },
         {
           "id": "unit-tests-orchestration-5",
           "description": "Create mock fixtures for test doubles",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "createMockContext() helper exists",
             "createMockImplementation() helper exists",
             "createMockExecutor() helper exists"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:14:21.688Z"
         },
         {
           "id": "unit-tests-orchestration-6",
@@ -716,7 +723,8 @@
           "acceptanceCriteria": [
             "bun test src/orchestration/ completes in <1s",
             "At least 20 unit tests pass"
-          ]
+          ],
+          "retryCount": 1
         }
       ],
       "acceptanceCriteria": [

@@ -84,11 +84,14 @@ export function getNextPendingTask(
     return null;
   }
 
-  // Find the first pending task in the active spec
-  const pendingTask = activeSpec.tasks.find((t) => t.status === "pending");
+  // Find the first pending or in_progress task in the active spec
+  // (in_progress tasks are ones that were started but the loop was stopped)
+  const nextTask = activeSpec.tasks.find(
+    (t) => t.status === "pending" || t.status === "in_progress"
+  );
 
-  if (!pendingTask) {
-    // No pending tasks in this spec - check if all are done
+  if (!nextTask) {
+    // No pending/in_progress tasks in this spec - check if all are done
     const allCompleted = activeSpec.tasks.every(
       (t) => t.status === "completed"
     );
@@ -100,7 +103,7 @@ export function getNextPendingTask(
     return null;
   }
 
-  return { spec: activeSpec, task: pendingTask };
+  return { spec: activeSpec, task: nextTask };
 }
 
 /**

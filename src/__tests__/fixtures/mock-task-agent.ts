@@ -30,7 +30,6 @@ async function main() {
   }
 
   // Read prompt from stdin using Bun's stdin API
-  // biome-ignore lint/correctness/noUndeclaredVariables: Bun is a global in Bun runtime
   const reader = Bun.stdin.stream().getReader();
   const chunks: Uint8Array[] = [];
 
@@ -60,7 +59,10 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error("Mock agent error:", err);
-  process.exit(1);
-});
+// Only run when executed directly as a script
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error("Mock agent error:", err);
+    process.exit(1);
+  });
+}

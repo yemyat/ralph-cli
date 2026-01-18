@@ -21,10 +21,13 @@ export interface NotifyTelegramOptions {
   taskDescription?: string;
 }
 
-function getGitBranch(): string | undefined {
+export function getGitBranch(): string | undefined {
   try {
-    const { execSync } = require("node:child_process");
-    return execSync("git branch --show-current", { encoding: "utf-8" }).trim();
+    const result = Bun.spawnSync(["git", "branch", "--show-current"]);
+    if (result.exitCode === 0) {
+      return result.stdout.toString().trim();
+    }
+    return undefined;
   } catch {
     return undefined;
   }

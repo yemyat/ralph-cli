@@ -16,17 +16,19 @@
  *   MOCK_GATE_EXIT_CODE=1 MOCK_GATE_NAME=lint MOCK_GATE_OUTPUT="Custom error" bun src/__tests__/fixtures/mock-quality-gate.ts
  */
 
-const exitCode = Number.parseInt(process.env.MOCK_GATE_EXIT_CODE || "0", 10);
-const gateName = process.env.MOCK_GATE_NAME || "typecheck";
-const customOutput = process.env.MOCK_GATE_OUTPUT;
+// Only run when executed directly as a script
+if (import.meta.main) {
+  const exitCode = Number.parseInt(process.env.MOCK_GATE_EXIT_CODE || "0", 10);
+  const gateName = process.env.MOCK_GATE_NAME || "typecheck";
+  const customOutput = process.env.MOCK_GATE_OUTPUT;
 
-if (exitCode === 0) {
-  // Success case
-  console.log(`${gateName}: All checks passed`);
-  process.exit(0);
-} else {
-  // Failure case - output mock failure messages
-  const defaultFailureOutput = `${gateName} failed with exit code ${exitCode}
+  if (exitCode === 0) {
+    // Success case
+    console.log(`${gateName}: All checks passed`);
+    process.exit(0);
+  } else {
+    // Failure case - output mock failure messages
+    const defaultFailureOutput = `${gateName} failed with exit code ${exitCode}
 
 error: Mock failure in ${gateName}
   at src/example.ts:42:10
@@ -38,9 +40,10 @@ Type 'number' is not assignable to type 'string'.
 
 Found 1 error in src/example.ts`;
 
-  const output = customOutput || defaultFailureOutput;
+    const output = customOutput || defaultFailureOutput;
 
-  // Write to stderr for errors (mimics real tools)
-  console.error(output);
-  process.exit(exitCode);
+    // Write to stderr for errors (mimics real tools)
+    console.error(output);
+    process.exit(exitCode);
+  }
 }

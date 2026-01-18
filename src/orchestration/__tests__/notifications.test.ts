@@ -1,28 +1,27 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from "bun:test";
 import type { RalphConfig, RalphSession } from "../../types";
 
 // Mock sendTelegramNotification
 const mockSendTelegramNotification = mock(() => Promise.resolve(true));
 
-// Mock execSync for getGitBranch
-let execSyncBehavior: { result?: string; error?: Error } = {};
-const mockExecSync = mock((_command: string, _options: unknown) => {
-  if (execSyncBehavior.error) {
-    throw execSyncBehavior.error;
-  }
-  return execSyncBehavior.result ?? "";
-});
-
-mock.module("node:child_process", () => ({
-  execSync: mockExecSync,
-}));
-
 mock.module("../../utils/telegram", () => ({
   sendTelegramNotification: mockSendTelegramNotification,
 }));
 
-// Import after mocking
-const { notifyTelegram } = await import("../notifications");
+// Import only what we need (no namespace import)
+import { notifyTelegram } from "../notifications";
+
+// Spy on Bun.spawnSync to control git branch output
+let bunSpawnSyncSpy: ReturnType<typeof spyOn>;
+let gitBranchValue: string | undefined;
 
 /**
  * Create a mock config for testing.
@@ -70,14 +69,53 @@ function noopLog(_msg: string): void {
 describe("Notifications", () => {
   beforeEach(() => {
     mockSendTelegramNotification.mockClear();
-    mockExecSync.mockClear();
-    execSyncBehavior = {};
+    gitBranchValue = undefined;
+
+    // Mock Bun.spawnSync to control git branch output
+    bunSpawnSyncSpy = spyOn(Bun, "spawnSync").mockImplementation((cmd) => {
+      const cmdArray = cmd as string[];
+      if (
+        cmdArray[0] === "git" &&
+        cmdArray[1] === "branch" &&
+        cmdArray[2] === "--show-current"
+      ) {
+        if (gitBranchValue !== undefined) {
+          return {
+            exitCode: 0,
+            stdout: Buffer.from(`${gitBranchValue}\n`),
+            stderr: Buffer.from(""),
+            success: true,
+            signalCode: null,
+            pid: 12_345,
+            resourceUsage: () => undefined,
+          } as unknown as ReturnType<typeof Bun.spawnSync>;
+        }
+        return {
+          exitCode: 1,
+          stdout: Buffer.from(""),
+          stderr: Buffer.from("not a git repo"),
+          success: false,
+          signalCode: null,
+          pid: 12_345,
+          resourceUsage: () => undefined,
+        } as unknown as ReturnType<typeof Bun.spawnSync>;
+      }
+      // For other commands, return a default failure
+      return {
+        exitCode: 1,
+        stdout: Buffer.from(""),
+        stderr: Buffer.from("unknown command"),
+        success: false,
+        signalCode: null,
+        pid: 12_345,
+        resourceUsage: () => undefined,
+      } as unknown as ReturnType<typeof Bun.spawnSync>;
+    });
   });
 
   afterEach(() => {
     mockSendTelegramNotification.mockClear();
-    mockExecSync.mockClear();
-    execSyncBehavior = {};
+    bunSpawnSyncSpy.mockRestore();
   });
 
   describe("notifyTelegram()", () => {
@@ -111,7 +149,7 @@ describe("Notifications", () => {
       mockSendTelegramNotification.mockImplementation(() =>
         Promise.resolve(true)
       );
-      execSyncBehavior = { result: "main\n" };
+      gitBranchValue = "main";
 
       const config = createMockConfig();
       const session = createMockSession({ iteration: 5 });
@@ -150,7 +188,7 @@ describe("Notifications", () => {
       mockSendTelegramNotification.mockImplementation(() =>
         Promise.resolve(false)
       );
-      execSyncBehavior = { result: "feature-branch\n" };
+      gitBranchValue = "feature-branch";
 
       const config = createMockConfig();
       const session = createMockSession();
@@ -176,7 +214,7 @@ describe("Notifications", () => {
 
   describe("getGitBranch()", () => {
     it("returns branch name when git command succeeds", async () => {
-      execSyncBehavior = { result: "feature/test-branch\n" };
+      gitBranchValue = "feature/test-branch";
 
       const config = createMockConfig();
       const session = createMockSession();
@@ -189,7 +227,7 @@ describe("Notifications", () => {
         log: logFn,
       });
 
-      // Verify the payload includes the branch (trimmed)
+      // Verify the payload includes the branch
       expect(mockSendTelegramNotification).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -199,7 +237,7 @@ describe("Notifications", () => {
     });
 
     it("returns undefined when git command fails", async () => {
-      execSyncBehavior = { error: new Error("Not a git repository") };
+      gitBranchValue = undefined;
 
       const config = createMockConfig();
       const session = createMockSession();
