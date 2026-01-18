@@ -419,6 +419,104 @@ describe("init-logic with mocked agents", () => {
       );
     });
 
+    it("returns agent_not_installed error for missing build agent", async () => {
+      const installedAgent = {
+        name: "Claude Code",
+        type: "claude" as const,
+        checkInstalled: () => Promise.resolve(true),
+        getInstallInstructions: () => "",
+        buildCommand: () => ({ command: "test", args: [] }),
+      };
+
+      const missingAgent = {
+        name: "Amp Code",
+        type: "amp" as const,
+        checkInstalled: () => Promise.resolve(false),
+        getInstallInstructions: () => "Install Amp with: npm install -g amp",
+        buildCommand: () => ({ command: "test", args: [] }),
+      };
+
+      // Mock getAgent to return different agents based on type
+      mockGetAgent = mock((agentType: string) => {
+        if (agentType === "claude") {
+          return installedAgent;
+        }
+        return missingAgent;
+      });
+      mockGetAllAgents = mock(() => [installedAgent, missingAgent]);
+
+      mock.module("../../agents/index", () => ({
+        getAgent: mockGetAgent,
+        getAllAgents: mockGetAllAgents,
+      }));
+
+      const { initializeProject } = await import("../init-logic");
+
+      const newTestDir = join(testDir, "build-agent-missing");
+      await fse.ensureDir(newTestDir);
+
+      const result = await initializeProject({
+        projectPath: newTestDir,
+        planAgent: "claude",
+        buildAgent: "amp",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.type).toBe("agent_not_installed");
+      expect(result.error?.agentName).toBe("Amp Code");
+      expect(result.error?.installInstructions).toBe(
+        "Install Amp with: npm install -g amp"
+      );
+    });
+
+    it("proceeds successfully when both agents are installed", async () => {
+      const claudeAgent = {
+        name: "Claude Code",
+        type: "claude" as const,
+        checkInstalled: () => Promise.resolve(true),
+        getInstallInstructions: () => "",
+        buildCommand: () => ({ command: "claude", args: [] }),
+      };
+
+      const ampAgent = {
+        name: "Amp Code",
+        type: "amp" as const,
+        checkInstalled: () => Promise.resolve(true),
+        getInstallInstructions: () => "",
+        buildCommand: () => ({ command: "amp", args: [] }),
+      };
+
+      mockGetAgent = mock((agentType: string) => {
+        if (agentType === "claude") {
+          return claudeAgent;
+        }
+        return ampAgent;
+      });
+      mockGetAllAgents = mock(() => [claudeAgent, ampAgent]);
+
+      mock.module("../../agents/index", () => ({
+        getAgent: mockGetAgent,
+        getAllAgents: mockGetAllAgents,
+      }));
+
+      const { initializeProject } = await import("../init-logic");
+
+      const newTestDir = join(testDir, "both-agents-installed");
+      await fse.ensureDir(newTestDir);
+
+      const result = await initializeProject({
+        projectPath: newTestDir,
+        planAgent: "claude",
+        buildAgent: "amp",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.config).toBeDefined();
+      expect(result.config?.agents.plan.agent).toBe("claude");
+      expect(result.config?.agents.build.agent).toBe("amp");
+      expect(result.error).toBeUndefined();
+    });
+
     it("creates config with telegram notifications", async () => {
       const mockAgent = {
         name: "Test Agent",

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T09:30:43.954Z",
+  "updatedAt": "2026-01-18T09:47:47.501Z",
   "updatedBy": "build-mode",
   "qualityGates": [
     "bun run typecheck",
@@ -659,7 +659,7 @@
       "file": "specs/019-unit-tests-orchestration.md",
       "name": "Unit Tests for Orchestration Layer",
       "priority": 8,
-      "status": "in_progress",
+      "status": "completed",
       "context": "After spec 016 extracts orchestration/, add unit tests for each module. Tests should be fast (<1s), use mocks for I/O, and cover handler functions, agent executor, and notifications. Depends on: spec 016 (remove-legacy-loop).",
       "tasks": [
         {
@@ -719,12 +719,13 @@
         {
           "id": "unit-tests-orchestration-6",
           "description": "Ensure all tests run in under 1 second",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "bun test src/orchestration/ completes in <1s",
             "At least 20 unit tests pass"
           ],
-          "retryCount": 1
+          "retryCount": 1,
+          "completedAt": "2026-01-18T09:36:40.386Z"
         }
       ],
       "acceptanceCriteria": [
@@ -739,69 +740,75 @@
       "file": "specs/020-unit-tests-init-command.md",
       "name": "Unit Tests for Init Command",
       "priority": 9,
-      "status": "pending",
+      "status": "in_progress",
       "context": "init.ts (322 lines) has zero test coverage. Extract testable logic to init-logic.ts, test file creation, gitignore handling, agent validation, and idempotency. Use temp directories.",
       "tasks": [
         {
           "id": "unit-tests-init-command-1",
           "description": "Create `src/commands/__tests__/` directory",
-          "status": "pending",
-          "acceptanceCriteria": ["Directory exists"]
+          "status": "completed",
+          "acceptanceCriteria": ["Directory exists"],
+          "completedAt": "2026-01-18T09:37:06.551Z"
         },
         {
           "id": "unit-tests-init-command-2",
           "description": "Extract `initializeProject()` from `initCommand()` for testing",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "initializeProject() is a separate, testable function",
             "No interactive prompts in initializeProject()"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:40:53.045Z"
         },
         {
           "id": "unit-tests-init-command-3",
           "description": "Create `init-logic.test.ts` test file",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test file uses bun:test",
             "Tests use temp directories with beforeEach/afterEach cleanup"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:44:16.291Z"
         },
         {
           "id": "unit-tests-init-command-4",
           "description": "Add tests for config creation (4 cases)",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test: creates config.json with correct structure",
             "Test: sets correct agent types",
             "Test: includes model when provided",
             "Test: includes telegram config when provided"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:45:20.470Z"
         },
         {
           "id": "unit-tests-init-command-5",
           "description": "Add tests for file creation (6 cases)",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test: creates PROMPT_plan.md",
             "Test: creates GUARDRAILS.md",
             "Test: creates implementation.json with quality gates",
             "Test: does NOT overwrite existing files"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:46:57.786Z"
         },
         {
           "id": "unit-tests-init-command-6",
           "description": "Add tests for gitignore handling (3 cases)",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test: adds logs pattern to existing .gitignore",
             "Test: creates .gitignore if missing",
             "Test: does not duplicate pattern if already present"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:47:47.066Z"
         },
         {
           "id": "unit-tests-init-command-7",
           "description": "Add tests for agent validation (3 cases)",
-          "status": "pending",
+          "status": "in_progress",
           "acceptanceCriteria": [
             "Test: returns error when plan agent not installed",
             "Test: returns error when build agent not installed",
