@@ -1,13 +1,7 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T10:11:38.423Z",
+  "updatedAt": "2026-01-18T14:50:22.055Z",
   "updatedBy": "build-mode",
-  "qualityGates": [
-    "bun run typecheck",
-    "bun run lint:fix",
-    "bun run lint",
-    "bun run test"
-  ],
   "specs": [
     {
       "id": "pi-agent-support",
@@ -15,7 +9,6 @@
       "name": "PI Agent Support",
       "priority": 1,
       "status": "completed",
-      "context": "PI Agent fully implemented. PiAgent class in src/agents/pi.ts, registered in agents/index.ts, type added to types.ts, unit tests in agents.test.ts, AGENTS.md updated.",
       "tasks": [
         {
           "id": "pi-agent-support-1",
@@ -81,6 +74,7 @@
           "completedAt": "2026-01-18T07:33:45.674Z"
         }
       ],
+      "context": "PI Agent fully implemented. PiAgent class in src/agents/pi.ts, registered in agents/index.ts, type added to types.ts, unit tests in agents.test.ts, AGENTS.md updated.",
       "acceptanceCriteria": [
         "Given PI is installed, when user runs `ralph start plan --agent pi`, then Ralph executes PI with --print --mode json --thinking high flags",
         "Given user specifies --model claude-sonnet, when Ralph starts PI agent, then the command includes --model claude-sonnet",
@@ -94,7 +88,6 @@
       "name": "Configurable Quality Gates",
       "priority": 2,
       "status": "completed",
-      "context": "Quality gates are now configurable via implementation.json. parseQualityGates in src/utils/quality-gates.ts, Implementation interface updated, unit tests complete.",
       "tasks": [
         {
           "id": "configurable-quality-gates-1",
@@ -158,6 +151,7 @@
           "completedAt": "2026-01-17T15:02:37.845Z"
         }
       ],
+      "context": "Quality gates are now configurable via implementation.json. parseQualityGates in src/utils/quality-gates.ts, Implementation interface updated, unit tests complete.",
       "acceptanceCriteria": [
         "Given implementation.json has qualityGates array, when build mode runs, then those commands are used for verification",
         "Given implementation.json has no qualityGates key, when build mode runs, then quality gate verification is skipped",
@@ -171,7 +165,6 @@
       "name": "Task-Level Build Loop Integration Test",
       "priority": 3,
       "status": "completed",
-      "context": "Integration tests implemented in src/__tests__/task-level-loop.test.ts with mock agent pattern.",
       "tasks": [
         {
           "id": "task-level-build-loop-integration-test-1",
@@ -216,6 +209,7 @@
           "completedAt": "2026-01-17T14:28:13.911Z"
         }
       ],
+      "context": "Integration tests implemented in src/__tests__/task-level-loop.test.ts with mock agent pattern.",
       "acceptanceCriteria": [
         "Test proves task isolation (agent never sees full spec, only current task)",
         "Test proves retry includes failure context",
@@ -230,7 +224,6 @@
       "name": "Remove Legacy Loop & Simplify Orchestration",
       "priority": 4,
       "status": "completed",
-      "context": "start.ts is 838 lines with two parallel orchestration systems. Legacy runRalphLoop() (~150 lines), DONE_MARKER, and useTaskLevel branching need removal. Then extract into src/orchestration/ modules: task-loop.ts, task-handlers.ts, agent-executor.ts, notifications.ts. Goal: start.ts < 150 lines.",
       "tasks": [
         {
           "id": "remove-legacy-loop-1",
@@ -334,6 +327,7 @@
           "completedAt": "2026-01-18T08:24:51.848Z"
         }
       ],
+      "context": "start.ts is 838 lines with two parallel orchestration systems. Legacy runRalphLoop() (~150 lines), DONE_MARKER, and useTaskLevel branching need removal. Then extract into src/orchestration/ modules: task-loop.ts, task-handlers.ts, agent-executor.ts, notifications.ts. Goal: start.ts < 150 lines.",
       "acceptanceCriteria": [
         "Given I run `ralph-wiggum-cli start build`, when there are tasks in `implementation.json`, then the task-level loop executes (no behavior change)",
         "Given I search for `runRalphLoop` in the codebase, when I search, then zero results are found",
@@ -348,7 +342,6 @@
       "name": "Centralize Constants & Magic Strings",
       "priority": 5,
       "status": "completed",
-      "context": "Magic strings scattered: TASK_DONE_MARKER, TASK_BLOCKED_REGEX duplicated in start.ts and task-level-loop.test.ts. Create src/constants.ts with MARKERS, FILES, DEFAULTS objects. Add formatBlockedMarker() and parseBlockedMarker() helpers.",
       "tasks": [
         {
           "id": "centralize-constants-1",
@@ -434,6 +427,7 @@
           "completedAt": "2026-01-18T08:33:10.339Z"
         }
       ],
+      "context": "Magic strings scattered: TASK_DONE_MARKER, TASK_BLOCKED_REGEX duplicated in start.ts and task-level-loop.test.ts. Create src/constants.ts with MARKERS, FILES, DEFAULTS objects. Add formatBlockedMarker() and parseBlockedMarker() helpers.",
       "acceptanceCriteria": [
         "Given I search for `<TASK_DONE>` as a string literal, when I search outside `constants.ts`, then zero results are found",
         "Given I search for `TASK_BLOCKED` regex pattern, when I search outside `constants.ts`, then zero results are found",
@@ -447,7 +441,6 @@
       "name": "Fix Async/Await Consistency",
       "priority": 6,
       "status": "completed",
-      "context": "All 8 agents use Promise.resolve(true/false) pattern in checkInstalled() instead of async/await. This inconsistency causes cognitive overhead. Update all agents to use async keyword.",
       "tasks": [
         {
           "id": "async-consistency-1",
@@ -540,6 +533,7 @@
           "completedAt": "2026-01-18T08:41:10.040Z"
         }
       ],
+      "context": "All 8 agents use Promise.resolve(true/false) pattern in checkInstalled() instead of async/await. This inconsistency causes cognitive overhead. Update all agents to use async keyword.",
       "acceptanceCriteria": [
         "Given I search for `Promise.resolve(true)` in agents/, when I search, then zero results are found",
         "Given I search for `Promise.resolve(false)` in agents/, when I search, then zero results are found",
@@ -553,7 +547,6 @@
       "name": "Introduce Options Object Pattern",
       "priority": 7,
       "status": "completed",
-      "context": "Functions have 10+ positional parameters making code hard to read. After spec 016 creates orchestration/, refactor to use LoopContext and named options objects. Depends on: spec 016 (remove-legacy-loop).",
       "tasks": [
         {
           "id": "options-object-pattern-1",
@@ -648,6 +641,7 @@
           "completedAt": "2026-01-18T08:58:26.991Z"
         }
       ],
+      "context": "Functions have 10+ positional parameters making code hard to read. After spec 016 creates orchestration/, refactor to use LoopContext and named options objects. Depends on: spec 016 (remove-legacy-loop).",
       "acceptanceCriteria": [
         "Given any function in `orchestration/`, when it has more than 3 parameters, then it uses an options object",
         "Given I read a function call like `runRetryTask(...)`, when I see the call, then I can understand each argument without looking up the definition",
@@ -660,7 +654,6 @@
       "name": "Unit Tests for Orchestration Layer",
       "priority": 8,
       "status": "completed",
-      "context": "After spec 016 extracts orchestration/, add unit tests for each module. Tests should be fast (<1s), use mocks for I/O, and cover handler functions, agent executor, and notifications. Depends on: spec 016 (remove-legacy-loop).",
       "tasks": [
         {
           "id": "unit-tests-orchestration-1",
@@ -728,6 +721,7 @@
           "completedAt": "2026-01-18T09:36:40.386Z"
         }
       ],
+      "context": "After spec 016 extracts orchestration/, add unit tests for each module. Tests should be fast (<1s), use mocks for I/O, and cover handler functions, agent executor, and notifications. Depends on: spec 016 (remove-legacy-loop).",
       "acceptanceCriteria": [
         "Given I run `bun test src/orchestration/`, when tests complete, then at least 20 unit tests pass",
         "Given I run `bun test src/orchestration/`, when tests complete, then total time is under 1 second",
@@ -741,7 +735,6 @@
       "name": "Unit Tests for Init Command",
       "priority": 9,
       "status": "completed",
-      "context": "init.ts (322 lines) has zero test coverage. Extract testable logic to init-logic.ts, test file creation, gitignore handling, agent validation, and idempotency. Use temp directories.",
       "tasks": [
         {
           "id": "unit-tests-init-command-1",
@@ -827,6 +820,7 @@
           "completedAt": "2026-01-18T09:51:14.994Z"
         }
       ],
+      "context": "init.ts (322 lines) has zero test coverage. Extract testable logic to init-logic.ts, test file creation, gitignore handling, agent validation, and idempotency. Use temp directories.",
       "acceptanceCriteria": [
         "Given I run `bun test src/commands/`, when tests complete, then at least 15 init tests pass",
         "Given I run init on a new project, when I check `.ralph-wiggum/`, then all expected files exist",
@@ -839,15 +833,14 @@
       "file": "specs/022-domain-objects.md",
       "name": "Introduce Domain Objects for Task & Spec",
       "priority": 10,
-      "status": "completed",
-      "context": "Replace procedural task/spec manipulation with rich domain objects. Create src/domain/ with Task, Spec, Implementation classes. Task.complete(), Spec.checkCompletion(), impl.save(). Benefits from spec 016 but can be done independently.",
+      "status": "pending",
       "tasks": [
         {
           "id": "domain-objects-1",
           "description": "Create `src/domain/` directory",
           "status": "completed",
           "acceptanceCriteria": ["Directory exists"],
-          "completedAt": "2026-01-18T09:51:40.311Z"
+          "completedAt": "2026-01-18T14:38:27.241Z"
         },
         {
           "id": "domain-objects-2",
@@ -941,6 +934,7 @@
           "completedAt": "2026-01-18T10:11:38.423Z"
         }
       ],
+      "context": "Replace procedural task/spec manipulation with rich domain objects. Create src/domain/ with Task, Spec, Implementation classes. Task.complete(), Spec.checkCompletion(), impl.save(). Benefits from spec 016 but can be done independently.",
       "acceptanceCriteria": [
         "Given I have a `Task` instance, when I call `task.complete()`, then status is 'completed' and completedAt is set",
         "Given I have a `Spec` instance, when all tasks are completed, then `spec.isCompleted` returns true",

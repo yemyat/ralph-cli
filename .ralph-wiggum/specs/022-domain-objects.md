@@ -215,7 +215,7 @@ await impl.save();
 
 ## Tasks
 
-- [ ] Create `src/domain/` directory
+- [x] Create `src/domain/` directory
 - [ ] Create `src/domain/task.ts` with `Task` class
 - [ ] Create `src/domain/spec.ts` with `Spec` class
 - [ ] Create `src/domain/implementation.ts` with `Implementation` class
