@@ -69,6 +69,7 @@ Create or update @.ralph-wiggum/implementation.json with this structure:
 - \`priority\`: Lower number = higher priority (1 = first to implement)
 - \`status\`: "pending" for unstarted, "in_progress" for active, "completed" for done
 - \`context\`: Include relevant code paths, dependencies, or notes for the build agent
+- Make sure to copy / paste relevant acceptance criteria from the spec file for each task. Some tasks may share the same acceptance criteria.
 
 ### 4. Create Missing Specs
 If functionality is needed but no spec exists:
