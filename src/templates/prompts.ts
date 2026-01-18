@@ -162,7 +162,7 @@ git commit -m "feat: <spec name completed>"
 git push
 \`\`\`
 
-### 9. Log Progress (Append to \`.ralph-wiggum/PROGRESS.md\`)
+### 9. Log Progress (Append to \`.ralph-wiggum/PROGRESS.md\`). Example below:
 \`\`\`markdown
 ## [YYYY-MM-DD HH:MM] - <Spec Name>
 
