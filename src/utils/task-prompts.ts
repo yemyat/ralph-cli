@@ -3,13 +3,38 @@
 
 import { MARKERS } from "../constants";
 import { PROMPT_BUILD } from "../templates/prompts";
-import type { QualityGateResult, SpecEntry, TaskEntry } from "../types";
-import { getCompletedTasks } from "./implementation";
+import type { QualityGateResult, TaskStatusType } from "../types";
+
+/**
+ * Common interface for task-like objects (works with both Task class and TaskEntry).
+ */
+interface TaskLike {
+  readonly description: string;
+  readonly status: TaskStatusType;
+  readonly acceptanceCriteria?: readonly string[];
+  readonly blockedReason?: string;
+}
+
+/**
+ * Common interface for spec-like objects (works with both Spec class and SpecEntry).
+ */
+interface SpecLike {
+  readonly name: string;
+  readonly context?: string;
+  readonly tasks: readonly TaskLike[];
+}
+
+/**
+ * Get completed tasks from a spec-like object.
+ */
+function getCompletedTasks(spec: SpecLike): TaskLike[] {
+  return spec.tasks.filter((t) => t.status === "completed");
+}
 
 /**
  * Format completed tasks as markdown checklist.
  */
-function formatCompletedTasks(tasks: TaskEntry[]): string {
+function formatCompletedTasks(tasks: readonly TaskLike[]): string {
   if (tasks.length === 0) {
     return "_No tasks completed yet._";
   }
@@ -19,7 +44,9 @@ function formatCompletedTasks(tasks: TaskEntry[]): string {
 /**
  * Format acceptance criteria as markdown list.
  */
-function formatAcceptanceCriteria(criteria: string[] | undefined): string {
+function formatAcceptanceCriteria(
+  criteria: readonly string[] | undefined
+): string {
   if (!criteria || criteria.length === 0) {
     return "_No specific acceptance criteria._";
   }
@@ -31,7 +58,7 @@ function formatAcceptanceCriteria(criteria: string[] | undefined): string {
  * This is injected when spawning an agent for one task.
  * Includes PROMPT_BUILD context at the top for rules and workflow.
  */
-export function generateTaskPrompt(spec: SpecEntry, task: TaskEntry): string {
+export function generateTaskPrompt(spec: SpecLike, task: TaskLike): string {
   const completedTasks = getCompletedTasks(spec);
 
   return `${PROMPT_BUILD}
@@ -77,8 +104,8 @@ If blocked, output: ${MARKERS.TASK_BLOCKED_TEMPLATE}
  * Used when quality gates fail and we want to retry with error info.
  */
 export function generateRetryPrompt(
-  spec: SpecEntry,
-  task: TaskEntry,
+  spec: SpecLike,
+  task: TaskLike,
   failedGates: QualityGateResult[],
   previousAttempt: number
 ): string {
@@ -125,8 +152,8 @@ function truncateOutput(output: string, maxLength: number): string {
  * When a task is blocked, this prompt helps the agent understand the issue.
  */
 export function generateBlockedTaskPrompt(
-  spec: SpecEntry,
-  task: TaskEntry
+  spec: SpecLike,
+  task: TaskLike
 ): string {
   return `# Task Blocked: ${task.description}
 

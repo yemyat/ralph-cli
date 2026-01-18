@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { EventEmitter, Readable, Writable } from "node:stream";
 import type { BaseAgent } from "../../agents/base";
+import { Spec, Task } from "../../domain";
 import type {
   RalphConfig,
   RalphSession,
@@ -19,15 +20,11 @@ const mockSaveSession = mock((_projectPath: string, _session: RalphSession) => {
   // No-op for testing
 });
 const mockGenerateTaskPrompt = mock(
-  (_spec: SpecEntry, _task: TaskEntry) => "mock task prompt"
+  (_spec: Spec, _task: Task) => "mock task prompt"
 );
 const mockGenerateRetryPrompt = mock(
-  (
-    _spec: SpecEntry,
-    _task: TaskEntry,
-    _failedGates: unknown[],
-    _retryCount: number
-  ) => "mock retry prompt"
+  (_spec: Spec, _task: Task, _failedGates: unknown[], _retryCount: number) =>
+    "mock retry prompt"
 );
 
 // Create a mock child process with EventEmitter behavior
@@ -180,10 +177,10 @@ function createMockAgent(): BaseAgent {
 }
 
 /**
- * Create a mock spec entry for testing.
+ * Create a mock spec for testing.
  */
-function createMockSpec(overrides?: Partial<SpecEntry>): SpecEntry {
-  return {
+function createMockSpec(overrides?: Partial<SpecEntry>): Spec {
+  const entry: SpecEntry = {
     id: "spec-001",
     file: "spec-001.md",
     name: "Test Spec",
@@ -198,19 +195,21 @@ function createMockSpec(overrides?: Partial<SpecEntry>): SpecEntry {
     ],
     ...overrides,
   };
+  return Spec.fromEntry(entry);
 }
 
 /**
- * Create a mock task entry for testing.
+ * Create a mock task for testing.
  */
-function createMockTask(overrides?: Partial<TaskEntry>): TaskEntry {
-  return {
+function createMockTask(overrides?: Partial<TaskEntry>): Task {
+  const entry: TaskEntry = {
     id: "task-001",
     description: "Test task",
     status: "in_progress",
     retryCount: 0,
     ...overrides,
   };
+  return Task.fromEntry(entry);
 }
 
 // Create a no-op log function for tests

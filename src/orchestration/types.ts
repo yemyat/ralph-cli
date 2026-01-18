@@ -5,13 +5,8 @@
 
 import type { spawn } from "node:child_process";
 import type { BaseAgent } from "../agents/base";
-import type {
-  QualityGateResult,
-  RalphConfig,
-  RalphSession,
-  SpecEntry,
-  TaskEntry,
-} from "../types";
+import type { Spec, Task } from "../domain";
+import type { QualityGateResult, RalphConfig, RalphSession } from "../types";
 
 /**
  * Core context object for loop operations.
@@ -47,9 +42,9 @@ export interface ExecuteAgentOptions {
  */
 export interface RetryOptions {
   /** The spec containing the task */
-  spec: SpecEntry;
+  spec: Spec;
   /** The task that failed */
-  task: TaskEntry;
+  task: Task;
   /** Quality gates that failed */
   failedGates: QualityGateResult[];
   /** Number of retry attempts made */
@@ -63,9 +58,9 @@ export interface RetryOptions {
  */
 export interface SingleTaskOptions {
   /** The spec containing the task */
-  spec: SpecEntry;
+  spec: Spec;
   /** The task to execute */
-  task: TaskEntry;
+  task: Task;
   /** Callback invoked when the child process is spawned */
   onSpawn?: (child: ReturnType<typeof spawn>) => void;
 }
@@ -78,8 +73,8 @@ export interface GatesFailedOptions {
   maxRetries: number;
   /** Callback to run retry task */
   runRetryTask?: (
-    spec: SpecEntry,
-    task: TaskEntry,
+    spec: Spec,
+    task: Task,
     failedGates: QualityGateResult[],
     retryCount: number
   ) => Promise<void>;
@@ -91,9 +86,9 @@ export interface GatesFailedOptions {
  */
 export interface TaskContext {
   /** The spec containing the task */
-  spec: SpecEntry;
+  spec: Spec;
   /** The task being processed */
-  task: TaskEntry;
+  task: Task;
 }
 
 /**

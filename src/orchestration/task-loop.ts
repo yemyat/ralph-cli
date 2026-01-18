@@ -7,14 +7,7 @@ import type { spawn } from "node:child_process";
 import fse from "fs-extra";
 import pc from "picocolors";
 import { saveSession } from "../config";
-import type { Implementation } from "../types";
-import {
-  getNextPendingTask,
-  markTaskFailed,
-  markTaskInProgress,
-  parseImplementation,
-  saveImplementation,
-} from "../utils/implementation";
+import { Implementation } from "../domain";
 import {
   getFailedGates,
   parseQualityGates,
@@ -43,11 +36,11 @@ async function handleTaskError(
   ctx: LoopContext,
   taskCtx: TaskContext
 ): Promise<void> {
-  const { spec, task } = taskCtx;
+  const { task } = taskCtx;
   console.log(pc.red("  ✗ Task failed"));
   ctx.log(`Task failed: ${task.id}`);
-  markTaskFailed(impl, spec.id, task.id);
-  await saveImplementation(ctx.projectPath, impl);
+  task.fail();
+  await impl.save();
   await notifyTelegram({
     config: ctx.config,
     session: ctx.session,
@@ -193,13 +186,13 @@ export async function runTaskLevelLoop(
 
   try {
     while (true) {
-      const impl = await parseImplementation(loopContext.projectPath);
+      const impl = await Implementation.load(loopContext.projectPath);
       if (!impl) {
         console.log(pc.red("No implementation.json found."));
         break;
       }
 
-      const next = getNextPendingTask(impl);
+      const next = impl.nextPendingTask;
       if (!next) {
         console.log(pc.green("\n✓ All tasks completed!"));
         await notifyTelegram({
@@ -224,8 +217,8 @@ export async function runTaskLevelLoop(
       loopContext.log(`Starting task: ${task.id} - ${task.description}`);
 
       // Mark task as in progress
-      markTaskInProgress(impl, spec.id, task.id);
-      await saveImplementation(loopContext.projectPath, impl);
+      task.markInProgress();
+      await impl.save();
 
       // Run the task
       const result = await runSingleTask(loopContext, {

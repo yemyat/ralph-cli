@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T09:47:47.501Z",
+  "updatedAt": "2026-01-18T10:01:48.539Z",
   "updatedBy": "build-mode",
   "qualityGates": [
     "bun run typecheck",
@@ -740,7 +740,7 @@
       "file": "specs/020-unit-tests-init-command.md",
       "name": "Unit Tests for Init Command",
       "priority": 9,
-      "status": "in_progress",
+      "status": "completed",
       "context": "init.ts (322 lines) has zero test coverage. Extract testable logic to init-logic.ts, test file creation, gitignore handling, agent validation, and idempotency. Use temp directories.",
       "tasks": [
         {
@@ -808,21 +808,23 @@
         {
           "id": "unit-tests-init-command-7",
           "description": "Add tests for agent validation (3 cases)",
-          "status": "in_progress",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test: returns error when plan agent not installed",
             "Test: returns error when build agent not installed",
             "Test: proceeds when both agents installed"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:49:34.728Z"
         },
         {
           "id": "unit-tests-init-command-8",
           "description": "Add tests for idempotency (2 cases)",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test: running init twice doesn't corrupt config",
             "Test: running with --force overwrites config"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:51:14.994Z"
         }
       ],
       "acceptanceCriteria": [
@@ -837,93 +839,101 @@
       "file": "specs/022-domain-objects.md",
       "name": "Introduce Domain Objects for Task & Spec",
       "priority": 10,
-      "status": "pending",
+      "status": "in_progress",
       "context": "Replace procedural task/spec manipulation with rich domain objects. Create src/domain/ with Task, Spec, Implementation classes. Task.complete(), Spec.checkCompletion(), impl.save(). Benefits from spec 016 but can be done independently.",
       "tasks": [
         {
           "id": "domain-objects-1",
           "description": "Create `src/domain/` directory",
-          "status": "pending",
-          "acceptanceCriteria": ["Directory exists"]
+          "status": "completed",
+          "acceptanceCriteria": ["Directory exists"],
+          "completedAt": "2026-01-18T09:51:40.311Z"
         },
         {
           "id": "domain-objects-2",
           "description": "Create `src/domain/task.ts` with `Task` class",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Task class has: id, description, status getters",
             "Task class has: complete(), block(reason), fail(), retry(), markInProgress() methods",
             "Task class has: toJSON() method"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:52:35.481Z"
         },
         {
           "id": "domain-objects-3",
           "description": "Create `src/domain/spec.ts` with `Spec` class",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Spec class has: id, name, tasks, isCompleted getters",
             "Spec class has: nextPendingTask, completedTasks, progress getters",
             "Spec class has: checkCompletion(), toJSON() methods"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:53:46.599Z"
         },
         {
           "id": "domain-objects-4",
           "description": "Create `src/domain/implementation.ts` with `Implementation` class",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Implementation class has: specs, nextPendingTask getters",
             "Implementation class has: static load(projectPath) method",
             "Implementation class has: save(), toJSON() methods"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:55:37.942Z"
         },
         {
           "id": "domain-objects-5",
           "description": "Create `src/domain/index.ts` barrel exports",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Task, Spec, Implementation exported from index.ts"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:56:47.242Z"
         },
         {
           "id": "domain-objects-6",
           "description": "Add unit tests for `Task` class (5 cases)",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test: complete() sets status and completedAt",
             "Test: block(reason) sets status and blockedReason",
             "Test: fail() increments retryCount",
             "Test: retry() resets to pending",
             "Test: toJSON() returns plain object"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:58:20.370Z"
         },
         {
           "id": "domain-objects-7",
           "description": "Add unit tests for `Spec` class (5 cases)",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test: isCompleted true when all tasks complete",
             "Test: nextPendingTask returns first pending",
             "Test: progress returns correct counts",
             "Test: checkCompletion() updates status",
             "Test: toJSON() includes updated tasks"
-          ]
+          ],
+          "completedAt": "2026-01-18T09:59:35.404Z"
         },
         {
           "id": "domain-objects-8",
           "description": "Add unit tests for `Implementation` class (5 cases)",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test: load() returns Implementation instance",
             "Test: load() returns null if file missing",
             "Test: nextPendingTask returns first pending across specs",
             "Test: save() persists changes to disk",
             "Test: toJSON() includes updatedAt"
-          ]
+          ],
+          "completedAt": "2026-01-18T10:01:48.153Z"
         },
         {
           "id": "domain-objects-9",
           "description": "Update orchestration layer to use domain objects (optional)",
-          "status": "pending",
+          "status": "in_progress",
           "acceptanceCriteria": [
             "task-loop.ts uses Implementation.load()",
             "Handlers use task.complete() instead of utility functions"

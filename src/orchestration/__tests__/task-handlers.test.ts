@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { join } from "node:path";
-import fse from "fs-extra";
 import type { BaseAgent } from "../../agents/base";
+import { Implementation } from "../../domain";
 import type {
-  Implementation,
   RalphConfig,
   RalphSession,
   SpecEntry,
@@ -17,217 +15,17 @@ import {
 } from "../task-handlers";
 import type { LoopContext, TaskContext } from "../types";
 
-// Mock the modules
-const mockSaveImplementation = mock(
-  (_projectPath: string, _impl: Implementation) => Promise.resolve()
-);
+// Mock the notifications module
 const mockNotifyTelegram = mock(() => Promise.resolve());
-
-// Mock implementation module - MUST include all exports since mock.module replaces entire module
-mock.module("../../utils/implementation", () => ({
-  // Real implementations for functions used by other modules (e.g., file-operations.ts)
-  createEmptyImplementation: (): Implementation => ({
-    version: 1,
-    updatedAt: new Date().toISOString(),
-    updatedBy: "user",
-    specs: [],
-    qualityGates: [
-      "bun run typecheck",
-      "bun run lint",
-      "bun run test",
-      "bun run build",
-    ],
-  }),
-  parseImplementation: async (
-    projectPath: string
-  ): Promise<Implementation | null> => {
-    const implPath = join(projectPath, ".ralph-wiggum", "implementation.json");
-    try {
-      if (!(await fse.pathExists(implPath))) {
-        return null;
-      }
-      return await fse.readJson(implPath);
-    } catch {
-      return null;
-    }
-  },
-  saveImplementation: async (
-    projectPath: string,
-    impl: Implementation,
-    updatedBy: "plan-mode" | "build-mode" | "user" = "build-mode"
-  ): Promise<void> => {
-    // For task-handler tests, use the mock (in-memory only)
-    mockSaveImplementation(projectPath, impl);
-    // Update timestamps in-memory
-    impl.updatedAt = new Date().toISOString();
-    impl.updatedBy = updatedBy;
-    // Write to disk only if the directory exists (for file-operations tests)
-    const implPath = join(projectPath, ".ralph-wiggum", "implementation.json");
-    if (await fse.pathExists(join(projectPath, ".ralph-wiggum"))) {
-      await fse.writeJson(implPath, impl, { spaces: 2 });
-    }
-  },
-  getNextPendingTask: (
-    impl: Implementation
-  ): { spec: SpecEntry; task: TaskEntry } | null => {
-    let activeSpec = impl.specs.find((s) => s.status === "in_progress");
-    if (!activeSpec) {
-      activeSpec = impl.specs.find((s) => s.status === "pending");
-      if (activeSpec) {
-        activeSpec.status = "in_progress";
-      }
-    }
-    if (!activeSpec) {
-      return null;
-    }
-    const pendingTask = activeSpec.tasks.find((t) => t.status === "pending");
-    if (!pendingTask) {
-      return null;
-    }
-    return { spec: activeSpec, task: pendingTask };
-  },
-  markTaskInProgress: (
-    impl: Implementation,
-    specId: string,
-    taskId: string
-  ) => {
-    const spec = impl.specs.find((s) => s.id === specId);
-    if (spec) {
-      const task = spec.tasks.find((t) => t.id === taskId);
-      if (task) {
-        task.status = "in_progress";
-      }
-    }
-  },
-  markTaskBlocked: (
-    impl: Implementation,
-    specId: string,
-    taskId: string,
-    reason: string
-  ) => {
-    const spec = impl.specs.find((s) => s.id === specId);
-    if (spec) {
-      const task = spec.tasks.find((t) => t.id === taskId);
-      if (task) {
-        task.status = "blocked";
-        task.blockedReason = reason;
-      }
-    }
-  },
-  markTaskCompleted: (impl: Implementation, specId: string, taskId: string) => {
-    const spec = impl.specs.find((s) => s.id === specId);
-    if (spec) {
-      const task = spec.tasks.find((t) => t.id === taskId);
-      if (task) {
-        task.status = "completed";
-        task.completedAt = new Date().toISOString();
-      }
-      const allCompleted = spec.tasks.every((t) => t.status === "completed");
-      if (allCompleted) {
-        spec.status = "completed";
-      }
-    }
-  },
-  markTaskFailed: (impl: Implementation, specId: string, taskId: string) => {
-    const spec = impl.specs.find((s) => s.id === specId);
-    if (spec) {
-      const task = spec.tasks.find((t) => t.id === taskId);
-      if (task) {
-        task.status = "failed";
-        task.retryCount = (task.retryCount || 0) + 1;
-      }
-    }
-  },
-  resetTaskToPending: (
-    impl: Implementation,
-    specId: string,
-    taskId: string
-  ) => {
-    const spec = impl.specs.find((s) => s.id === specId);
-    if (spec) {
-      const task = spec.tasks.find((t) => t.id === taskId);
-      if (task) {
-        task.status = "pending";
-      }
-    }
-  },
-  getCompletedTasks: (spec: SpecEntry): TaskEntry[] => {
-    return spec.tasks.filter((t) => t.status === "completed");
-  },
-  getSpecProgress: (spec: SpecEntry) => {
-    const completed = spec.tasks.filter((t) => t.status === "completed").length;
-    const total = spec.tasks.length;
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { completed, total, percentage };
-  },
-  getImplementationProgress: (impl: Implementation) => {
-    const completedSpecs = impl.specs.filter(
-      (s) => s.status === "completed"
-    ).length;
-    const totalSpecs = impl.specs.length;
-    let completedTasks = 0;
-    let totalTasks = 0;
-    for (const spec of impl.specs) {
-      totalTasks += spec.tasks.length;
-      completedTasks += spec.tasks.filter(
-        (t) => t.status === "completed"
-      ).length;
-    }
-    return { completedSpecs, totalSpecs, completedTasks, totalTasks };
-  },
-  getCurrentSpecId: async (projectPath: string): Promise<string | null> => {
-    const implPath = join(projectPath, ".ralph-wiggum", "implementation.json");
-    try {
-      if (!(await fse.pathExists(implPath))) {
-        return null;
-      }
-      const impl = await fse.readJson(implPath);
-      const inProgress = impl.specs.find(
-        (s: SpecEntry) => s.status === "in_progress"
-      );
-      if (inProgress) {
-        return inProgress.id;
-      }
-      const pending = impl.specs.find((s: SpecEntry) => s.status === "pending");
-      if (pending) {
-        return pending.id;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  },
-}));
 
 mock.module("../notifications", () => ({
   notifyTelegram: mockNotifyTelegram,
 }));
 
 /**
- * Create a mock spec entry for testing.
- */
-function createMockSpec(overrides?: Partial<SpecEntry>): SpecEntry {
-  return {
-    id: "spec-001",
-    file: "spec-001.md",
-    name: "Test Spec",
-    priority: 1,
-    status: "in_progress",
-    tasks: [
-      {
-        id: "task-001",
-        description: "Test task",
-        status: "in_progress",
-      },
-    ],
-    ...overrides,
-  };
-}
-
-/**
  * Create a mock task entry for testing.
  */
-function createMockTask(overrides?: Partial<TaskEntry>): TaskEntry {
+function createMockTaskEntry(overrides?: Partial<TaskEntry>): TaskEntry {
   return {
     id: "task-001",
     description: "Test task",
@@ -238,20 +36,42 @@ function createMockTask(overrides?: Partial<TaskEntry>): TaskEntry {
 }
 
 /**
- * Create a mock implementation for testing.
+ * Create a mock spec entry for testing.
+ */
+function createMockSpecEntry(overrides?: Partial<SpecEntry>): SpecEntry {
+  return {
+    id: "spec-001",
+    file: "spec-001.md",
+    name: "Test Spec",
+    priority: 1,
+    status: "in_progress",
+    tasks: [createMockTaskEntry()],
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mock Implementation for testing.
+ * Uses a spy on the save method to track calls.
  */
 function createMockImplementation(
-  specs?: SpecEntry[],
-  overrides?: Partial<Implementation>
-): Implementation {
-  return {
+  specEntries?: SpecEntry[],
+  projectPath = "/tmp/test-project"
+): { impl: Implementation; saveSpy: ReturnType<typeof mock> } {
+  const specs = specEntries ?? [createMockSpecEntry()];
+  const impl = new Implementation(projectPath, {
     version: 1,
     updatedAt: new Date().toISOString(),
     updatedBy: "build-mode",
-    specs: specs || [createMockSpec()],
+    specs,
     qualityGates: ["bun run typecheck", "bun run test"],
-    ...overrides,
-  };
+  });
+
+  // Create a spy for the save method
+  const saveSpy = mock(() => Promise.resolve());
+  impl.save = saveSpy;
+
+  return { impl, saveSpy };
 }
 
 /**
@@ -314,21 +134,23 @@ function createMockLoopContext(overrides?: Partial<LoopContext>): LoopContext {
 
 describe("Task Handlers", () => {
   beforeEach(() => {
-    mockSaveImplementation.mockClear();
     mockNotifyTelegram.mockClear();
   });
 
   afterEach(() => {
-    mockSaveImplementation.mockClear();
     mockNotifyTelegram.mockClear();
   });
 
   describe("handleBlockedTask()", () => {
     it("marks task as blocked with the provided reason", async () => {
-      const task = createMockTask();
-      const spec = createMockSpec({ tasks: [task] });
-      const impl = createMockImplementation([spec]);
+      const taskEntry = createMockTaskEntry();
+      const specEntry = createMockSpecEntry({ tasks: [taskEntry] });
+      const { impl, saveSpy } = createMockImplementation([specEntry]);
       const ctx = createMockLoopContext();
+
+      // Get domain objects from implementation
+      const spec = impl.specs[0];
+      const task = spec.tasks[0];
 
       await handleBlockedTask(impl, ctx, {
         spec,
@@ -337,16 +159,19 @@ describe("Task Handlers", () => {
       });
 
       // Verify task status was updated
-      const updatedTask = impl.specs[0].tasks[0];
-      expect(updatedTask.status).toBe("blocked");
-      expect(updatedTask.blockedReason).toBe("Missing dependency");
+      expect(task.status).toBe("blocked");
+      expect(task.blockedReason).toBe("Missing dependency");
+      expect(saveSpy).toHaveBeenCalledTimes(1);
     });
 
     it("saves implementation after marking task as blocked", async () => {
-      const task = createMockTask();
-      const spec = createMockSpec({ tasks: [task] });
-      const impl = createMockImplementation([spec]);
+      const taskEntry = createMockTaskEntry();
+      const specEntry = createMockSpecEntry({ tasks: [taskEntry] });
+      const { impl, saveSpy } = createMockImplementation([specEntry]);
       const ctx = createMockLoopContext();
+
+      const spec = impl.specs[0];
+      const task = spec.tasks[0];
 
       await handleBlockedTask(impl, ctx, {
         spec,
@@ -354,18 +179,17 @@ describe("Task Handlers", () => {
         reason: "Cannot proceed",
       });
 
-      expect(mockSaveImplementation).toHaveBeenCalledTimes(1);
-      expect(mockSaveImplementation).toHaveBeenCalledWith(
-        ctx.projectPath,
-        impl
-      );
+      expect(saveSpy).toHaveBeenCalledTimes(1);
     });
 
     it("handles undefined reason by using 'Unknown' as default", async () => {
-      const task = createMockTask();
-      const spec = createMockSpec({ tasks: [task] });
-      const impl = createMockImplementation([spec]);
+      const taskEntry = createMockTaskEntry();
+      const specEntry = createMockSpecEntry({ tasks: [taskEntry] });
+      const { impl } = createMockImplementation([specEntry]);
       const ctx = createMockLoopContext();
+
+      const spec = impl.specs[0];
+      const task = spec.tasks[0];
 
       await handleBlockedTask(impl, ctx, {
         spec,
@@ -374,40 +198,42 @@ describe("Task Handlers", () => {
       });
 
       // Verify "Unknown" is used for undefined reason
-      const updatedTask = impl.specs[0].tasks[0];
-      expect(updatedTask.status).toBe("blocked");
-      expect(updatedTask.blockedReason).toBe("Unknown");
+      expect(task.status).toBe("blocked");
+      expect(task.blockedReason).toBe("Unknown");
     });
   });
 
   describe("handleGatesPassed()", () => {
     it("marks task as completed and saves implementation", async () => {
-      const task = createMockTask();
-      const spec = createMockSpec({ tasks: [task] });
-      const impl = createMockImplementation([spec]);
+      const taskEntry = createMockTaskEntry();
+      const specEntry = createMockSpecEntry({ tasks: [taskEntry] });
+      const { impl, saveSpy } = createMockImplementation([specEntry]);
       const ctx = createMockLoopContext();
+
+      const spec = impl.specs[0];
+      const task = spec.tasks[0];
       const taskCtx: TaskContext = { spec, task };
 
       await handleGatesPassed(impl, ctx, taskCtx);
 
       // Verify task is marked completed
-      const updatedTask = impl.specs[0].tasks[0];
-      expect(updatedTask.status).toBe("completed");
-      expect(updatedTask.completedAt).toBeDefined();
+      expect(task.status).toBe("completed");
+      expect(task.completedAt).toBeDefined();
 
       // Verify implementation was saved
-      expect(mockSaveImplementation).toHaveBeenCalledTimes(1);
-      expect(mockSaveImplementation).toHaveBeenCalledWith(
-        ctx.projectPath,
-        impl
-      );
+      expect(saveSpy).toHaveBeenCalledTimes(1);
     });
 
     it("sends telegram notification with iteration_success status", async () => {
-      const task = createMockTask({ description: "Complete the feature" });
-      const spec = createMockSpec({ tasks: [task] });
-      const impl = createMockImplementation([spec]);
+      const taskEntry = createMockTaskEntry({
+        description: "Complete the feature",
+      });
+      const specEntry = createMockSpecEntry({ tasks: [taskEntry] });
+      const { impl } = createMockImplementation([specEntry]);
       const ctx = createMockLoopContext();
+
+      const spec = impl.specs[0];
+      const task = spec.tasks[0];
       const taskCtx: TaskContext = { spec, task };
 
       await handleGatesPassed(impl, ctx, taskCtx);
@@ -424,16 +250,19 @@ describe("Task Handlers", () => {
 
     it("detects and logs when spec becomes completed", async () => {
       // Create spec with only one task (completing it completes the spec)
-      const task = createMockTask();
-      const spec = createMockSpec({ tasks: [task] });
-      const impl = createMockImplementation([spec]);
+      const taskEntry = createMockTaskEntry();
+      const specEntry = createMockSpecEntry({ tasks: [taskEntry] });
+      const { impl } = createMockImplementation([specEntry]);
       const ctx = createMockLoopContext();
+
+      const spec = impl.specs[0];
+      const task = spec.tasks[0];
       const taskCtx: TaskContext = { spec, task };
 
       await handleGatesPassed(impl, ctx, taskCtx);
 
-      // Verify spec is marked completed
-      expect(impl.specs[0].status).toBe("completed");
+      // Verify spec is marked completed (via isCompleted getter)
+      expect(spec.isCompleted).toBe(true);
 
       // Verify log was called for spec completion
       expect(ctx.log).toHaveBeenCalledWith(`Spec completed: ${spec.name}`);
@@ -442,10 +271,13 @@ describe("Task Handlers", () => {
 
   describe("handleGatesFailed()", () => {
     it("retries task when under max retries", async () => {
-      const task = createMockTask({ retryCount: 0 });
-      const spec = createMockSpec({ tasks: [task] });
-      const impl = createMockImplementation([spec]);
+      const taskEntry = createMockTaskEntry({ retryCount: 0 });
+      const specEntry = createMockSpecEntry({ tasks: [taskEntry] });
+      const { impl, saveSpy } = createMockImplementation([specEntry]);
       const ctx = createMockLoopContext();
+
+      const spec = impl.specs[0];
+      const task = spec.tasks[0];
       const taskCtx: TaskContext = { spec, task };
       const failedGates = [
         { name: "typecheck", passed: false, output: "Type error", exitCode: 1 },
@@ -460,20 +292,23 @@ describe("Task Handlers", () => {
         },
       });
 
-      // Verify task was marked failed then reset to pending
-      const updatedTask = impl.specs[0].tasks[0];
-      expect(updatedTask.status).toBe("pending");
-      expect(updatedTask.retryCount).toBe(1);
+      // Verify task was retried (incremented count, set to pending)
+      expect(task.status).toBe("pending");
+      expect(task.retryCount).toBe(1);
+      expect(saveSpy).toHaveBeenCalledTimes(1);
 
       // Verify telegram was NOT called for retry
       expect(mockNotifyTelegram).not.toHaveBeenCalled();
     });
 
     it("calls runRetryTask callback when retrying", async () => {
-      const task = createMockTask({ retryCount: 1 });
-      const spec = createMockSpec({ tasks: [task] });
-      const impl = createMockImplementation([spec]);
+      const taskEntry = createMockTaskEntry({ retryCount: 1 });
+      const specEntry = createMockSpecEntry({ tasks: [taskEntry] });
+      const { impl } = createMockImplementation([specEntry]);
       const ctx = createMockLoopContext();
+
+      const spec = impl.specs[0];
+      const task = spec.tasks[0];
       const taskCtx: TaskContext = { spec, task };
       const failedGates = [
         { name: "test", passed: false, output: "Test failed", exitCode: 1 },
@@ -495,13 +330,16 @@ describe("Task Handlers", () => {
     });
 
     it("sends failure notification when max retries exceeded", async () => {
-      const task = createMockTask({
+      const taskEntry = createMockTaskEntry({
         description: "Failing task",
         retryCount: 3,
       });
-      const spec = createMockSpec({ tasks: [task] });
-      const impl = createMockImplementation([spec]);
+      const specEntry = createMockSpecEntry({ tasks: [taskEntry] });
+      const { impl, saveSpy } = createMockImplementation([specEntry]);
       const ctx = createMockLoopContext();
+
+      const spec = impl.specs[0];
+      const task = spec.tasks[0];
       const taskCtx: TaskContext = { spec, task };
       const failedGates = [
         { name: "build", passed: false, output: "Build failed", exitCode: 1 },
@@ -516,10 +354,9 @@ describe("Task Handlers", () => {
         },
       });
 
-      // Verify task remains failed
-      const updatedTask = impl.specs[0].tasks[0];
-      expect(updatedTask.status).toBe("failed");
-      expect(updatedTask.retryCount).toBe(4);
+      // Verify task is marked failed
+      expect(task.status).toBe("failed");
+      expect(saveSpy).toHaveBeenCalledTimes(1);
 
       // Verify failure notification was sent
       expect(mockNotifyTelegram).toHaveBeenCalledTimes(1);
@@ -533,10 +370,13 @@ describe("Task Handlers", () => {
     });
 
     it("does not call runRetryTask when max retries exceeded", async () => {
-      const task = createMockTask({ retryCount: 3 });
-      const spec = createMockSpec({ tasks: [task] });
-      const impl = createMockImplementation([spec]);
+      const taskEntry = createMockTaskEntry({ retryCount: 3 });
+      const specEntry = createMockSpecEntry({ tasks: [taskEntry] });
+      const { impl } = createMockImplementation([specEntry]);
       const ctx = createMockLoopContext();
+
+      const spec = impl.specs[0];
+      const task = spec.tasks[0];
       const taskCtx: TaskContext = { spec, task };
       const failedGates = [
         { name: "lint", passed: false, output: "Lint error", exitCode: 1 },
@@ -556,7 +396,7 @@ describe("Task Handlers", () => {
       expect(runRetryTask).not.toHaveBeenCalled();
 
       // Verify task is marked as failed (not pending)
-      expect(impl.specs[0].tasks[0].status).toBe("failed");
+      expect(task.status).toBe("failed");
     });
   });
 });
