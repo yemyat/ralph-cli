@@ -180,6 +180,32 @@ export interface NotificationPayload {
   taskDescription?: string;
 }
 
+// Hook system types
+
+export interface HookPayload {
+  projectName: string;
+  mode: "plan" | "build";
+  sessionId: string;
+  iteration: number;
+  agent: string;
+  model?: string;
+  taskDescription?: string;
+  specName?: string;
+  logFile?: string;
+  promptFile?: string;
+}
+
+export interface HookListener {
+  onLoopStarted?(payload: HookPayload): void | Promise<void>;
+  onIterationStarted?(payload: HookPayload): void | Promise<void>;
+  onIterationSuccess?(payload: HookPayload): void | Promise<void>;
+  onIterationFailure?(payload: HookPayload): void | Promise<void>;
+  onTaskBlocked?(payload: HookPayload): void | Promise<void>;
+  onSpecCompleted?(payload: HookPayload): void | Promise<void>;
+  onLoopCompleted?(payload: HookPayload): void | Promise<void>;
+  onLoopStopped?(payload: HookPayload): void | Promise<void>;
+}
+
 // Service result types
 
 export interface TaskResult {
@@ -190,19 +216,7 @@ export interface TaskResult {
 
 // Service types
 
-export interface NotificationContext {
-  projectName: string;
-  mode: "plan" | "build";
-  sessionId: string;
-}
-
 import type { LoggerService } from "./services/logger-service";
-
-export interface NotificationServiceOptions {
-  config: NotificationsConfig | undefined;
-  context: NotificationContext;
-  logger?: LoggerService | null;
-}
 
 export interface AgentRunnerOptions {
   agent: BaseAgent;
@@ -214,4 +228,9 @@ export interface AgentRunnerOptions {
 export interface RunOptions {
   prompt: string;
   onSpawn?: (child: ChildProcess) => void;
+}
+
+export interface TelegramListenerOptions {
+  config: TelegramConfig | undefined;
+  onError?: (err: unknown) => void;
 }

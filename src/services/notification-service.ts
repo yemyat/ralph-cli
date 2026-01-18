@@ -1,47 +1,63 @@
 import type {
-  NotificationContext,
+  HookListener,
+  HookPayload,
   NotificationPayload,
-  NotificationServiceOptions,
   NotificationStatus,
-  NotificationsConfig,
+  TelegramConfig,
+  TelegramListenerOptions,
 } from "../types";
 import { sendTelegramNotification } from "../utils/telegram";
-import type { LoggerService } from "./logger-service";
 
-export class NotificationService {
-  private readonly config: NotificationsConfig | undefined;
-  private readonly context: NotificationContext;
-  private readonly logger: LoggerService | null;
+export class TelegramListener implements HookListener {
+  private readonly config: TelegramConfig | undefined;
+  private readonly onError: (err: unknown) => void;
 
-  constructor(options: NotificationServiceOptions) {
+  constructor(options: TelegramListenerOptions) {
     this.config = options.config;
-    this.context = options.context;
-    this.logger = options.logger ?? null;
+    this.onError = options.onError ?? (() => undefined);
   }
 
-  async notify(
+  private async send(
     status: NotificationStatus,
-    iteration: number,
-    taskDescription?: string
+    payload: HookPayload
   ): Promise<void> {
-    const telegram = this.config?.telegram;
-    if (!telegram?.enabled) {
+    if (!this.config?.enabled) {
       return;
     }
 
-    const payload: NotificationPayload = {
-      projectName: this.context.projectName,
-      mode: this.context.mode,
-      sessionId: this.context.sessionId,
-      iteration,
+    const notificationPayload: NotificationPayload = {
+      projectName: payload.projectName,
+      mode: payload.mode,
+      sessionId: payload.sessionId,
+      iteration: payload.iteration,
       status,
-      taskDescription,
+      taskDescription: payload.taskDescription,
     };
 
     try {
-      await sendTelegramNotification(telegram, payload);
+      await sendTelegramNotification(this.config, notificationPayload);
     } catch (err) {
-      this.logger?.log(`Telegram notification failed: ${err}`);
+      this.onError(err);
     }
+  }
+
+  async onLoopStarted(payload: HookPayload): Promise<void> {
+    await this.send("loop_started", payload);
+  }
+
+  async onIterationSuccess(payload: HookPayload): Promise<void> {
+    await this.send("iteration_success", payload);
+  }
+
+  async onIterationFailure(payload: HookPayload): Promise<void> {
+    await this.send("iteration_failure", payload);
+  }
+
+  async onLoopCompleted(payload: HookPayload): Promise<void> {
+    await this.send("loop_completed", payload);
+  }
+
+  async onLoopStopped(payload: HookPayload): Promise<void> {
+    await this.send("loop_stopped", payload);
   }
 }

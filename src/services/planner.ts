@@ -6,10 +6,13 @@ import { getAgent } from "../agents/index";
 import { FILES } from "../constants";
 import { Session } from "../domain/session";
 import { Workspace } from "../domain/workspace";
-import type { PlanOptions } from "../types";
+import type { HookPayload, PlanOptions } from "../types";
 import { getRalphDir } from "../utils/paths";
 import { AgentRunner } from "./agent-runner";
+import { ConsoleListener } from "./console-listener";
+import { HookDispatcher } from "./hook-dispatcher";
 import { LoggerService } from "./logger-service";
+import { TelegramListener } from "./notification-service";
 
 interface PlannerState {
   workspace: Workspace;
@@ -24,9 +27,29 @@ export class Planner {
   private logger: LoggerService | null = null;
   private currentChild: ChildProcess | null = null;
   private agentRunner: AgentRunner | null = null;
+  private hooks: HookDispatcher | null = null;
 
   constructor(options: { verbose?: boolean } = {}) {
     this.verbose = options.verbose ?? false;
+  }
+
+  private buildPayload(overrides: Partial<HookPayload> = {}): HookPayload {
+    if (!this.state) {
+      throw new Error("Planner state not initialized");
+    }
+    const { workspace, session } = this.state;
+    const agent = getAgent(session.agent);
+    return {
+      projectName: workspace.config.projectName,
+      mode: session.mode,
+      sessionId: session.id,
+      iteration: session.iteration,
+      agent: agent.name,
+      model: session.model,
+      promptFile: FILES.PROMPT_PLAN,
+      logFile: this.logger?.logFile ?? undefined,
+      ...overrides,
+    };
   }
 
   private async validate(
@@ -70,21 +93,6 @@ export class Planner {
     return { workspace, session, prompt };
   }
 
-  private printBanner(state: PlannerState): void {
-    const { session } = state;
-    const agent = getAgent(session.agent);
-
-    console.log(pc.green("\n🚀 Starting Ralph plan mode...\n"));
-    console.log(`  Session: ${pc.cyan(session.id)}`);
-    console.log(`  Agent:   ${pc.cyan(agent.name)}`);
-    console.log(`  Model:   ${pc.cyan(session.model || "default")}`);
-    console.log(`  Prompt:  ${pc.cyan(FILES.PROMPT_PLAN)}`);
-    if (this.logger?.logFile) {
-      console.log(`  Log:     ${pc.gray(this.logger.logFile)}`);
-    }
-    console.log(pc.gray("\nPress Ctrl+C to stop.\n"));
-  }
-
   private setupServices(state: PlannerState): void {
     this.logger = new LoggerService({ verbose: this.verbose });
     this.logger.startSessionLog(state.session.id);
@@ -96,6 +104,16 @@ export class Planner {
       verbose: this.verbose,
       logger: this.logger,
     });
+
+    this.hooks = new HookDispatcher();
+    this.hooks.register(new ConsoleListener());
+    this.hooks.register(
+      new TelegramListener({
+        config: state.workspace.config.notifications?.telegram,
+        onError: (err) =>
+          this.logger?.log(`Telegram notification failed: ${err}`),
+      })
+    );
   }
 
   private setupSignalHandlers(): void {
@@ -103,7 +121,7 @@ export class Planner {
       if (!this.state) {
         return;
       }
-      console.log(pc.yellow("\n\nStopping..."));
+      await this.hooks?.emit("onLoopStopped", this.buildPayload());
       if (this.currentChild && !this.currentChild.killed) {
         this.currentChild.kill("SIGTERM");
       }
@@ -136,8 +154,9 @@ export class Planner {
 
     this.state = result;
     this.setupServices(this.state);
-    this.printBanner(this.state);
     this.setupSignalHandlers();
+
+    await this.hooks?.emit("onLoopStarted", this.buildPayload());
 
     this.state.workspace.sessionManager.add(this.state.session);
     await this.state.workspace.save();
@@ -160,7 +179,7 @@ export class Planner {
 
       if (runResult?.status === "done") {
         this.state.session.markCompleted();
-        console.log(pc.green("\n✓ Plan mode completed"));
+        await this.hooks?.emit("onLoopCompleted", this.buildPayload());
       } else {
         this.state.session.markStopped();
         console.log(pc.yellow("\n⚠ Plan mode stopped"));

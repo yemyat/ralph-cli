@@ -6,10 +6,18 @@ import { Implementation } from "../domain/implementation";
 import { Session } from "../domain/session";
 import { Workspace } from "../domain/workspace";
 import { PROMPT_BUILD } from "../templates/prompts";
-import type { BuildOptions, RalphConfig, SpecLike, TaskLike } from "../types";
+import type {
+  BuildOptions,
+  HookPayload,
+  RalphConfig,
+  SpecLike,
+  TaskLike,
+} from "../types";
 import { AgentRunner } from "./agent-runner";
+import { ConsoleListener } from "./console-listener";
+import { HookDispatcher } from "./hook-dispatcher";
 import { LoggerService } from "./logger-service";
-import { NotificationService } from "./notification-service";
+import { TelegramListener } from "./notification-service";
 
 function generateTaskPrompt(spec: SpecLike, task: TaskLike): string {
   const acceptanceCriteria = task.acceptanceCriteria?.length
@@ -37,10 +45,27 @@ export class Builder {
   private logger: LoggerService | null = null;
   private currentChild: ChildProcess | null = null;
   private agentRunner: AgentRunner | null = null;
-  private notificationService: NotificationService | null = null;
+  private hooks: HookDispatcher | null = null;
 
   constructor(options: { verbose?: boolean } = {}) {
     this.verbose = options.verbose ?? false;
+  }
+
+  private buildPayload(overrides: Partial<HookPayload> = {}): HookPayload {
+    if (!this.state) {
+      throw new Error("Builder state not initialized");
+    }
+    const { config, session } = this.state;
+    const agent = getAgent(session.agent);
+    return {
+      projectName: config.projectName,
+      mode: session.mode,
+      sessionId: session.id,
+      iteration: session.iteration,
+      agent: agent.name,
+      model: session.model,
+      ...overrides,
+    };
   }
 
   private async validate(
@@ -84,17 +109,6 @@ export class Builder {
     return { config: workspace.config, workspace, session };
   }
 
-  private printBanner(state: BuilderState): void {
-    const { session } = state;
-    const agent = getAgent(session.agent);
-
-    console.log(pc.green("\n🚀 Starting Ralph build loop...\n"));
-    console.log(`  Session: ${pc.cyan(session.id)}`);
-    console.log(`  Agent:   ${pc.cyan(agent.name)}`);
-    console.log(`  Model:   ${pc.cyan(session.model || "default")}`);
-    console.log(pc.gray("\nPress Ctrl+C to stop.\n"));
-  }
-
   private setupServices(state: BuilderState): void {
     this.logger = new LoggerService({ verbose: this.verbose });
     const agent = getAgent(state.session.agent);
@@ -106,15 +120,15 @@ export class Builder {
       logger: this.logger,
     });
 
-    this.notificationService = new NotificationService({
-      config: state.config.notifications,
-      context: {
-        projectName: state.config.projectName,
-        mode: state.session.mode,
-        sessionId: state.session.id,
-      },
-      logger: this.logger,
-    });
+    this.hooks = new HookDispatcher();
+    this.hooks.register(new ConsoleListener());
+    this.hooks.register(
+      new TelegramListener({
+        config: state.config.notifications?.telegram,
+        onError: (err) =>
+          this.logger?.log(`Telegram notification failed: ${err}`),
+      })
+    );
   }
 
   private setupSignalHandlers(): void {
@@ -122,7 +136,7 @@ export class Builder {
       if (!this.state) {
         return;
       }
-      console.log(pc.yellow("\n\nStopping Ralph loop..."));
+      await this.hooks?.emit("onLoopStopped", this.buildPayload());
       if (this.currentChild && !this.currentChild.killed) {
         this.currentChild.kill("SIGTERM");
         console.log(pc.gray("Terminated agent process"));
@@ -131,10 +145,6 @@ export class Builder {
       this.state.workspace.sessionManager.update(this.state.session);
       await this.state.workspace.save();
       this.logger?.log("Loop stopped by user");
-      await this.notificationService?.notify(
-        "loop_stopped",
-        this.state.session.iteration
-      );
       this.logger?.close();
       process.exit(0);
     };
@@ -160,17 +170,14 @@ export class Builder {
 
     this.state = result;
     this.setupServices(this.state);
-    this.printBanner(this.state);
     this.setupSignalHandlers();
+
+    await this.hooks?.emit("onLoopStarted", this.buildPayload());
 
     this.state.workspace.sessionManager.add(this.state.session);
     await this.state.workspace.save();
 
     this.logger?.log(`Starting build loop - Session ${this.state.session.id}`);
-    await this.notificationService?.notify(
-      "loop_started",
-      this.state.session.iteration
-    );
 
     try {
       await this.runLoop();
@@ -195,11 +202,7 @@ export class Builder {
 
       const next = impl.nextPendingTask;
       if (!next) {
-        console.log(pc.green("\n✓ All tasks completed!"));
-        await this.notificationService?.notify(
-          "loop_completed",
-          this.state.session.iteration
-        );
+        await this.hooks?.emit("onLoopCompleted", this.buildPayload());
         break;
       }
 
@@ -209,15 +212,14 @@ export class Builder {
 
       this.logger?.startTaskLog(task.id);
 
-      console.log(
-        pc.cyan(
-          `\n📋 Task ${this.state.session.iteration}: ${task.description}`
-        )
+      await this.hooks?.emit(
+        "onIterationStarted",
+        this.buildPayload({
+          taskDescription: task.description,
+          specName: spec.name,
+          logFile: this.logger?.logFile ?? undefined,
+        })
       );
-      console.log(pc.gray(`   Spec: ${spec.name}`));
-      if (this.logger?.logFile) {
-        console.log(pc.gray(`   Log:  ${this.logger.logFile}`));
-      }
       this.logger?.log(`Starting task: ${task.id} - ${task.description}`);
 
       task.markInProgress();
@@ -243,7 +245,10 @@ export class Builder {
       }
 
       if (result.status === "blocked") {
-        console.log(pc.yellow(`  ⚠ Task blocked: ${result.reason}`));
+        await this.hooks?.emit(
+          "onTaskBlocked",
+          this.buildPayload({ taskDescription: result.reason })
+        );
         this.logger?.log(`Task blocked: ${result.reason}`);
         task.block(result.reason || "Unknown");
         await impl.save();
@@ -251,29 +256,28 @@ export class Builder {
       }
 
       if (result.status === "done") {
-        console.log(pc.green("  ✓ Task completed"));
+        await this.hooks?.emit(
+          "onIterationSuccess",
+          this.buildPayload({ taskDescription: task.description })
+        );
         this.logger?.log(`Task completed: ${task.id}`);
         task.complete();
         await impl.save();
-        await this.notificationService?.notify(
-          "iteration_success",
-          this.state.session.iteration,
-          task.description
-        );
         if (spec.isCompleted) {
-          console.log(pc.green(`\n✓ Spec completed: ${spec.name}`));
+          await this.hooks?.emit(
+            "onSpecCompleted",
+            this.buildPayload({ specName: spec.name })
+          );
           this.logger?.log(`Spec completed: ${spec.name}`);
         }
       } else {
-        console.log(pc.red("  ✗ Task failed"));
+        await this.hooks?.emit(
+          "onIterationFailure",
+          this.buildPayload({ taskDescription: task.description })
+        );
         this.logger?.log(`Task failed: ${task.id}`);
         task.fail();
         await impl.save();
-        await this.notificationService?.notify(
-          "iteration_failure",
-          this.state.session.iteration,
-          task.description
-        );
       }
 
       console.log(pc.gray(`\n${"=".repeat(50)}\n`));
