@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T07:41:36.314Z",
-  "updatedBy": "build-mode",
+  "updatedAt": "2026-01-18T08:30:00.000Z",
+  "updatedBy": "plan-mode",
   "qualityGates": [
     "bun run typecheck",
     "bun run lint:fix",
@@ -14,8 +14,8 @@
       "file": "specs/015-pi-agent-support.md",
       "name": "PI Agent Support",
       "priority": 1,
-      "status": "pending",
-      "context": "Add PI coding agent as a new agent option. Extends BaseAgent pattern (see src/agents/base.ts, claude.ts for reference). PI uses --print --mode json --thinking high flags. Needs: PiAgent class, AgentType update, registration in agents/index.ts, optional provider option in AgentOptions.",
+      "status": "completed",
+      "context": "PI Agent fully implemented. PiAgent class in src/agents/pi.ts, registered in agents/index.ts, type added to types.ts, unit tests in agents.test.ts, AGENTS.md updated.",
       "tasks": [
         {
           "id": "pi-agent-support-1",
@@ -24,8 +24,7 @@
           "acceptanceCriteria": [
             "AgentOptions interface has optional provider property typed as string"
           ],
-          "completedAt": "2026-01-18T07:40:23.077Z",
-          "retryCount": 2
+          "completedAt": "2026-01-18T07:40:23.077Z"
         },
         {
           "id": "pi-agent-support-2",
@@ -39,7 +38,6 @@
             "checkInstalled checks for 'pi' command",
             "getInstallInstructions returns bun/npm install command"
           ],
-          "retryCount": 4,
           "completedAt": "2026-01-18T07:30:56.112Z"
         },
         {
@@ -47,7 +45,6 @@
           "description": "Add `\"pi\"` to `AgentType` union in `src/types.ts`",
           "status": "completed",
           "acceptanceCriteria": ["AgentType includes 'pi' as valid option"],
-          "retryCount": 2,
           "completedAt": "2026-01-18T07:31:12.312Z"
         },
         {
@@ -97,7 +94,7 @@
       "name": "Configurable Quality Gates",
       "priority": 2,
       "status": "completed",
-      "context": "Add qualityGates array to implementation.json root so teams can define project-specific build verification commands. Affects: src/types.ts (Implementation interface), src/utils/quality-gates.ts (parseQualityGates utility), src/utils/implementation.ts (createEmptyImplementation template), build mode task verification. Remove DEFAULT_QUALITY_GATES constant - no hardcoded defaults.",
+      "context": "Quality gates are now configurable via implementation.json. parseQualityGates in src/utils/quality-gates.ts, Implementation interface updated, unit tests complete.",
       "tasks": [
         {
           "id": "configurable-quality-gates-1",
@@ -174,75 +171,48 @@
       "name": "Task-Level Build Loop Integration Test",
       "priority": 3,
       "status": "completed",
-      "context": "Spec requires integration tests for task-level orchestration in build mode. Should extend existing e2e-loop.test.ts pattern (src/__tests__/e2e-loop.test.ts) with mock agent that captures prompts to temp files. Tests verify task isolation (agent gets one task, not full spec) and retry context injection. Existing infrastructure: task-prompts.ts (generateTaskPrompt, generateRetryPrompt), implementation.ts (task state management), quality-gates.ts (runQualityGates), start.ts (runTaskLevelLoop at line 511).",
+      "context": "Integration tests implemented in src/__tests__/task-level-loop.test.ts with mock agent pattern.",
       "tasks": [
         {
           "id": "task-level-build-loop-integration-test-1",
           "description": "Create mock agent script that captures received prompt to temp file and outputs configurable markers",
           "status": "completed",
-          "acceptanceCriteria": [
-            "Mock script writes prompt to temp file for assertions",
-            "Mock script outputs <TASK_DONE> or <TASK_BLOCKED> based on env var",
-            "Mock script is executable and works with bun"
-          ],
           "completedAt": "2026-01-17T14:11:54.912Z"
         },
         {
           "id": "task-level-build-loop-integration-test-2",
           "description": "Create mock quality gate script with configurable exit codes via env var",
           "status": "completed",
-          "acceptanceCriteria": [
-            "Script returns exit code based on MOCK_GATE_EXIT_CODE env var",
-            "Script outputs mock failure messages when exit code is non-zero"
-          ],
           "completedAt": "2026-01-17T14:13:15.582Z"
         },
         {
           "id": "task-level-build-loop-integration-test-3",
           "description": "Write test: 3 tasks spawn 3 separate sessions with isolated prompts",
           "status": "completed",
-          "acceptanceCriteria": [
-            "Given spec with 3 tasks, when build loop runs, then 3 separate agent sessions are spawned",
-            "Each captured prompt file contains only its corresponding task description"
-          ],
           "completedAt": "2026-01-17T14:18:16.041Z"
         },
         {
           "id": "task-level-build-loop-integration-test-4",
           "description": "Write test: captured prompt contains ONLY current task, not other tasks",
           "status": "completed",
-          "acceptanceCriteria": [
-            "Given task 2 of 3, when agent is spawned, then prompt contains ONLY task 2 description",
-            "Prompt does not contain task 1 or task 3 descriptions"
-          ],
-          "retryCount": 1,
           "completedAt": "2026-01-17T14:22:21.517Z"
         },
         {
           "id": "task-level-build-loop-integration-test-5",
           "description": "Write test: quality gate failure triggers retry with failure output in prompt",
           "status": "completed",
-          "acceptanceCriteria": [
-            "Given quality gates fail with 'typecheck: error TS123', when retry spawns, then prompt includes 'typecheck: error TS123'"
-          ],
           "completedAt": "2026-01-17T14:24:27.687Z"
         },
         {
           "id": "task-level-build-loop-integration-test-6",
           "description": "Write test: implementation.json task status updates to completed after success",
           "status": "completed",
-          "acceptanceCriteria": [
-            "Given all 3 tasks complete successfully, when build loop finishes, then all 3 tasks show status 'completed' in implementation.json"
-          ],
           "completedAt": "2026-01-17T14:26:05.664Z"
         },
         {
           "id": "task-level-build-loop-integration-test-7",
           "description": "Write test: blocked task gets marked with reason from TASK_BLOCKED marker",
           "status": "completed",
-          "acceptanceCriteria": [
-            "Given agent outputs '<TASK_BLOCKED reason=\"missing API key\">', when build loop processes, then task status is 'blocked' with blockedReason 'missing API key'"
-          ],
           "completedAt": "2026-01-17T14:28:13.911Z"
         }
       ],
@@ -252,6 +222,674 @@
         "CI passes with mocked agent tests (no real AI calls)",
         "Tests run without network/AI dependencies",
         "Tests follow pattern from existing e2e-loop.test.ts"
+      ]
+    },
+    {
+      "id": "remove-legacy-loop",
+      "file": "specs/016-remove-legacy-loop.md",
+      "name": "Remove Legacy Loop & Simplify Orchestration",
+      "priority": 4,
+      "status": "pending",
+      "context": "start.ts is 838 lines with two parallel orchestration systems. Legacy runRalphLoop() (~150 lines), DONE_MARKER, and useTaskLevel branching need removal. Then extract into src/orchestration/ modules: task-loop.ts, task-handlers.ts, agent-executor.ts, notifications.ts. Goal: start.ts < 150 lines.",
+      "tasks": [
+        {
+          "id": "remove-legacy-loop-1",
+          "description": "Delete `runRalphLoop()` function from `start.ts`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "runRalphLoop function is removed",
+            "No code references runRalphLoop"
+          ]
+        },
+        {
+          "id": "remove-legacy-loop-2",
+          "description": "Delete `DONE_MARKER` constant",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "DONE_MARKER constant is removed",
+            "No code references DONE_MARKER"
+          ]
+        },
+        {
+          "id": "remove-legacy-loop-3",
+          "description": "Remove `useTaskLevel` branching logic in `startCommand()`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "useTaskLevel variable is removed",
+            "Build mode always uses task-level loop"
+          ]
+        },
+        {
+          "id": "remove-legacy-loop-4",
+          "description": "Remove `PROMPT_build.md` template handling from init.ts and reinit.ts",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "init.ts does not create PROMPT_build.md",
+            "reinit.ts does not reference PROMPT_build.md"
+          ]
+        },
+        {
+          "id": "remove-legacy-loop-5",
+          "description": "Create `src/orchestration/` directory structure",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "src/orchestration/ directory exists",
+            "task-loop.ts, task-handlers.ts, agent-executor.ts, notifications.ts created"
+          ]
+        },
+        {
+          "id": "remove-legacy-loop-6",
+          "description": "Extract `runTaskLevelLoop()` to `orchestration/task-loop.ts`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "runTaskLevelLoop function moved to task-loop.ts",
+            "start.ts imports from orchestration/task-loop"
+          ]
+        },
+        {
+          "id": "remove-legacy-loop-7",
+          "description": "Extract handler functions to `orchestration/task-handlers.ts`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "handleBlockedTask, handleGatesPassed, handleGatesFailed moved",
+            "Handlers exported from task-handlers.ts"
+          ]
+        },
+        {
+          "id": "remove-legacy-loop-8",
+          "description": "Extract agent execution to `orchestration/agent-executor.ts`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "executeAgentWithPrompt, runSingleTask, runRetryTask moved",
+            "Functions exported from agent-executor.ts"
+          ]
+        },
+        {
+          "id": "remove-legacy-loop-9",
+          "description": "Extract notifications to `orchestration/notifications.ts`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "notifyTelegram, getGitBranch moved",
+            "Functions exported from notifications.ts"
+          ]
+        },
+        {
+          "id": "remove-legacy-loop-10",
+          "description": "Verify all existing tests pass after refactor",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "bun run test passes",
+            "bun run typecheck passes",
+            "start.ts is under 150 lines"
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Given I run `ralph-wiggum-cli start build`, when there are tasks in `implementation.json`, then the task-level loop executes (no behavior change)",
+        "Given I search for `runRalphLoop` in the codebase, when I search, then zero results are found",
+        "Given I search for `DONE_MARKER` in the codebase, when I search, then zero results are found",
+        "Given I open `commands/start.ts`, when I read it, then it is under 150 lines",
+        "Given I run `bun test`, when tests complete, then all tests still pass"
+      ]
+    },
+    {
+      "id": "centralize-constants",
+      "file": "specs/018-centralize-constants.md",
+      "name": "Centralize Constants & Magic Strings",
+      "priority": 5,
+      "status": "pending",
+      "context": "Magic strings scattered: TASK_DONE_MARKER, TASK_BLOCKED_REGEX duplicated in start.ts and task-level-loop.test.ts. Create src/constants.ts with MARKERS, FILES, DEFAULTS objects. Add formatBlockedMarker() and parseBlockedMarker() helpers.",
+      "tasks": [
+        {
+          "id": "centralize-constants-1",
+          "description": "Create `src/constants.ts` with `MARKERS` object",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "MARKERS.TASK_DONE contains '<TASK_DONE>'",
+            "MARKERS.TASK_BLOCKED_TEMPLATE contains '<TASK_BLOCKED reason=\"...\">'",
+            "MARKERS.TASK_BLOCKED_REGEX contains the regex pattern"
+          ]
+        },
+        {
+          "id": "centralize-constants-2",
+          "description": "Add `FILES` object with file name constants",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "FILES.CONFIG = 'config.json'",
+            "FILES.IMPLEMENTATION = 'implementation.json'",
+            "FILES.PROMPT_PLAN = 'PROMPT_plan.md'"
+          ]
+        },
+        {
+          "id": "centralize-constants-3",
+          "description": "Add `DEFAULTS` object with default values",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "DEFAULTS.MAX_RETRIES = 3",
+            "DEFAULTS.GRACEFUL_SHUTDOWN_MS = 5000",
+            "DEFAULTS.DEFAULT_AGENT = 'claude'"
+          ]
+        },
+        {
+          "id": "centralize-constants-4",
+          "description": "Add `formatBlockedMarker()` and `parseBlockedMarker()` helpers",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "formatBlockedMarker('reason') returns '<TASK_BLOCKED reason=\"reason\">'",
+            "parseBlockedMarker(output) extracts reason or returns null"
+          ]
+        },
+        {
+          "id": "centralize-constants-5",
+          "description": "Update `commands/start.ts` to import from `constants.ts`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "start.ts imports MARKERS from constants",
+            "No string literal duplicates for task markers in start.ts"
+          ]
+        },
+        {
+          "id": "centralize-constants-6",
+          "description": "Update `utils/task-prompts.ts` to use `MARKERS`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "task-prompts.ts imports MARKERS",
+            "Prompt templates use MARKERS.TASK_DONE and MARKERS.TASK_BLOCKED_TEMPLATE"
+          ]
+        },
+        {
+          "id": "centralize-constants-7",
+          "description": "Update `task-level-loop.test.ts` to import from `constants.ts`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test file imports MARKERS",
+            "Duplicate TASK_BLOCKED_REGEX removed from test file"
+          ]
+        },
+        {
+          "id": "centralize-constants-8",
+          "description": "Add unit test for `parseBlockedMarker()` helper",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test verifies parseBlockedMarker extracts reason",
+            "Test verifies parseBlockedMarker returns null for non-matching input"
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Given I search for `<TASK_DONE>` as a string literal, when I search outside `constants.ts`, then zero results are found",
+        "Given I search for `TASK_BLOCKED` regex pattern, when I search outside `constants.ts`, then zero results are found",
+        "Given I change `MARKERS.TASK_DONE` value, when I run tests, then tests use the new value automatically",
+        "Given I run `bun test`, when tests complete, then all tests pass"
+      ]
+    },
+    {
+      "id": "async-consistency",
+      "file": "specs/021-async-consistency.md",
+      "name": "Fix Async/Await Consistency",
+      "priority": 6,
+      "status": "pending",
+      "context": "All 8 agents use Promise.resolve(true/false) pattern in checkInstalled() instead of async/await. This inconsistency causes cognitive overhead. Update all agents to use async keyword.",
+      "tasks": [
+        {
+          "id": "async-consistency-1",
+          "description": "Update `ClaudeAgent.checkInstalled()` to use `async`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Method uses async keyword",
+            "Returns true/false directly, not Promise.resolve()"
+          ]
+        },
+        {
+          "id": "async-consistency-2",
+          "description": "Update `AmpAgent.checkInstalled()` to use `async`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Method uses async keyword",
+            "Returns true/false directly"
+          ]
+        },
+        {
+          "id": "async-consistency-3",
+          "description": "Update `DroidAgent.checkInstalled()` to use `async`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Method uses async keyword",
+            "Returns true/false directly"
+          ]
+        },
+        {
+          "id": "async-consistency-4",
+          "description": "Update `OpenCodeAgent.checkInstalled()` to use `async`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Method uses async keyword",
+            "Returns true/false directly"
+          ]
+        },
+        {
+          "id": "async-consistency-5",
+          "description": "Update `CursorAgent.checkInstalled()` to use `async`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Method uses async keyword",
+            "Returns true/false directly"
+          ]
+        },
+        {
+          "id": "async-consistency-6",
+          "description": "Update `CodexAgent.checkInstalled()` to use `async`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Method uses async keyword",
+            "Returns true/false directly"
+          ]
+        },
+        {
+          "id": "async-consistency-7",
+          "description": "Update `GeminiAgent.checkInstalled()` to use `async`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Method uses async keyword",
+            "Returns true/false directly"
+          ]
+        },
+        {
+          "id": "async-consistency-8",
+          "description": "Update `PiAgent.checkInstalled()` to use `async`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Method uses async keyword",
+            "Returns true/false directly"
+          ]
+        },
+        {
+          "id": "async-consistency-9",
+          "description": "Run tests and typecheck to verify no regressions",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "bun run test passes",
+            "bun run typecheck passes"
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Given I search for `Promise.resolve(true)` in agents/, when I search, then zero results are found",
+        "Given I search for `Promise.resolve(false)` in agents/, when I search, then zero results are found",
+        "Given I look at any agent's `checkInstalled()`, when I read it, then it uses `async` keyword",
+        "Given I run `bun test`, when tests complete, then all agent tests pass"
+      ]
+    },
+    {
+      "id": "options-object-pattern",
+      "file": "specs/017-options-object-pattern.md",
+      "name": "Introduce Options Object Pattern",
+      "priority": 7,
+      "status": "pending",
+      "context": "Functions have 10+ positional parameters making code hard to read. After spec 016 creates orchestration/, refactor to use LoopContext and named options objects. Depends on: spec 016 (remove-legacy-loop).",
+      "tasks": [
+        {
+          "id": "options-object-pattern-1",
+          "description": "Define `LoopContext` interface in `src/orchestration/types.ts`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "LoopContext contains: projectPath, config, session, agent, log, verbose",
+            "Interface is exported from orchestration/types.ts"
+          ]
+        },
+        {
+          "id": "options-object-pattern-2",
+          "description": "Define `ExecuteAgentOptions` interface",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "ExecuteAgentOptions contains: prompt, onSpawn",
+            "Interface is exported"
+          ]
+        },
+        {
+          "id": "options-object-pattern-3",
+          "description": "Define `RetryOptions` interface",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "RetryOptions contains: spec, task, failedGates, retryCount",
+            "Interface is exported"
+          ]
+        },
+        {
+          "id": "options-object-pattern-4",
+          "description": "Refactor `executeAgentWithPrompt()` to use options object",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Function signature uses ExecuteAgentOptions",
+            "Call sites updated with named parameters"
+          ]
+        },
+        {
+          "id": "options-object-pattern-5",
+          "description": "Refactor `runSingleTask()` to use `LoopContext`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Function receives LoopContext instead of individual params",
+            "Call sites pass context object"
+          ]
+        },
+        {
+          "id": "options-object-pattern-6",
+          "description": "Refactor `runRetryTask()` to use `LoopContext` + `RetryOptions`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Function signature: runRetryTask(ctx: LoopContext, options: RetryOptions)",
+            "Call sites updated"
+          ]
+        },
+        {
+          "id": "options-object-pattern-7",
+          "description": "Refactor all handler functions to use `LoopContext`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "handleBlockedTask uses LoopContext",
+            "handleGatesPassed uses LoopContext",
+            "handleGatesFailed uses LoopContext"
+          ]
+        },
+        {
+          "id": "options-object-pattern-8",
+          "description": "Update `runTaskLevelLoop()` to create and pass `LoopContext`",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "LoopContext created at loop entry",
+            "Context passed to all sub-functions"
+          ]
+        },
+        {
+          "id": "options-object-pattern-9",
+          "description": "Run tests to verify no regressions",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "bun run test passes",
+            "bun run typecheck passes",
+            "No function has more than 3 positional parameters"
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Given any function in `orchestration/`, when it has more than 3 parameters, then it uses an options object",
+        "Given I read a function call like `runRetryTask(...)`, when I see the call, then I can understand each argument without looking up the definition",
+        "Given I run `bun test`, when tests complete, then all tests pass"
+      ]
+    },
+    {
+      "id": "unit-tests-orchestration",
+      "file": "specs/019-unit-tests-orchestration.md",
+      "name": "Unit Tests for Orchestration Layer",
+      "priority": 8,
+      "status": "pending",
+      "context": "After spec 016 extracts orchestration/, add unit tests for each module. Tests should be fast (<1s), use mocks for I/O, and cover handler functions, agent executor, and notifications. Depends on: spec 016 (remove-legacy-loop).",
+      "tasks": [
+        {
+          "id": "unit-tests-orchestration-1",
+          "description": "Create `src/orchestration/__tests__/` directory",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Directory exists",
+            "Test files follow naming convention"
+          ]
+        },
+        {
+          "id": "unit-tests-orchestration-2",
+          "description": "Create `task-handlers.test.ts` with test suite",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Tests for handleBlockedTask (3 cases)",
+            "Tests for handleGatesPassed (3 cases)",
+            "Tests for handleGatesFailed (4 cases)"
+          ]
+        },
+        {
+          "id": "unit-tests-orchestration-3",
+          "description": "Create `agent-executor.test.ts` with test suite",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Tests for executeAgentWithPrompt (4 cases)",
+            "Tests for runSingleTask (2 cases)",
+            "Tests for runRetryTask (2 cases)"
+          ]
+        },
+        {
+          "id": "unit-tests-orchestration-4",
+          "description": "Create `notifications.test.ts` with test suite",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Tests for notifyTelegram (3 cases)",
+            "Tests for getGitBranch (2 cases)"
+          ]
+        },
+        {
+          "id": "unit-tests-orchestration-5",
+          "description": "Create mock fixtures for test doubles",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "createMockContext() helper exists",
+            "createMockImplementation() helper exists",
+            "createMockExecutor() helper exists"
+          ]
+        },
+        {
+          "id": "unit-tests-orchestration-6",
+          "description": "Ensure all tests run in under 1 second",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "bun test src/orchestration/ completes in <1s",
+            "At least 20 unit tests pass"
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Given I run `bun test src/orchestration/`, when tests complete, then at least 20 unit tests pass",
+        "Given I run `bun test src/orchestration/`, when tests complete, then total time is under 1 second",
+        "Given I break `handleBlockedTask()` logic, when I run its tests, then the specific test fails",
+        "Given I run `bun test`, when all tests complete, then total count is 230+ tests"
+      ]
+    },
+    {
+      "id": "unit-tests-init-command",
+      "file": "specs/020-unit-tests-init-command.md",
+      "name": "Unit Tests for Init Command",
+      "priority": 9,
+      "status": "pending",
+      "context": "init.ts (322 lines) has zero test coverage. Extract testable logic to init-logic.ts, test file creation, gitignore handling, agent validation, and idempotency. Use temp directories.",
+      "tasks": [
+        {
+          "id": "unit-tests-init-command-1",
+          "description": "Create `src/commands/__tests__/` directory",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Directory exists"
+          ]
+        },
+        {
+          "id": "unit-tests-init-command-2",
+          "description": "Extract `initializeProject()` from `initCommand()` for testing",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "initializeProject() is a separate, testable function",
+            "No interactive prompts in initializeProject()"
+          ]
+        },
+        {
+          "id": "unit-tests-init-command-3",
+          "description": "Create `init-logic.test.ts` test file",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test file uses bun:test",
+            "Tests use temp directories with beforeEach/afterEach cleanup"
+          ]
+        },
+        {
+          "id": "unit-tests-init-command-4",
+          "description": "Add tests for config creation (4 cases)",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test: creates config.json with correct structure",
+            "Test: sets correct agent types",
+            "Test: includes model when provided",
+            "Test: includes telegram config when provided"
+          ]
+        },
+        {
+          "id": "unit-tests-init-command-5",
+          "description": "Add tests for file creation (6 cases)",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test: creates PROMPT_plan.md",
+            "Test: creates GUARDRAILS.md",
+            "Test: creates implementation.json with quality gates",
+            "Test: does NOT overwrite existing files"
+          ]
+        },
+        {
+          "id": "unit-tests-init-command-6",
+          "description": "Add tests for gitignore handling (3 cases)",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test: adds logs pattern to existing .gitignore",
+            "Test: creates .gitignore if missing",
+            "Test: does not duplicate pattern if already present"
+          ]
+        },
+        {
+          "id": "unit-tests-init-command-7",
+          "description": "Add tests for agent validation (3 cases)",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test: returns error when plan agent not installed",
+            "Test: returns error when build agent not installed",
+            "Test: proceeds when both agents installed"
+          ]
+        },
+        {
+          "id": "unit-tests-init-command-8",
+          "description": "Add tests for idempotency (2 cases)",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test: running init twice doesn't corrupt config",
+            "Test: running with --force overwrites config"
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Given I run `bun test src/commands/`, when tests complete, then at least 15 init tests pass",
+        "Given I run init on a new project, when I check `.ralph-wiggum/`, then all expected files exist",
+        "Given I run init on existing project without `--force`, when command completes, then existing config is preserved",
+        "Given I run init with uninstalled agent, when command runs, then it shows install instructions"
+      ]
+    },
+    {
+      "id": "domain-objects",
+      "file": "specs/022-domain-objects.md",
+      "name": "Introduce Domain Objects for Task & Spec",
+      "priority": 10,
+      "status": "pending",
+      "context": "Replace procedural task/spec manipulation with rich domain objects. Create src/domain/ with Task, Spec, Implementation classes. Task.complete(), Spec.checkCompletion(), impl.save(). Benefits from spec 016 but can be done independently.",
+      "tasks": [
+        {
+          "id": "domain-objects-1",
+          "description": "Create `src/domain/` directory",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Directory exists"
+          ]
+        },
+        {
+          "id": "domain-objects-2",
+          "description": "Create `src/domain/task.ts` with `Task` class",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Task class has: id, description, status getters",
+            "Task class has: complete(), block(reason), fail(), retry(), markInProgress() methods",
+            "Task class has: toJSON() method"
+          ]
+        },
+        {
+          "id": "domain-objects-3",
+          "description": "Create `src/domain/spec.ts` with `Spec` class",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Spec class has: id, name, tasks, isCompleted getters",
+            "Spec class has: nextPendingTask, completedTasks, progress getters",
+            "Spec class has: checkCompletion(), toJSON() methods"
+          ]
+        },
+        {
+          "id": "domain-objects-4",
+          "description": "Create `src/domain/implementation.ts` with `Implementation` class",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Implementation class has: specs, nextPendingTask getters",
+            "Implementation class has: static load(projectPath) method",
+            "Implementation class has: save(), toJSON() methods"
+          ]
+        },
+        {
+          "id": "domain-objects-5",
+          "description": "Create `src/domain/index.ts` barrel exports",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Task, Spec, Implementation exported from index.ts"
+          ]
+        },
+        {
+          "id": "domain-objects-6",
+          "description": "Add unit tests for `Task` class (5 cases)",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test: complete() sets status and completedAt",
+            "Test: block(reason) sets status and blockedReason",
+            "Test: fail() increments retryCount",
+            "Test: retry() resets to pending",
+            "Test: toJSON() returns plain object"
+          ]
+        },
+        {
+          "id": "domain-objects-7",
+          "description": "Add unit tests for `Spec` class (5 cases)",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test: isCompleted true when all tasks complete",
+            "Test: nextPendingTask returns first pending",
+            "Test: progress returns correct counts",
+            "Test: checkCompletion() updates status",
+            "Test: toJSON() includes updated tasks"
+          ]
+        },
+        {
+          "id": "domain-objects-8",
+          "description": "Add unit tests for `Implementation` class (5 cases)",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "Test: load() returns Implementation instance",
+            "Test: load() returns null if file missing",
+            "Test: nextPendingTask returns first pending across specs",
+            "Test: save() persists changes to disk",
+            "Test: toJSON() includes updatedAt"
+          ]
+        },
+        {
+          "id": "domain-objects-9",
+          "description": "Update orchestration layer to use domain objects (optional)",
+          "status": "pending",
+          "acceptanceCriteria": [
+            "task-loop.ts uses Implementation.load()",
+            "Handlers use task.complete() instead of utility functions"
+          ]
+        }
+      ],
+      "acceptanceCriteria": [
+        "Given I have a `Task` instance, when I call `task.complete()`, then status is 'completed' and completedAt is set",
+        "Given I have a `Spec` instance, when all tasks are completed, then `spec.isCompleted` returns true",
+        "Given I have an `Implementation` instance, when I call `impl.nextPendingTask`, then it returns the first pending task",
+        "Given I call `impl.save()`, when I reload the implementation, then changes are persisted",
+        "Given I run `bun test`, when tests complete, then all tests pass including 15+ new domain tests"
       ]
     }
   ]

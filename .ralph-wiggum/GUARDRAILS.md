@@ -24,3 +24,8 @@ Compliance rules to verify before and after making changes.
 - TUI types (Task, ParsedPlan, etc.) should be imported from `types.ts` (once created)
 - TypeScript strict mode is enabled - all types must be explicit
 - Test files go in `src/__tests__/` with `.test.ts` extension
+
+## Spec Dependencies
+- **Spec 017** (Options Object Pattern) depends on **Spec 016** (Remove Legacy Loop) — wait for orchestration/ to exist
+- **Spec 019** (Unit Tests Orchestration) depends on **Spec 016** (Remove Legacy Loop) — wait for orchestration/ to exist
+- **Specs 018, 020, 021, 022** are independent and can be done in parallel
