@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T08:11:56.497Z",
+  "updatedAt": "2026-01-18T08:15:30.643Z",
   "updatedBy": "build-mode",
   "qualityGates": [
     "bun run typecheck",
@@ -255,34 +255,37 @@
         {
           "id": "remove-legacy-loop-3",
           "description": "Remove `useTaskLevel` branching logic in `startCommand()`",
-          "status": "in_progress",
+          "status": "completed",
           "acceptanceCriteria": [
             "useTaskLevel variable is removed",
             "Build mode always uses task-level loop"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:13:48.656Z"
         },
         {
           "id": "remove-legacy-loop-4",
           "description": "Remove `PROMPT_build.md` template handling from init.ts and reinit.ts",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "init.ts does not create PROMPT_build.md",
             "reinit.ts does not reference PROMPT_build.md"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:14:40.762Z"
         },
         {
           "id": "remove-legacy-loop-5",
           "description": "Create `src/orchestration/` directory structure",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "src/orchestration/ directory exists",
             "task-loop.ts, task-handlers.ts, agent-executor.ts, notifications.ts created"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:15:30.260Z"
         },
         {
           "id": "remove-legacy-loop-6",
           "description": "Extract `runTaskLevelLoop()` to `orchestration/task-loop.ts`",
-          "status": "pending",
+          "status": "in_progress",
           "acceptanceCriteria": [
             "runTaskLevelLoop function moved to task-loop.ts",
             "start.ts imports from orchestration/task-loop"
