@@ -39,7 +39,7 @@ Create or update @.ralph-wiggum/implementation.json with this structure:
   "specs": [
     {
       "id": "spec-id-kebab-case",
-      "file": "specs/spec-file.md",
+      "file": ".ralph-wiggum/specs/spec-file.md",
       "name": "Human Readable Name",
       "priority": 1,
       "status": "pending",
@@ -93,7 +93,7 @@ You are working on a specific task that is mentioned below. The task is part of 
 ### Larger Spec Context
 {{spec_name}}
 
-You can find the full specs in the file: {{full_specs_file}}
+You can find the full specs in the file: {{full_specs_file}} (This is under ".ralph-wiggum" folder. You'll find ".ralph-wiggum/specs")
 
 ### Task Description
 {{task_context}}
