@@ -14,13 +14,13 @@
       "file": "specs/015-pi-agent-support.md",
       "name": "PI Agent Support",
       "priority": 1,
-      "status": "in_progress",
+      "status": "pending",
       "context": "Add PI coding agent as a new agent option. Extends BaseAgent pattern (see src/agents/base.ts, claude.ts for reference). PI uses --print --mode json --thinking high flags. Needs: PiAgent class, AgentType update, registration in agents/index.ts, optional provider option in AgentOptions.",
       "tasks": [
         {
           "id": "pi-agent-support-1",
           "description": "Add `provider?: string` to `AgentOptions` interface in `src/agents/base.ts`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "AgentOptions interface has optional provider property typed as string"
           ],
@@ -46,9 +46,7 @@
           "id": "pi-agent-support-3",
           "description": "Add `\"pi\"` to `AgentType` union in `src/types.ts`",
           "status": "completed",
-          "acceptanceCriteria": [
-            "AgentType includes 'pi' as valid option"
-          ],
+          "acceptanceCriteria": ["AgentType includes 'pi' as valid option"],
           "retryCount": 2,
           "completedAt": "2026-01-18T07:31:12.312Z"
         },
