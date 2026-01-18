@@ -4,6 +4,8 @@ A command-line tool for managing **Ralph Wiggum** AI development workflows acros
 
 Based on the [Ralph Wiggum Technique](https://github.com/ghuntley/how-to-ralph-wiggum) - an AI development methodology that uses autonomous coding loops with AI agents.
 
+This implementation takes a **task-first approach**: instead of giving agents autonomy to work through specs, we decompose specs into small tasks during planning, then feed tasks to agents one at a time. Smaller tasks keep agents focused and out of the "dumb zone."
+
 > **Meta**: This CLI was built by pointing an AI agent at the [Ralph Wiggum technique repo](https://github.com/ghuntley/how-to-ralph-wiggum), then using Ralph itself to implement and refine the tool. Recursive AI development in action.
 
 ## Installation
@@ -44,54 +46,69 @@ cp -r .claude/skills/ralph ~/.claude/skills/
 cd your-project
 ralph-wiggum-cli init
 
-# Start planning mode (generates IMPLEMENTATION_PLAN.md)
-ralph-wiggum-cli start plan
+# Run planning mode (analyzes specs and creates implementation.json)
+ralph-wiggum-cli plan
 
-# Start building mode (implements from plan)
-ralph-wiggum-cli start build
+# Run build mode (executes tasks from implementation.json)
+ralph-wiggum-cli build
 
 # View status
 ralph-wiggum-cli status
 
-# Stop the loop
+# Stop a running session
 ralph-wiggum-cli stop
 ```
 
 ## Commands
 
-| Command                                | Description                             |
-| -------------------------------------- | --------------------------------------- |
-| `ralph-wiggum-cli init`                | Initialize Ralph in the current project |
-| `ralph-wiggum-cli start [plan\|build]` | Start the Ralph loop                    |
-| `ralph-wiggum-cli stop`                | Stop the running Ralph session          |
-| `ralph-wiggum-cli status`              | Show project status and sessions        |
-| `ralph-wiggum-cli list`                | Show project info                       |
-| `ralph-wiggum-cli logs`                | View session logs                       |
-| `ralph-wiggum-cli agents`              | List available AI agents                |
+| Command                   | Description                                    |
+| ------------------------- | ---------------------------------------------- |
+| `ralph-wiggum-cli init`   | Initialize Ralph in the current project        |
+| `ralph-wiggum-cli plan`   | Run planning mode (analyze specs, create plan) |
+| `ralph-wiggum-cli build`  | Run build mode (execute tasks from plan)       |
+| `ralph-wiggum-cli stop`   | Stop running session                           |
+| `ralph-wiggum-cli status` | Show project status and sessions               |
+| `ralph-wiggum-cli agents` | List available AI agents                       |
 
 ## Options
 
-### Global Options
+### Init Options
 
-- `--agent <claude|amp|droid|opencode|cursor|codex|gemini>` - Switch between AI agents
-- `--model <model>` - Specify the model to use
+```bash
+ralph-wiggum-cli init [options]
 
-### Start Options
+  -a, --agent <agent>       AI agent for both modes (default: claude)
+  -m, --model <model>       Model for both modes
+  --plan-agent <agent>      AI agent for planning mode
+  --plan-model <model>      Model for planning mode
+  --build-agent <agent>     AI agent for building mode
+  --build-model <model>     Model for building mode
+  -f, --force               Force reinitialization
+```
 
-- `-n, --max-iterations <n>` - Maximum number of iterations
-- `-v, --verbose` - Enable verbose output
+### Plan/Build Options
+
+```bash
+ralph-wiggum-cli plan [options]
+ralph-wiggum-cli build [options]
+
+  -a, --agent <agent>  Override the configured agent
+  -m, --model <model>  Override the configured model
+  -v, --verbose        Enable verbose output (shows agent stdout/stderr)
+```
 
 ## Supported Agents
 
-| Agent      | Description                                            |
-| ---------- | ------------------------------------------------------ |
-| `claude`   | [Claude Code](https://code.claude.com) by Anthropic    |
-| `amp`      | [Amp Code](https://ampcode.com) by Sourcegraph         |
-| `droid`    | [Factory Droid](https://factory.ai) CLI                |
-| `opencode` | [OpenCode](https://opencode.ai) CLI                    |
-| `cursor`   | [Cursor Agent](https://cursor.com) CLI                 |
-| `codex`    | [OpenAI Codex](https://openai.com/codex) CLI           |
-| `gemini`   | [Gemini CLI](https://ai.google.dev/gemini-api) by Google |
+| Agent      | Description                                                                |
+| ---------- | -------------------------------------------------------------------------- |
+| `claude`   | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) by Anthropic |
+| `amp`      | [Amp Code](https://ampcode.com) by Sourcegraph                             |
+| `droid`    | [Factory Droid](https://factory.ai) CLI                                    |
+| `opencode` | [OpenCode](https://opencode.ai) CLI                                        |
+| `cursor`   | [Cursor Agent](https://cursor.com) CLI                                     |
+| `codex`    | [OpenAI Codex](https://openai.com/codex) CLI                               |
+| `gemini`   | [Gemini CLI](https://ai.google.dev/gemini-api) by Google                   |
+| `pi`       | [Pi](https://github.com/mariozechner/pi-coding-agent) coding agent         |
 
 ## Project Structure
 
@@ -100,32 +117,57 @@ After `ralph-wiggum-cli init`, your project will have:
 ```
 your-project/
 └── .ralph-wiggum/
-    ├── config.json            # Project config and session history
-    ├── PROMPT_plan.md         # Planning mode prompt
-    ├── PROMPT_build.md        # Building mode prompt
-    ├── IMPLEMENTATION_PLAN.md # Auto-generated implementation plan
-    ├── specs/                 # Specification files
-    │   └── example.md
-    └── logs/                  # Session logs (gitignored)
+    ├── config.json          # Project config and session history
+    ├── PROMPT_plan.md       # Planning mode prompt (customizable)
+    ├── implementation.json  # Task tracking (generated by plan mode)
+    ├── GUARDRAILS.md        # Compliance rules (before/after checks)
+    ├── PROGRESS.md          # Audit trail of completed work
+    ├── specs/               # Specification files
+    │   └── example.md       # Example spec template
+    └── logs/                # Session logs (gitignored)
 ```
 
 ## How It Works
 
-Ralph implements the "Ralph Wiggum" technique:
+This CLI implements a **task-first variation** of the Ralph Wiggum technique.
 
-1. **Planning Phase**: AI analyzes specs and generates an implementation plan
-2. **Building Phase**: AI iterates through the plan, implementing one task per loop
-3. **Loop Mechanics**: Fresh context each iteration, backpressure via tests/builds
-4. **Git Integration**: Commits after each successful iteration
+Traditional Ralph implementations give agents autonomy to pick tasks and work spec-by-spec. This approach is different: we break specs into small, focused tasks during planning, then feed them to the agent one at a time during building.
 
-Each iteration:
+**Why task-first?**
 
-1. Reads specs and current plan
-2. Selects the most important task
-3. Implements the task
-4. Runs tests (backpressure)
-5. Commits changes
-6. Pushes to remote
+- **Smaller context = smarter agent.** Large specs push agents into the "dumb zone" where they lose focus and make mistakes. Small tasks keep them sharp.
+- **Deterministic execution.** Tasks are picked by priority, not agent judgment. You control the order.
+- **Better progress tracking.** Each task completion is a checkpoint. If something fails, you know exactly where.
+
+### Planning Phase (`ralph-wiggum-cli plan`)
+
+1. AI reads all specs in `.ralph-wiggum/specs/`
+2. Audits the codebase to understand current state
+3. Breaks each spec into small, actionable tasks with acceptance criteria
+4. Outputs `implementation.json` with prioritized task queue
+
+The planner's job is to think deeply about the work and decompose it properly. This is where complexity lives.
+
+### Building Phase (`ralph-wiggum-cli build`)
+
+1. Picks the next pending task (by spec priority, then task order)
+2. Injects the task directly into the agent's context, along with a reference to the larger spec for background
+3. Agent implements just that one task
+4. On completion, marks task done and loops to the next
+5. Continues until all tasks across all specs are complete
+
+The builder's job is simple: execute one small task at a time. No decisions, no prioritization—just focused implementation.
+
+### Task Completion Markers
+
+Agents signal completion via stdout:
+
+- `<TASK_DONE>` - Task completed successfully
+- `<TASK_BLOCKED reason="...">` - Task blocked (missing dependency, unclear requirement)
+
+### Notifications
+
+Ralph supports Telegram notifications for loop events (start, task complete, blocked, done). Configure during `init` or in `config.json`.
 
 ## License
 
