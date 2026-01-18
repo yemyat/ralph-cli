@@ -7,7 +7,11 @@ import { spawn } from "node:child_process";
 import { saveSession } from "../config";
 import type { QualityGateResult, SpecEntry, TaskEntry } from "../types";
 import { generateRetryPrompt, generateTaskPrompt } from "../utils/task-prompts";
-import type { ExecuteAgentOptions, LoopContext } from "./types";
+import type {
+  ExecuteAgentOptions,
+  LoopContext,
+  SingleTaskOptions,
+} from "./types";
 
 const TASK_BLOCKED_REGEX = /<TASK_BLOCKED\s+reason="([^"]+)">/;
 
@@ -110,10 +114,9 @@ export function executeAgentWithPrompt(
  */
 export function runSingleTask(
   context: LoopContext,
-  spec: SpecEntry,
-  task: TaskEntry,
-  onSpawn?: (child: ReturnType<typeof spawn>) => void
+  options: SingleTaskOptions
 ): Promise<TaskResult> {
+  const { spec, task, onSpawn } = options;
   const taskPrompt = generateTaskPrompt(spec, task);
   return executeAgentWithPrompt(context, { prompt: taskPrompt, onSpawn });
 }

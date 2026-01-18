@@ -212,12 +212,11 @@ export async function runTaskLevelLoop(
       await saveImplementation(projectPath, impl);
 
       // Run the task
-      const result = await runSingleTask(
-        loopContext,
+      const result = await runSingleTask(loopContext, {
         spec,
         task,
-        ctx.setCurrentChild
-      );
+        onSpawn: ctx.setCurrentChild,
+      });
 
       // Handle result based on status
       if (result.status === "blocked") {

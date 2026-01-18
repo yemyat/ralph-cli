@@ -5,7 +5,7 @@
 
 import type { spawn } from "node:child_process";
 import type { BaseAgent } from "../agents/base";
-import type { RalphConfig, RalphSession } from "../types";
+import type { RalphConfig, RalphSession, SpecEntry, TaskEntry } from "../types";
 
 /**
  * Core context object for loop operations.
@@ -48,4 +48,16 @@ export interface RetryOptions {
   failedGates: string[];
   /** Number of retry attempts made */
   retryCount: number;
+}
+
+/**
+ * Options for running a single task.
+ */
+export interface SingleTaskOptions {
+  /** The spec containing the task */
+  spec: SpecEntry;
+  /** The task to execute */
+  task: TaskEntry;
+  /** Callback invoked when the child process is spawned */
+  onSpawn?: (child: ReturnType<typeof spawn>) => void;
 }

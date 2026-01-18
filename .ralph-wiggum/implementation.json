@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T08:43:41.029Z",
+  "updatedAt": "2026-01-18T08:45:17.774Z",
   "updatedBy": "build-mode",
   "qualityGates": [
     "bun run typecheck",
@@ -44,9 +44,7 @@
           "id": "pi-agent-support-3",
           "description": "Add `\"pi\"` to `AgentType` union in `src/types.ts`",
           "status": "completed",
-          "acceptanceCriteria": [
-            "AgentType includes 'pi' as valid option"
-          ],
+          "acceptanceCriteria": ["AgentType includes 'pi' as valid option"],
           "completedAt": "2026-01-18T07:31:12.312Z"
         },
         {
@@ -590,16 +588,17 @@
         {
           "id": "options-object-pattern-4",
           "description": "Refactor `executeAgentWithPrompt()` to use options object",
-          "status": "in_progress",
+          "status": "completed",
           "acceptanceCriteria": [
             "Function signature uses ExecuteAgentOptions",
             "Call sites updated with named parameters"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:45:17.278Z"
         },
         {
           "id": "options-object-pattern-5",
           "description": "Refactor `runSingleTask()` to use `LoopContext`",
-          "status": "pending",
+          "status": "in_progress",
           "acceptanceCriteria": [
             "Function receives LoopContext instead of individual params",
             "Call sites pass context object"
@@ -735,9 +734,7 @@
           "id": "unit-tests-init-command-1",
           "description": "Create `src/commands/__tests__/` directory",
           "status": "pending",
-          "acceptanceCriteria": [
-            "Directory exists"
-          ]
+          "acceptanceCriteria": ["Directory exists"]
         },
         {
           "id": "unit-tests-init-command-2",
@@ -828,9 +825,7 @@
           "id": "domain-objects-1",
           "description": "Create `src/domain/` directory",
           "status": "pending",
-          "acceptanceCriteria": [
-            "Directory exists"
-          ]
+          "acceptanceCriteria": ["Directory exists"]
         },
         {
           "id": "domain-objects-2",
