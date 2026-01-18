@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T08:08:47.917Z",
+  "updatedAt": "2026-01-18T08:11:13.308Z",
   "updatedBy": "build-mode",
   "qualityGates": [
     "bun run typecheck",
@@ -237,16 +237,17 @@
         {
           "id": "remove-legacy-loop-1",
           "description": "Delete `runRalphLoop()` function from `start.ts`",
-          "status": "in_progress",
+          "status": "completed",
           "acceptanceCriteria": [
             "runRalphLoop function is removed",
             "No code references runRalphLoop"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:11:12.882Z"
         },
         {
           "id": "remove-legacy-loop-2",
           "description": "Delete `DONE_MARKER` constant",
-          "status": "pending",
+          "status": "in_progress",
           "acceptanceCriteria": [
             "DONE_MARKER constant is removed",
             "No code references DONE_MARKER"

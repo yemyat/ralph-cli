@@ -150,7 +150,6 @@ export async function startCommand(
   }
 }
 
-const TASK_DONE_MARKER = "<TASK_DONE>";
 const TASK_BLOCKED_REGEX = /<TASK_BLOCKED\s+reason="([^"]+)">/;
 
 function getGitBranch(): string | undefined {
@@ -617,7 +616,7 @@ function executeAgentWithPrompt(
       log(`Agent exited with code ${code}`);
 
       // Check for task markers
-      if (stdoutBuffer.includes(TASK_DONE_MARKER)) {
+      if (stdoutBuffer.includes("<TASK_DONE>")) {
         log("Detected TASK_DONE marker");
         resolve({ status: "done", output: stdoutBuffer });
         return;
