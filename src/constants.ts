@@ -16,3 +16,17 @@ export const MARKERS = {
   /** Regex pattern to parse blocked marker and extract reason */
   TASK_BLOCKED_REGEX: /<TASK_BLOCKED\s+reason="([^"]+)">/,
 } as const;
+
+/**
+ * Standard file names used in the .ralph-wiggum/ directory.
+ */
+export const FILES = {
+  /** Project configuration file */
+  CONFIG: "config.json",
+
+  /** Implementation plan and task tracking */
+  IMPLEMENTATION: "implementation.json",
+
+  /** Planning mode prompt template */
+  PROMPT_PLAN: "PROMPT_plan.md",
+} as const;
