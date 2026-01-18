@@ -473,4 +473,166 @@ describe("init-logic with mocked agents", () => {
       expect(result.config?.agents.build.model).toBe("smart");
     });
   });
+
+  describe("config.json creation", () => {
+    it("creates config.json with correct structure", async () => {
+      const mockAgent = {
+        name: "Test Agent",
+        type: "claude" as const,
+        checkInstalled: () => Promise.resolve(true),
+        getInstallInstructions: () => "",
+        buildCommand: () => ({ command: "test", args: [] }),
+      };
+
+      mockGetAgent = mock(() => mockAgent);
+      mockGetAllAgents = mock(() => [mockAgent]);
+
+      mock.module("../../agents/index", () => ({
+        getAgent: mockGetAgent,
+        getAllAgents: mockGetAllAgents,
+      }));
+
+      const { initializeProject } = await import("../init-logic");
+
+      const newTestDir = join(testDir, "config-structure-project");
+      await fse.ensureDir(newTestDir);
+
+      await initializeProject({
+        projectPath: newTestDir,
+        planAgent: "claude",
+        buildAgent: "claude",
+      });
+
+      const configPath = join(getRalphDir(newTestDir), "config.json");
+      expect(await fse.pathExists(configPath)).toBe(true);
+
+      const state = await fse.readJson(configPath);
+      expect(state).toHaveProperty("config");
+      expect(state).toHaveProperty("sessions");
+      expect(Array.isArray(state.sessions)).toBe(true);
+      expect(state.config).toHaveProperty("projectName");
+      expect(state.config).toHaveProperty("agents");
+      expect(state.config).toHaveProperty("createdAt");
+      expect(state.config).toHaveProperty("updatedAt");
+      expect(state.config.agents).toHaveProperty("plan");
+      expect(state.config.agents).toHaveProperty("build");
+    });
+
+    it("sets correct agent types in config.json", async () => {
+      const mockAgent = {
+        name: "Test Agent",
+        type: "claude" as const,
+        checkInstalled: () => Promise.resolve(true),
+        getInstallInstructions: () => "",
+        buildCommand: () => ({ command: "test", args: [] }),
+      };
+
+      mockGetAgent = mock(() => mockAgent);
+      mockGetAllAgents = mock(() => [mockAgent]);
+
+      mock.module("../../agents/index", () => ({
+        getAgent: mockGetAgent,
+        getAllAgents: mockGetAllAgents,
+      }));
+
+      const { initializeProject } = await import("../init-logic");
+
+      const newTestDir = join(testDir, "config-agents-project");
+      await fse.ensureDir(newTestDir);
+
+      await initializeProject({
+        projectPath: newTestDir,
+        planAgent: "claude",
+        buildAgent: "amp",
+      });
+
+      const configPath = join(getRalphDir(newTestDir), "config.json");
+      const state = await fse.readJson(configPath);
+
+      expect(state.config.agents.plan.agent).toBe("claude");
+      expect(state.config.agents.build.agent).toBe("amp");
+    });
+
+    it("includes model when provided in config.json", async () => {
+      const mockAgent = {
+        name: "Test Agent",
+        type: "claude" as const,
+        checkInstalled: () => Promise.resolve(true),
+        getInstallInstructions: () => "",
+        buildCommand: () => ({ command: "test", args: [] }),
+      };
+
+      mockGetAgent = mock(() => mockAgent);
+      mockGetAllAgents = mock(() => [mockAgent]);
+
+      mock.module("../../agents/index", () => ({
+        getAgent: mockGetAgent,
+        getAllAgents: mockGetAllAgents,
+      }));
+
+      const { initializeProject } = await import("../init-logic");
+
+      const newTestDir = join(testDir, "config-model-project");
+      await fse.ensureDir(newTestDir);
+
+      await initializeProject({
+        projectPath: newTestDir,
+        planAgent: "claude",
+        planModel: "opus",
+        buildAgent: "amp",
+        buildModel: "smart",
+      });
+
+      const configPath = join(getRalphDir(newTestDir), "config.json");
+      const state = await fse.readJson(configPath);
+
+      expect(state.config.agents.plan.model).toBe("opus");
+      expect(state.config.agents.build.model).toBe("smart");
+    });
+
+    it("includes telegram config when provided in config.json", async () => {
+      const mockAgent = {
+        name: "Test Agent",
+        type: "claude" as const,
+        checkInstalled: () => Promise.resolve(true),
+        getInstallInstructions: () => "",
+        buildCommand: () => ({ command: "test", args: [] }),
+      };
+
+      mockGetAgent = mock(() => mockAgent);
+      mockGetAllAgents = mock(() => [mockAgent]);
+
+      mock.module("../../agents/index", () => ({
+        getAgent: mockGetAgent,
+        getAllAgents: mockGetAllAgents,
+      }));
+
+      const { initializeProject } = await import("../init-logic");
+
+      const newTestDir = join(testDir, "config-telegram-project");
+      await fse.ensureDir(newTestDir);
+
+      await initializeProject({
+        projectPath: newTestDir,
+        planAgent: "claude",
+        buildAgent: "claude",
+        telegramConfig: {
+          botToken: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+          chatId: "-1001234567890",
+          enabled: true,
+        },
+      });
+
+      const configPath = join(getRalphDir(newTestDir), "config.json");
+      const state = await fse.readJson(configPath);
+
+      expect(state.config.notifications).toBeDefined();
+      expect(state.config.notifications.telegram).toBeDefined();
+      expect(state.config.notifications.telegram.botToken).toBe(
+        "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+      );
+      expect(state.config.notifications.telegram.chatId).toBe("-1001234567890");
+      expect(state.config.notifications.telegram.enabled).toBe(true);
+    });
+  });
 });
