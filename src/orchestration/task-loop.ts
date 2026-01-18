@@ -18,12 +18,9 @@ import type {
 } from "../types";
 import {
   getNextPendingTask,
-  markTaskBlocked,
-  markTaskCompleted,
   markTaskFailed,
   markTaskInProgress,
   parseImplementation,
-  resetTaskToPending,
   saveImplementation,
 } from "../utils/implementation";
 import {
@@ -32,11 +29,13 @@ import {
   runQualityGates,
 } from "../utils/quality-gates";
 import { generateRetryPrompt, generateTaskPrompt } from "../utils/task-prompts";
+import { notifyTelegram } from "./notifications";
 import {
-  type NotificationPayload,
-  type NotificationStatus,
-  sendTelegramNotification,
-} from "../utils/telegram";
+  handleBlockedTask,
+  handleGatesFailed,
+  handleGatesPassed,
+  type TaskLoopContext,
+} from "./task-handlers";
 
 const TASK_BLOCKED_REGEX = /<TASK_BLOCKED\s+reason="([^"]+)">/;
 
@@ -45,163 +44,10 @@ export interface TaskLoopOptions {
   verbose?: boolean;
 }
 
-interface TaskLoopContext {
-  projectPath: string;
-  config: RalphConfig;
-  session: RalphSession;
-  agentInstance: ReturnType<typeof getAgent>;
-  maxRetries: number;
-  verbose?: boolean;
-  log: (msg: string) => void;
-  setCurrentChild: (child: ReturnType<typeof spawn>) => void;
-}
-
 interface TaskResult {
   status: "done" | "blocked" | "error";
   reason?: string;
   output: string;
-}
-
-function getGitBranch(): string | undefined {
-  try {
-    const { execSync } = require("node:child_process");
-    return execSync("git branch --show-current", { encoding: "utf-8" }).trim();
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Send a Telegram notification if configured.
- * Failures are logged but don't crash the loop.
- */
-async function notifyTelegram(
-  config: RalphConfig,
-  session: RalphSession,
-  status: NotificationStatus,
-  log: (msg: string) => void,
-  taskDescription?: string
-): Promise<void> {
-  const telegramConfig = config.notifications?.telegram;
-  if (!telegramConfig?.enabled) {
-    return;
-  }
-
-  const payload: NotificationPayload = {
-    projectName: config.projectName,
-    mode: session.mode,
-    sessionId: session.id,
-    iteration: session.iteration,
-    status,
-    workingDirectory: process.cwd(),
-    branch: getGitBranch(),
-    taskDescription,
-  };
-
-  const success = await sendTelegramNotification(telegramConfig, payload);
-  if (success) {
-    log(`Telegram notification sent: ${status}`);
-  } else {
-    log(`Telegram notification failed: ${status}`);
-  }
-}
-
-/**
- * Handle a blocked task result.
- */
-async function handleBlockedTask(
-  impl: Implementation,
-  spec: SpecEntry,
-  task: TaskEntry,
-  reason: string | undefined,
-  ctx: TaskLoopContext
-): Promise<void> {
-  console.log(pc.yellow(`  ⚠ Task blocked: ${reason}`));
-  ctx.log(`Task blocked: ${reason}`);
-  markTaskBlocked(impl, spec.id, task.id, reason || "Unknown");
-  await saveImplementation(ctx.projectPath, impl);
-}
-
-/**
- * Handle quality gates passed.
- */
-async function handleGatesPassed(
-  impl: Implementation,
-  spec: SpecEntry,
-  task: TaskEntry,
-  ctx: TaskLoopContext
-): Promise<void> {
-  console.log(pc.green("  ✓ All quality gates passed"));
-  ctx.log("All quality gates passed");
-  markTaskCompleted(impl, spec.id, task.id);
-  await saveImplementation(ctx.projectPath, impl);
-  await notifyTelegram(
-    ctx.config,
-    ctx.session,
-    "iteration_success",
-    ctx.log,
-    task.description
-  );
-
-  // Check if spec is complete
-  const updatedSpec = impl.specs.find((s) => s.id === spec.id);
-  if (updatedSpec?.status === "completed") {
-    console.log(pc.green(`\n✓ Spec completed: ${spec.name}`));
-    ctx.log(`Spec completed: ${spec.name}`);
-  }
-}
-
-/**
- * Handle quality gates failed.
- */
-async function handleGatesFailed(
-  impl: Implementation,
-  spec: SpecEntry,
-  task: TaskEntry,
-  failedGates: QualityGateResult[],
-  ctx: TaskLoopContext
-): Promise<void> {
-  const retryCount = task.retryCount || 0;
-
-  if (retryCount < ctx.maxRetries) {
-    console.log(
-      pc.yellow(
-        `  ⚠ Quality gates failed (retry ${retryCount + 1}/${ctx.maxRetries})`
-      )
-    );
-    ctx.log(
-      `Quality gates failed, retrying (${retryCount + 1}/${ctx.maxRetries})`
-    );
-
-    markTaskFailed(impl, spec.id, task.id);
-    resetTaskToPending(impl, spec.id, task.id);
-    await saveImplementation(ctx.projectPath, impl);
-
-    await runRetryTask(
-      ctx.projectPath,
-      spec,
-      task,
-      failedGates,
-      retryCount,
-      ctx.agentInstance,
-      ctx.session,
-      ctx.log,
-      ctx.verbose,
-      ctx.setCurrentChild
-    );
-  } else {
-    console.log(pc.red("  ✗ Max retries exceeded for task"));
-    ctx.log(`Max retries exceeded for task ${task.id}`);
-    markTaskFailed(impl, spec.id, task.id);
-    await saveImplementation(ctx.projectPath, impl);
-    await notifyTelegram(
-      ctx.config,
-      ctx.session,
-      "iteration_failure",
-      ctx.log,
-      task.description
-    );
-  }
 }
 
 /**
@@ -464,6 +310,20 @@ export async function runTaskLevelLoop(
     log,
     setCurrentChild: (child) => {
       currentChild = child;
+    },
+    runRetryTask: async (spec, task, failedGates, retryCount) => {
+      await runRetryTask(
+        projectPath,
+        spec,
+        task,
+        failedGates,
+        retryCount,
+        agentInstance,
+        session,
+        log,
+        verbose,
+        ctx.setCurrentChild
+      );
     },
   };
 

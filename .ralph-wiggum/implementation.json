@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T08:15:30.643Z",
+  "updatedAt": "2026-01-18T08:18:25.168Z",
   "updatedBy": "build-mode",
   "qualityGates": [
     "bun run typecheck",
@@ -285,16 +285,17 @@
         {
           "id": "remove-legacy-loop-6",
           "description": "Extract `runTaskLevelLoop()` to `orchestration/task-loop.ts`",
-          "status": "in_progress",
+          "status": "completed",
           "acceptanceCriteria": [
             "runTaskLevelLoop function moved to task-loop.ts",
             "start.ts imports from orchestration/task-loop"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:18:24.762Z"
         },
         {
           "id": "remove-legacy-loop-7",
           "description": "Extract handler functions to `orchestration/task-handlers.ts`",
-          "status": "pending",
+          "status": "in_progress",
           "acceptanceCriteria": [
             "handleBlockedTask, handleGatesPassed, handleGatesFailed moved",
             "Handlers exported from task-handlers.ts"
