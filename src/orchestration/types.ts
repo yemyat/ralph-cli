@@ -5,7 +5,13 @@
 
 import type { spawn } from "node:child_process";
 import type { BaseAgent } from "../agents/base";
-import type { RalphConfig, RalphSession, SpecEntry, TaskEntry } from "../types";
+import type {
+  QualityGateResult,
+  RalphConfig,
+  RalphSession,
+  SpecEntry,
+  TaskEntry,
+} from "../types";
 
 /**
  * Core context object for loop operations.
@@ -40,14 +46,16 @@ export interface ExecuteAgentOptions {
  * Options for retrying a failed task.
  */
 export interface RetryOptions {
-  /** The spec name being worked on */
-  spec: string;
-  /** The task description that failed */
-  task: string;
+  /** The spec containing the task */
+  spec: SpecEntry;
+  /** The task that failed */
+  task: TaskEntry;
   /** Quality gates that failed */
-  failedGates: string[];
+  failedGates: QualityGateResult[];
   /** Number of retry attempts made */
   retryCount: number;
+  /** Callback invoked when the child process is spawned */
+  onSpawn?: (child: ReturnType<typeof spawn>) => void;
 }
 
 /**

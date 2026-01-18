@@ -5,11 +5,11 @@
 
 import { spawn } from "node:child_process";
 import { saveSession } from "../config";
-import type { QualityGateResult, SpecEntry, TaskEntry } from "../types";
 import { generateRetryPrompt, generateTaskPrompt } from "../utils/task-prompts";
 import type {
   ExecuteAgentOptions,
   LoopContext,
+  RetryOptions,
   SingleTaskOptions,
 } from "./types";
 
@@ -126,12 +126,9 @@ export function runSingleTask(
  */
 export function runRetryTask(
   context: LoopContext,
-  spec: SpecEntry,
-  task: TaskEntry,
-  failedGates: QualityGateResult[],
-  retryCount: number,
-  onSpawn?: (child: ReturnType<typeof spawn>) => void
+  options: RetryOptions
 ): Promise<TaskResult> {
+  const { spec, task, failedGates, retryCount, onSpawn } = options;
   const retryPrompt = generateRetryPrompt(spec, task, failedGates, retryCount);
   return executeAgentWithPrompt(context, { prompt: retryPrompt, onSpawn });
 }

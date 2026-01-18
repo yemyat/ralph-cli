@@ -171,14 +171,13 @@ export async function runTaskLevelLoop(
       currentChild = child;
     },
     runRetryTask: async (spec, task, failedGates, retryCount) => {
-      await runRetryTask(
-        loopContext,
+      await runRetryTask(loopContext, {
         spec,
         task,
         failedGates,
         retryCount,
-        ctx.setCurrentChild
-      );
+        onSpawn: ctx.setCurrentChild,
+      });
     },
   };
 
