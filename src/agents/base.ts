@@ -4,6 +4,7 @@ export interface AgentOptions {
   model?: string;
   promptFile?: string;
   verbose?: boolean;
+  provider?: string;
 }
 
 export abstract class BaseAgent {
