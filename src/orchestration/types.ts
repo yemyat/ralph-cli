@@ -35,3 +35,17 @@ export interface ExecuteAgentOptions {
   /** Callback invoked when the child process is spawned */
   onSpawn?: (child: ReturnType<typeof spawn>) => void;
 }
+
+/**
+ * Options for retrying a failed task.
+ */
+export interface RetryOptions {
+  /** The spec name being worked on */
+  spec: string;
+  /** The task description that failed */
+  task: string;
+  /** Quality gates that failed */
+  failedGates: string[];
+  /** Number of retry attempts made */
+  retryCount: number;
+}
