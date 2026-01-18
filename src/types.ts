@@ -113,3 +113,93 @@ export interface QualityGateResult {
   output: string;
   exitCode: number;
 }
+
+// Agent options
+
+export interface AgentOptions {
+  model?: string;
+  promptFile?: string;
+  verbose?: boolean;
+  provider?: string;
+}
+
+// Command options
+
+export interface InitOptions {
+  agent?: AgentType;
+  model?: string;
+  planAgent?: AgentType;
+  planModel?: string;
+  buildAgent?: AgentType;
+  buildModel?: string;
+  force?: boolean;
+}
+
+export interface PlanOptions {
+  agent?: AgentType;
+  model?: string;
+  verbose?: boolean;
+}
+
+export interface BuildOptions {
+  agent?: AgentType;
+  model?: string;
+  verbose?: boolean;
+}
+
+export interface ResolveContextOptions {
+  mode: "plan" | "build";
+  agentOverride?: AgentType;
+  modelOverride?: string;
+}
+
+export interface InitProjectOptions {
+  planAgent: AgentType;
+  planModel?: string;
+  buildAgent: AgentType;
+  buildModel?: string;
+  notifications?: NotificationsConfig;
+}
+
+// Task prompt interfaces
+
+export interface TaskLike {
+  readonly description: string;
+  readonly status: TaskStatusType;
+  readonly acceptanceCriteria?: readonly string[];
+  readonly blockedReason?: string;
+}
+
+export interface SpecLike {
+  readonly name: string;
+  readonly context?: string;
+  readonly tasks: readonly TaskLike[];
+}
+
+// Notification types
+
+export type NotificationStatus =
+  | "loop_started"
+  | "iteration_success"
+  | "iteration_failure"
+  | "loop_completed"
+  | "loop_stopped";
+
+export interface NotificationPayload {
+  projectName: string;
+  mode: "plan" | "build";
+  sessionId: string;
+  iteration: number;
+  status: NotificationStatus;
+  workingDirectory?: string;
+  branch?: string;
+  taskDescription?: string;
+}
+
+// Orchestrator types
+
+export interface TaskResult {
+  status: "done" | "blocked" | "error";
+  reason?: string;
+  output: string;
+}

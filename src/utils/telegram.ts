@@ -1,25 +1,8 @@
-// src/utils/telegram.ts
-// Telegram notification utilities
-
-import type { TelegramConfig } from "../types";
-
-export type NotificationStatus =
-  | "loop_started"
-  | "iteration_success"
-  | "iteration_failure"
-  | "loop_completed"
-  | "loop_stopped";
-
-export interface NotificationPayload {
-  projectName: string;
-  mode: "plan" | "build";
-  sessionId: string;
-  iteration: number;
-  status: NotificationStatus;
-  workingDirectory?: string;
-  branch?: string;
-  taskDescription?: string;
-}
+import type {
+  NotificationPayload,
+  NotificationStatus,
+  TelegramConfig,
+} from "../types";
 
 /**
  * Format the notification message for Telegram.

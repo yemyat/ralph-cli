@@ -1,11 +1,4 @@
-import type { AgentCommand, AgentType } from "../types";
-
-export interface AgentOptions {
-  model?: string;
-  promptFile?: string;
-  verbose?: boolean;
-  provider?: string;
-}
+import type { AgentCommand, AgentOptions, AgentType } from "../types";
 
 export abstract class BaseAgent {
   abstract readonly type: AgentType;

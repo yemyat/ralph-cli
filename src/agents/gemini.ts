@@ -1,7 +1,7 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import type { AgentCommand } from "../types";
-import { type AgentOptions, BaseAgent } from "./base";
+import type { AgentCommand, AgentOptions } from "../types";
+import { BaseAgent } from "./base";
 
 const execAsync = promisify(exec);
 

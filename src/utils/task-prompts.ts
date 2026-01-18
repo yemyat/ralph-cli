@@ -1,28 +1,6 @@
-// src/utils/task-prompts.ts
-// Generate focused task prompts for task-level orchestration
-
 import { MARKERS } from "../constants";
 import { PROMPT_BUILD } from "../templates/prompts";
-import type { QualityGateResult, TaskStatusType } from "../types";
-
-/**
- * Common interface for task-like objects (works with both Task class and TaskEntry).
- */
-interface TaskLike {
-  readonly description: string;
-  readonly status: TaskStatusType;
-  readonly acceptanceCriteria?: readonly string[];
-  readonly blockedReason?: string;
-}
-
-/**
- * Common interface for spec-like objects (works with both Spec class and SpecEntry).
- */
-interface SpecLike {
-  readonly name: string;
-  readonly context?: string;
-  readonly tasks: readonly TaskLike[];
-}
+import type { QualityGateResult, SpecLike, TaskLike } from "../types";
 
 /**
  * Get completed tasks from a spec-like object.

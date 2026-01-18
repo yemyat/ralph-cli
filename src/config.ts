@@ -1,8 +1,7 @@
 import { basename } from "node:path";
 import fse from "fs-extra";
 import type {
-  AgentType,
-  NotificationsConfig,
+  InitProjectOptions,
   ProjectState,
   RalphConfig,
   RalphSession,
@@ -44,14 +43,6 @@ export async function getProjectConfig(
 ): Promise<RalphConfig | null> {
   const state = await loadProjectState(projectPath);
   return state?.config || null;
-}
-
-export interface InitProjectOptions {
-  planAgent: AgentType;
-  planModel?: string;
-  buildAgent: AgentType;
-  buildModel?: string;
-  notifications?: NotificationsConfig;
 }
 
 export async function initProject(
