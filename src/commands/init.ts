@@ -304,7 +304,6 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
   note(
     "- PROMPT_plan.md         (planning mode prompt)\n" +
-      "- PROMPT_build.md        (building mode prompt)\n" +
       "- GUARDRAILS.md          (compliance rules)\n" +
       "- implementation.json    (task-level orchestration)\n" +
       "- PROGRESS.md            (audit trail)\n" +
