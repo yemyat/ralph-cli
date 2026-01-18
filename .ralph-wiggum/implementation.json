@@ -46,9 +46,7 @@
           "id": "pi-agent-support-3",
           "description": "Add `\"pi\"` to `AgentType` union in `src/types.ts`",
           "status": "completed",
-          "acceptanceCriteria": [
-            "AgentType includes 'pi' as valid option"
-          ],
+          "acceptanceCriteria": ["AgentType includes 'pi' as valid option"],
           "retryCount": 2,
           "completedAt": "2026-01-18T07:31:12.312Z"
         },
