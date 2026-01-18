@@ -1,7 +1,7 @@
 import pc from "picocolors";
 import { Implementation } from "../domain/implementation";
 import { Session } from "../domain/session";
-import { Orchestrator } from "../services/orchestrator";
+import { Builder } from "../services/builder";
 import type { BuildOptions } from "../types";
 import { getSessionLogFile } from "../utils/paths";
 import { resolveContext } from "./hooks";
@@ -40,7 +40,7 @@ export async function buildCommand(options: BuildOptions): Promise<void> {
   ctx.workspace.sessionManager.add(session);
   await ctx.workspace.save();
 
-  const orchestrator = new Orchestrator({
+  const builder = new Builder({
     config: ctx.config,
     workspace: ctx.workspace,
     session,
@@ -49,5 +49,5 @@ export async function buildCommand(options: BuildOptions): Promise<void> {
     verbose: options.verbose,
   });
 
-  await orchestrator.run();
+  await builder.run();
 }

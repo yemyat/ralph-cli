@@ -7,12 +7,7 @@ import { Implementation } from "../domain/implementation";
 import type { Session } from "../domain/session";
 import type { Workspace } from "../domain/workspace";
 import { PROMPT_BUILD } from "../templates/prompts";
-import type {
-  OrchestratorOptions,
-  RalphConfig,
-  SpecLike,
-  TaskLike,
-} from "../types";
+import type { BuilderOptions, RalphConfig, SpecLike, TaskLike } from "../types";
 import { AgentRunner } from "./agent-runner";
 import { NotificationService } from "./notification-service";
 
@@ -29,7 +24,7 @@ function generateTaskPrompt(spec: SpecLike, task: TaskLike): string {
   });
 }
 
-export class Orchestrator {
+export class Builder {
   private readonly config: RalphConfig;
   private readonly workspace: Workspace;
   private readonly session: Session;
@@ -42,7 +37,7 @@ export class Orchestrator {
   private agentRunner: AgentRunner | null = null;
   private notificationService: NotificationService | null = null;
 
-  constructor(options: OrchestratorOptions) {
+  constructor(options: BuilderOptions) {
     this.config = options.config;
     this.workspace = options.workspace;
     this.session = options.session;

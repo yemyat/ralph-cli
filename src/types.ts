@@ -188,7 +188,7 @@ export interface NotificationPayload {
   taskDescription?: string;
 }
 
-// Orchestrator types
+// Service result types
 
 export interface TaskResult {
   status: "done" | "blocked" | "error";
@@ -224,7 +224,16 @@ export interface RunOptions {
   onSpawn?: (child: ChildProcess) => void;
 }
 
-export interface OrchestratorOptions {
+export interface PlannerOptions {
+  workspace: Workspace;
+  session: Session;
+  logFile: string;
+  agent: BaseAgent;
+  prompt: string;
+  verbose?: boolean;
+}
+
+export interface BuilderOptions {
   config: RalphConfig;
   workspace: Workspace;
   session: Session;
