@@ -3,14 +3,10 @@
  * Handle blocked, passed, failed, and error states for tasks.
  */
 
-import type { spawn } from "node:child_process";
 import pc from "picocolors";
-import type { getAgent } from "../agents/index";
 import type {
   Implementation,
   QualityGateResult,
-  RalphConfig,
-  RalphSession,
   SpecEntry,
   TaskEntry,
 } from "../types";
@@ -22,27 +18,7 @@ import {
   saveImplementation,
 } from "../utils/implementation";
 import { notifyTelegram } from "./notifications";
-
-/**
- * Context object passed to task handlers.
- */
-export interface TaskLoopContext {
-  projectPath: string;
-  config: RalphConfig;
-  session: RalphSession;
-  agentInstance: ReturnType<typeof getAgent>;
-  maxRetries: number;
-  verbose?: boolean;
-  log: (msg: string) => void;
-  setCurrentChild: (child: ReturnType<typeof spawn>) => void;
-  /** Callback to run retry task - injected to avoid circular deps */
-  runRetryTask?: (
-    spec: SpecEntry,
-    task: TaskEntry,
-    failedGates: QualityGateResult[],
-    retryCount: number
-  ) => Promise<void>;
-}
+import type { GatesFailedOptions, LoopContext } from "./types";
 
 /**
  * Handle a blocked task result.
@@ -52,7 +28,7 @@ export async function handleBlockedTask(
   spec: SpecEntry,
   task: TaskEntry,
   reason: string | undefined,
-  ctx: TaskLoopContext
+  ctx: LoopContext
 ): Promise<void> {
   console.log(pc.yellow(`  ⚠ Task blocked: ${reason}`));
   ctx.log(`Task blocked: ${reason}`);
@@ -67,7 +43,7 @@ export async function handleGatesPassed(
   impl: Implementation,
   spec: SpecEntry,
   task: TaskEntry,
-  ctx: TaskLoopContext
+  ctx: LoopContext
 ): Promise<void> {
   console.log(pc.green("  ✓ All quality gates passed"));
   ctx.log("All quality gates passed");
@@ -97,26 +73,26 @@ export async function handleGatesFailed(
   spec: SpecEntry,
   task: TaskEntry,
   failedGates: QualityGateResult[],
-  ctx: TaskLoopContext
+  ctx: LoopContext,
+  options: GatesFailedOptions
 ): Promise<void> {
   const retryCount = task.retryCount || 0;
+  const { maxRetries, runRetryTask } = options;
 
-  if (retryCount < ctx.maxRetries) {
+  if (retryCount < maxRetries) {
     console.log(
       pc.yellow(
-        `  ⚠ Quality gates failed (retry ${retryCount + 1}/${ctx.maxRetries})`
+        `  ⚠ Quality gates failed (retry ${retryCount + 1}/${maxRetries})`
       )
     );
-    ctx.log(
-      `Quality gates failed, retrying (${retryCount + 1}/${ctx.maxRetries})`
-    );
+    ctx.log(`Quality gates failed, retrying (${retryCount + 1}/${maxRetries})`);
 
     markTaskFailed(impl, spec.id, task.id);
     resetTaskToPending(impl, spec.id, task.id);
     await saveImplementation(ctx.projectPath, impl);
 
-    if (ctx.runRetryTask) {
-      await ctx.runRetryTask(spec, task, failedGates, retryCount);
+    if (runRetryTask) {
+      await runRetryTask(spec, task, failedGates, retryCount);
     }
   } else {
     console.log(pc.red("  ✗ Max retries exceeded for task"));

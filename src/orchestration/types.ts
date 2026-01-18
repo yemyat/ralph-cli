@@ -69,3 +69,18 @@ export interface SingleTaskOptions {
   /** Callback invoked when the child process is spawned */
   onSpawn?: (child: ReturnType<typeof spawn>) => void;
 }
+
+/**
+ * Options for handling failed quality gates.
+ */
+export interface GatesFailedOptions {
+  /** Maximum number of retry attempts */
+  maxRetries: number;
+  /** Callback to run retry task */
+  runRetryTask?: (
+    spec: SpecEntry,
+    task: TaskEntry,
+    failedGates: QualityGateResult[],
+    retryCount: number
+  ) => Promise<void>;
+}

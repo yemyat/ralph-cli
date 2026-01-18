@@ -33,9 +33,8 @@ import {
   handleBlockedTask,
   handleGatesFailed,
   handleGatesPassed,
-  type TaskLoopContext,
 } from "./task-handlers";
-import type { LoopContext } from "./types";
+import type { GatesFailedOptions, LoopContext } from "./types";
 
 export interface TaskLoopOptions {
   maxRetries?: number;
@@ -49,7 +48,7 @@ async function handleTaskError(
   impl: Implementation,
   spec: SpecEntry,
   task: TaskEntry,
-  ctx: TaskLoopContext
+  ctx: LoopContext
 ): Promise<void> {
   console.log(pc.red("  ✗ Task failed"));
   ctx.log(`Task failed: ${task.id}`);
@@ -72,8 +71,8 @@ async function handleDoneResult(
   impl: Implementation,
   spec: SpecEntry,
   task: TaskEntry,
-  projectPath: string,
-  ctx: TaskLoopContext
+  ctx: LoopContext,
+  gatesFailedOptions: GatesFailedOptions
 ): Promise<void> {
   // Skip quality gate verification if not defined or empty
   const qualityGateCommands = impl.qualityGates;
@@ -88,7 +87,7 @@ async function handleDoneResult(
   ctx.log("Running quality gates");
 
   const gates = parseQualityGates(qualityGateCommands);
-  const gateResults = await runQualityGates(gates, projectPath, {
+  const gateResults = await runQualityGates(gates, ctx.projectPath, {
     onGateStart: (gate) => console.log(pc.gray(`    ⏳ ${gate.name}...`)),
     onGateComplete: (r) => {
       const icon = r.passed ? pc.green("✓") : pc.red("✗");
@@ -101,7 +100,14 @@ async function handleDoneResult(
   if (failedGates.length === 0) {
     await handleGatesPassed(impl, spec, task, ctx);
   } else {
-    await handleGatesFailed(impl, spec, task, failedGates, ctx);
+    await handleGatesFailed(
+      impl,
+      spec,
+      task,
+      failedGates,
+      ctx,
+      gatesFailedOptions
+    );
   }
 }
 
@@ -159,24 +165,19 @@ export async function runTaskLevelLoop(
     verbose,
   };
 
-  const ctx: TaskLoopContext = {
-    projectPath,
-    config,
-    session,
-    agentInstance,
+  const setCurrentChild = (child: ReturnType<typeof spawn>) => {
+    currentChild = child;
+  };
+
+  const gatesFailedOptions: GatesFailedOptions = {
     maxRetries,
-    verbose,
-    log,
-    setCurrentChild: (child) => {
-      currentChild = child;
-    },
     runRetryTask: async (spec, task, failedGates, retryCount) => {
       await runRetryTask(loopContext, {
         spec,
         task,
         failedGates,
         retryCount,
-        onSpawn: ctx.setCurrentChild,
+        onSpawn: setCurrentChild,
       });
     },
   };
@@ -214,19 +215,25 @@ export async function runTaskLevelLoop(
       const result = await runSingleTask(loopContext, {
         spec,
         task,
-        onSpawn: ctx.setCurrentChild,
+        onSpawn: setCurrentChild,
       });
 
       // Handle result based on status
       if (result.status === "blocked") {
-        await handleBlockedTask(impl, spec, task, result.reason, ctx);
+        await handleBlockedTask(impl, spec, task, result.reason, loopContext);
         continue;
       }
 
       if (result.status === "done") {
-        await handleDoneResult(impl, spec, task, projectPath, ctx);
+        await handleDoneResult(
+          impl,
+          spec,
+          task,
+          loopContext,
+          gatesFailedOptions
+        );
       } else {
-        await handleTaskError(impl, spec, task, ctx);
+        await handleTaskError(impl, spec, task, loopContext);
       }
 
       console.log(pc.gray(`\n${"=".repeat(50)}\n`));
