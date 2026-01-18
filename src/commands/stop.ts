@@ -9,7 +9,7 @@ export async function stopCommand(): Promise<void> {
     return;
   }
 
-  const runningSessions = workspace.runningSessions;
+  const runningSessions = workspace.sessionManager.running;
 
   if (runningSessions.length === 0) {
     console.log(pc.yellow("No running Ralph sessions found for this project."));
@@ -30,10 +30,10 @@ export async function stopCommand(): Promise<void> {
       }
     }
 
-    session.status = "stopped";
-    session.stoppedAt = new Date().toISOString();
-    await workspace.updateSession(session);
+    session.markStopped();
+    workspace.sessionManager.update(session);
   }
 
+  await workspace.save();
   console.log(pc.green(`\n✓ Stopped ${runningSessions.length} session(s).`));
 }

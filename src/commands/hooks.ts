@@ -24,9 +24,9 @@ export async function resolveContext(
     return null;
   }
 
-  const running = workspace.runningSessions[0];
-  if (running) {
-    console.log(pc.yellow(`Already running session: ${running.id}`));
+  const runningSession = workspace.sessionManager.running[0];
+  if (runningSession) {
+    console.log(pc.yellow(`Already running session: ${runningSession.id}`));
     console.log(`Use ${pc.cyan("ralph-wiggum-cli stop")} to stop it first.`);
     return null;
   }

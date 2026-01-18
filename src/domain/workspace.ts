@@ -6,12 +6,7 @@ import {
   PROMPT_PLAN,
   SPEC_TEMPLATE,
 } from "../templates/prompts";
-import type {
-  InitProjectOptions,
-  ProjectState,
-  RalphConfig,
-  RalphSession,
-} from "../types";
+import type { InitProjectOptions, ProjectState, RalphConfig } from "../types";
 import {
   getConfigFile,
   getLogsDir,
@@ -20,16 +15,17 @@ import {
   RALPH_LOGS_DIR,
 } from "../utils/paths";
 import { Implementation } from "./implementation";
+import { SessionManager } from "./session-manager";
 
 export class Workspace {
   private readonly _projectPath: string;
   private readonly _config: RalphConfig;
-  private _sessions: RalphSession[];
+  private readonly _sessionManager: SessionManager;
 
   private constructor(projectPath: string, state: ProjectState) {
     this._projectPath = projectPath;
     this._config = state.config;
-    this._sessions = state.sessions;
+    this._sessionManager = new SessionManager(state.sessions);
   }
 
   get projectPath(): string {
@@ -40,35 +36,8 @@ export class Workspace {
     return this._config;
   }
 
-  get sessions(): RalphSession[] {
-    return this._sessions;
-  }
-
-  get runningSessions(): RalphSession[] {
-    return this._sessions.filter((s) => s.status === "running");
-  }
-
-  getSession(sessionId: string): RalphSession | undefined {
-    return this._sessions.find((s) => s.id === sessionId);
-  }
-
-  async addSession(session: RalphSession): Promise<void> {
-    const idx = this._sessions.findIndex((s) => s.id === session.id);
-    if (idx >= 0) {
-      this._sessions[idx] = session;
-    } else {
-      this._sessions.push(session);
-    }
-    await this.save();
-  }
-
-  async updateSession(session: RalphSession): Promise<void> {
-    await this.addSession(session);
-  }
-
-  async removeSession(sessionId: string): Promise<void> {
-    this._sessions = this._sessions.filter((s) => s.id !== sessionId);
-    await this.save();
+  get sessionManager(): SessionManager {
+    return this._sessionManager;
   }
 
   loadImplementation(): Promise<Implementation | null> {
@@ -79,7 +48,7 @@ export class Workspace {
     this._config.updatedAt = new Date().toISOString();
     const state: ProjectState = {
       config: this._config,
-      sessions: this._sessions,
+      sessions: this._sessionManager.toData(),
     };
     await fse.writeJson(getConfigFile(this._projectPath), state, { spaces: 2 });
   }

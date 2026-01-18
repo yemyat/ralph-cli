@@ -1,9 +1,9 @@
 import pc from "picocolors";
 import { getAgent } from "../agents/index";
+import type { Session } from "../domain/session";
 import { Workspace } from "../domain/workspace";
-import type { RalphSession } from "../types";
 
-function getStatusColor(status: RalphSession["status"]): typeof pc.green {
+function getStatusColor(status: Session["status"]): typeof pc.green {
   switch (status) {
     case "running":
       return pc.green;
@@ -25,9 +25,10 @@ export async function statusCommand(): Promise<void> {
     return;
   }
 
-  const { config, sessions } = workspace;
+  const { config, sessionManager } = workspace;
   const planAgent = getAgent(config.agents.plan.agent);
   const buildAgent = getAgent(config.agents.build.agent);
+  const sessions = sessionManager.all;
 
   console.log(pc.bold("\n📋 Project Status\n"));
   console.log(`  Project:     ${pc.cyan(config.projectName)}`);

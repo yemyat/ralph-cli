@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import fse from "fs-extra";
 import pc from "picocolors";
 import { FILES } from "../constants";
-import type { PlanOptions, RalphSession } from "../types";
+import { Session } from "../domain/session";
+import type { PlanOptions } from "../types";
 import { getRalphDir, getSessionLogFile } from "../utils/paths";
 import { resolveContext } from "./hooks";
 
@@ -25,21 +25,15 @@ export async function planCommand(options: PlanOptions): Promise<void> {
     return;
   }
 
-  const sessionId = `${randomUUID().slice(0, 8)}-plan`;
-  const logFile = getSessionLogFile(ctx.projectPath, sessionId);
-
-  const session: RalphSession = {
-    id: sessionId,
+  const session = Session.create({
     mode: "plan",
-    status: "running",
-    iteration: 0,
-    startedAt: new Date().toISOString(),
     agent: ctx.agentType,
     model: ctx.model,
-  };
+  });
+  const logFile = getSessionLogFile(ctx.projectPath, session.id);
 
   console.log(pc.green("\n🚀 Starting Ralph plan mode...\n"));
-  console.log(`  Session: ${pc.cyan(sessionId)}`);
+  console.log(`  Session: ${pc.cyan(session.id)}`);
   console.log(`  Agent:   ${pc.cyan(ctx.agent.name)}`);
   console.log(`  Model:   ${pc.cyan(ctx.model || "default")}`);
   console.log(`  Prompt:  ${pc.cyan(FILES.PROMPT_PLAN)}`);
@@ -59,8 +53,11 @@ export async function planCommand(options: PlanOptions): Promise<void> {
     env: { ...process.env, ...cmdOptions.env },
   });
 
-  session.pid = child.pid;
-  await ctx.workspace.addSession(session);
+  if (child.pid) {
+    session.setPid(child.pid);
+  }
+  ctx.workspace.sessionManager.add(session);
+  await ctx.workspace.save();
 
   child.stdin?.write(prompt);
   child.stdin?.end();
@@ -86,9 +83,9 @@ export async function planCommand(options: PlanOptions): Promise<void> {
     if (!child.killed) {
       child.kill("SIGTERM");
     }
-    session.status = "stopped";
-    session.stoppedAt = new Date().toISOString();
-    await ctx.workspace.updateSession(session);
+    session.markStopped();
+    ctx.workspace.sessionManager.update(session);
+    await ctx.workspace.save();
     logStream.close();
     process.exit(0);
   };
@@ -97,9 +94,13 @@ export async function planCommand(options: PlanOptions): Promise<void> {
   process.on("SIGTERM", handleSignal);
 
   child.on("close", async (code) => {
-    session.status = code === 0 ? "completed" : "stopped";
-    session.stoppedAt = new Date().toISOString();
-    await ctx.workspace.updateSession(session);
+    if (code === 0) {
+      session.markCompleted();
+    } else {
+      session.markStopped();
+    }
+    ctx.workspace.sessionManager.update(session);
+    await ctx.workspace.save();
     logStream.close();
     console.log(pc.green(`\n✓ Plan mode completed (exit code: ${code})`));
   });
