@@ -82,15 +82,18 @@ export class AgentRunner {
           return;
         }
 
-        if (code === 0) {
-          resolve({ status: "done", output: stdoutBuffer });
-        } else {
-          resolve({
-            status: "error",
-            output: stdoutBuffer,
-            reason: `Process exited with code ${code}`,
-          });
-        }
+        // No marker found - task was interrupted or agent failed to signal completion
+        this.logger?.log(
+          "No completion marker found - treating as interrupted"
+        );
+        resolve({
+          status: "error",
+          output: stdoutBuffer,
+          reason:
+            code === 0
+              ? "Agent exited without completion marker (likely interrupted)"
+              : `Process exited with code ${code}`,
+        });
       });
     });
   }
