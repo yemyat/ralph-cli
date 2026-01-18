@@ -1,29 +1,36 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T07:45:00.000Z",
-  "updatedBy": "plan-mode",
-  "qualityGates": ["bun run typecheck", "bun run lint", "bun run test"],
+  "updatedAt": "2026-01-18T07:33:45.674Z",
+  "updatedBy": "build-mode",
+  "qualityGates": [
+    "bun run typecheck",
+    "bun run lint:fix",
+    "bun run lint",
+    "bun run test"
+  ],
   "specs": [
     {
       "id": "pi-agent-support",
       "file": "specs/015-pi-agent-support.md",
       "name": "PI Agent Support",
       "priority": 1,
-      "status": "pending",
+      "status": "completed",
       "context": "Add PI coding agent as a new agent option. Extends BaseAgent pattern (see src/agents/base.ts, claude.ts for reference). PI uses --print --mode json --thinking high flags. Needs: PiAgent class, AgentType update, registration in agents/index.ts, optional provider option in AgentOptions.",
       "tasks": [
         {
           "id": "pi-agent-support-1",
           "description": "Add `provider?: string` to `AgentOptions` interface in `src/agents/base.ts`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "AgentOptions interface has optional provider property typed as string"
-          ]
+          ],
+          "completedAt": "2026-01-18T07:30:14.720Z",
+          "retryCount": 1
         },
         {
           "id": "pi-agent-support-2",
           "description": "Create `src/agents/pi.ts` implementing `PiAgent` class",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "PiAgent extends BaseAgent",
             "buildCommand returns: pi --print --mode json --thinking high",
@@ -31,45 +38,52 @@
             "buildCommand includes --provider when options.provider is set",
             "checkInstalled checks for 'pi' command",
             "getInstallInstructions returns bun/npm install command"
-          ]
+          ],
+          "retryCount": 4,
+          "completedAt": "2026-01-18T07:30:56.112Z"
         },
         {
           "id": "pi-agent-support-3",
           "description": "Add `\"pi\"` to `AgentType` union in `src/types.ts`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "AgentType includes 'pi' as valid option"
-          ]
+          ],
+          "retryCount": 2,
+          "completedAt": "2026-01-18T07:31:12.312Z"
         },
         {
           "id": "pi-agent-support-4",
           "description": "Register `PiAgent` in `src/agents/index.ts`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "PiAgent imported and added to agents record",
             "getAgent('pi') returns PiAgent instance"
-          ]
+          ],
+          "completedAt": "2026-01-18T07:31:31.689Z"
         },
         {
           "id": "pi-agent-support-5",
           "description": "Update AGENTS.md documentation with PI agent details",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "AGENTS.md documents PI agent",
             "Includes command format, flags, and environment variables"
-          ]
+          ],
+          "completedAt": "2026-01-18T07:32:17.076Z"
         },
         {
           "id": "pi-agent-support-6",
           "description": "Add unit tests for PiAgent in agents.test.ts",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test: PiAgent.buildCommand includes --print --mode json --thinking high",
             "Test: PiAgent.buildCommand includes --model when specified",
             "Test: PiAgent.buildCommand includes --provider when specified",
             "Test: PiAgent.checkInstalled returns boolean",
             "Test: getAgent('pi') returns PiAgent"
-          ]
+          ],
+          "completedAt": "2026-01-18T07:33:45.674Z"
         }
       ],
       "acceptanceCriteria": [

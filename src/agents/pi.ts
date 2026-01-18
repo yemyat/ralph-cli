@@ -4,13 +4,13 @@ import { type AgentOptions, BaseAgent } from "./base";
 
 export class PiAgent extends BaseAgent {
   readonly type = "pi" as const;
-  readonly name = "PI";
+  readonly name = "Pi";
 
   buildCommand(options: AgentOptions): AgentCommand {
     const args = [
       "--print", // print mode (non-interactive)
       "--mode",
-      "json", // JSON output mode
+      "json", // structured JSON output
       "--thinking",
       "high", // high thinking mode
     ];
@@ -39,7 +39,7 @@ export class PiAgent extends BaseAgent {
   }
 
   getInstallInstructions(): string {
-    return `Install PI:
+    return `Install Pi:
   bun install -g @anthropic-ai/pi
   # or
   npm install -g @anthropic-ai/pi`;

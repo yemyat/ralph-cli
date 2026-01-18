@@ -5,7 +5,8 @@ export type AgentType =
   | "opencode"
   | "cursor"
   | "codex"
-  | "gemini";
+  | "gemini"
+  | "pi";
 
 export interface AgentConfig {
   agent: AgentType;

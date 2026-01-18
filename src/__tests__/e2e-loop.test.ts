@@ -89,7 +89,7 @@ describe("E2E Loop Tests", () => {
   });
 
   describe("Agent command verification", () => {
-    const AGENTS_MISSING_PERMISSION_BYPASS = ["opencode"];
+    const AGENTS_MISSING_PERMISSION_BYPASS = ["opencode", "pi"];
     const AGENTS_MISSING_NON_INTERACTIVE: string[] = [];
 
     for (const agent of getAllAgents()) {

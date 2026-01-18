@@ -7,6 +7,7 @@ import { CursorAgent } from "./cursor";
 import { DroidAgent } from "./droid";
 import { GeminiAgent } from "./gemini";
 import { OpenCodeAgent } from "./opencode";
+import { PiAgent } from "./pi";
 
 const agents: Record<AgentType, BaseAgent> = {
   claude: new ClaudeAgent(),
@@ -16,6 +17,7 @@ const agents: Record<AgentType, BaseAgent> = {
   cursor: new CursorAgent(),
   codex: new CodexAgent(),
   gemini: new GeminiAgent(),
+  pi: new PiAgent(),
 };
 
 export function getAgent(type: AgentType): BaseAgent {
