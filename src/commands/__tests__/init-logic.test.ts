@@ -795,4 +795,155 @@ describe("init-logic with mocked agents", () => {
       expect(state.config.notifications.telegram.enabled).toBe(true);
     });
   });
+
+  describe("idempotency", () => {
+    it("running init twice without force does not corrupt config", async () => {
+      const mockAgent = {
+        name: "Claude Code",
+        type: "claude" as const,
+        checkInstalled: () => Promise.resolve(true),
+        getInstallInstructions: () => "",
+        buildCommand: () => ({ command: "claude", args: [] }),
+      };
+
+      mockGetAgent = mock(() => mockAgent);
+      mockGetAllAgents = mock(() => [mockAgent]);
+
+      mock.module("../../agents/index", () => ({
+        getAgent: mockGetAgent,
+        getAllAgents: mockGetAllAgents,
+      }));
+
+      const { initializeProject } = await import("../init-logic");
+
+      const newTestDir = join(testDir, "idempotency-no-corrupt");
+      await fse.ensureDir(newTestDir);
+
+      // First init - should succeed
+      const firstResult = await initializeProject({
+        projectPath: newTestDir,
+        planAgent: "claude",
+        planModel: "opus",
+        buildAgent: "claude",
+        buildModel: "sonnet",
+      });
+      expect(firstResult.success).toBe(true);
+
+      // Capture original config state
+      const configPath = join(getRalphDir(newTestDir), "config.json");
+      const originalState = await fse.readJson(configPath);
+      const originalCreatedAt = originalState.config.createdAt;
+
+      // Second init (without force) - should fail but preserve config
+      const secondResult = await initializeProject({
+        projectPath: newTestDir,
+        planAgent: "claude",
+        planModel: "different-model",
+        buildAgent: "claude",
+        buildModel: "different-build-model",
+      });
+      expect(secondResult.success).toBe(false);
+      expect(secondResult.alreadyInitialized).toBe(true);
+      expect(secondResult.error?.type).toBe("already_initialized");
+
+      // Verify config is unchanged
+      const afterState = await fse.readJson(configPath);
+      expect(afterState.config.createdAt).toBe(originalCreatedAt);
+      expect(afterState.config.agents.plan.agent).toBe("claude");
+      expect(afterState.config.agents.plan.model).toBe("opus");
+      expect(afterState.config.agents.build.agent).toBe("claude");
+      expect(afterState.config.agents.build.model).toBe("sonnet");
+
+      // Verify project files still exist
+      const ralphDir = getRalphDir(newTestDir);
+      expect(await fse.pathExists(join(ralphDir, "PROMPT_plan.md"))).toBe(true);
+      expect(await fse.pathExists(join(ralphDir, "GUARDRAILS.md"))).toBe(true);
+      expect(await fse.pathExists(join(ralphDir, "implementation.json"))).toBe(
+        true
+      );
+    });
+
+    it("running init with --force overwrites config", async () => {
+      const mockAgent = {
+        name: "Claude Code",
+        type: "claude" as const,
+        checkInstalled: () => Promise.resolve(true),
+        getInstallInstructions: () => "",
+        buildCommand: () => ({ command: "claude", args: [] }),
+      };
+
+      const ampAgent = {
+        name: "Amp Code",
+        type: "amp" as const,
+        checkInstalled: () => Promise.resolve(true),
+        getInstallInstructions: () => "",
+        buildCommand: () => ({ command: "amp", args: [] }),
+      };
+
+      mockGetAgent = mock((agentType: string) => {
+        if (agentType === "amp") {
+          return ampAgent;
+        }
+        return mockAgent;
+      });
+      mockGetAllAgents = mock(() => [mockAgent, ampAgent]);
+
+      mock.module("../../agents/index", () => ({
+        getAgent: mockGetAgent,
+        getAllAgents: mockGetAllAgents,
+      }));
+
+      const { initializeProject } = await import("../init-logic");
+
+      const newTestDir = join(testDir, "idempotency-force-overwrite");
+      await fse.ensureDir(newTestDir);
+
+      // First init with claude/opus
+      const firstResult = await initializeProject({
+        projectPath: newTestDir,
+        planAgent: "claude",
+        planModel: "opus",
+        buildAgent: "claude",
+        buildModel: "sonnet",
+      });
+      expect(firstResult.success).toBe(true);
+
+      // Capture original config state
+      const configPath = join(getRalphDir(newTestDir), "config.json");
+      const originalState = await fse.readJson(configPath);
+      const originalCreatedAt = originalState.config.createdAt;
+
+      // Wait a tiny bit so timestamps differ
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Second init WITH force - should succeed and overwrite
+      const secondResult = await initializeProject({
+        projectPath: newTestDir,
+        planAgent: "amp",
+        planModel: "smart",
+        buildAgent: "amp",
+        buildModel: "rush",
+        force: true,
+      });
+      expect(secondResult.success).toBe(true);
+
+      // Verify config is overwritten with new values
+      const afterState = await fse.readJson(configPath);
+      expect(afterState.config.agents.plan.agent).toBe("amp");
+      expect(afterState.config.agents.plan.model).toBe("smart");
+      expect(afterState.config.agents.build.agent).toBe("amp");
+      expect(afterState.config.agents.build.model).toBe("rush");
+
+      // Verify createdAt is updated (new config)
+      expect(afterState.config.createdAt).not.toBe(originalCreatedAt);
+
+      // Verify project files still exist (ensureFile preserves them)
+      const ralphDir = getRalphDir(newTestDir);
+      expect(await fse.pathExists(join(ralphDir, "PROMPT_plan.md"))).toBe(true);
+      expect(await fse.pathExists(join(ralphDir, "GUARDRAILS.md"))).toBe(true);
+      expect(await fse.pathExists(join(ralphDir, "implementation.json"))).toBe(
+        true
+      );
+    });
+  });
 });
