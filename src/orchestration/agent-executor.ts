@@ -4,15 +4,10 @@
  */
 
 import { spawn } from "node:child_process";
-import type { getAgent } from "../agents/index";
 import { saveSession } from "../config";
-import type {
-  QualityGateResult,
-  RalphSession,
-  SpecEntry,
-  TaskEntry,
-} from "../types";
+import type { QualityGateResult, SpecEntry, TaskEntry } from "../types";
 import { generateRetryPrompt, generateTaskPrompt } from "../utils/task-prompts";
+import type { ExecuteAgentOptions, LoopContext } from "./types";
 
 const TASK_BLOCKED_REGEX = /<TASK_BLOCKED\s+reason="([^"]+)">/;
 
@@ -26,15 +21,13 @@ export interface TaskResult {
  * Execute agent with a given prompt and parse result.
  */
 export function executeAgentWithPrompt(
-  projectPath: string,
-  prompt: string,
-  agentInstance: ReturnType<typeof getAgent>,
-  session: RalphSession,
-  log: (msg: string) => void,
-  verbose?: boolean,
-  onSpawn?: (child: ReturnType<typeof spawn>) => void
+  context: LoopContext,
+  options: ExecuteAgentOptions
 ): Promise<TaskResult> {
-  const cmdOptions = agentInstance.buildCommand({
+  const { projectPath, agent, session, log, verbose } = context;
+  const { prompt, onSpawn } = options;
+
+  const cmdOptions = agent.buildCommand({
     model: session.model,
     verbose,
   });
@@ -116,50 +109,26 @@ export function executeAgentWithPrompt(
  * Run a single task with the agent.
  */
 export function runSingleTask(
-  projectPath: string,
+  context: LoopContext,
   spec: SpecEntry,
   task: TaskEntry,
-  agentInstance: ReturnType<typeof getAgent>,
-  session: RalphSession,
-  log: (msg: string) => void,
-  verbose?: boolean,
   onSpawn?: (child: ReturnType<typeof spawn>) => void
 ): Promise<TaskResult> {
   const taskPrompt = generateTaskPrompt(spec, task);
-  return executeAgentWithPrompt(
-    projectPath,
-    taskPrompt,
-    agentInstance,
-    session,
-    log,
-    verbose,
-    onSpawn
-  );
+  return executeAgentWithPrompt(context, { prompt: taskPrompt, onSpawn });
 }
 
 /**
  * Run a retry task with failure context.
  */
 export function runRetryTask(
-  projectPath: string,
+  context: LoopContext,
   spec: SpecEntry,
   task: TaskEntry,
   failedGates: QualityGateResult[],
   retryCount: number,
-  agentInstance: ReturnType<typeof getAgent>,
-  session: RalphSession,
-  log: (msg: string) => void,
-  verbose?: boolean,
   onSpawn?: (child: ReturnType<typeof spawn>) => void
 ): Promise<TaskResult> {
   const retryPrompt = generateRetryPrompt(spec, task, failedGates, retryCount);
-  return executeAgentWithPrompt(
-    projectPath,
-    retryPrompt,
-    agentInstance,
-    session,
-    log,
-    verbose,
-    onSpawn
-  );
+  return executeAgentWithPrompt(context, { prompt: retryPrompt, onSpawn });
 }

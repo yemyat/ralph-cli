@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T08:21:28.124Z",
+  "updatedAt": "2026-01-18T08:43:41.029Z",
   "updatedBy": "build-mode",
   "qualityGates": [
     "bun run typecheck",
@@ -44,7 +44,9 @@
           "id": "pi-agent-support-3",
           "description": "Add `\"pi\"` to `AgentType` union in `src/types.ts`",
           "status": "completed",
-          "acceptanceCriteria": ["AgentType includes 'pi' as valid option"],
+          "acceptanceCriteria": [
+            "AgentType includes 'pi' as valid option"
+          ],
           "completedAt": "2026-01-18T07:31:12.312Z"
         },
         {
@@ -229,7 +231,7 @@
       "file": "specs/016-remove-legacy-loop.md",
       "name": "Remove Legacy Loop & Simplify Orchestration",
       "priority": 4,
-      "status": "in_progress",
+      "status": "completed",
       "context": "start.ts is 838 lines with two parallel orchestration systems. Legacy runRalphLoop() (~150 lines), DONE_MARKER, and useTaskLevel branching need removal. Then extract into src/orchestration/ modules: task-loop.ts, task-handlers.ts, agent-executor.ts, notifications.ts. Goal: start.ts < 150 lines.",
       "tasks": [
         {
@@ -305,30 +307,33 @@
         {
           "id": "remove-legacy-loop-8",
           "description": "Extract agent execution to `orchestration/agent-executor.ts`",
-          "status": "in_progress",
+          "status": "completed",
           "acceptanceCriteria": [
             "executeAgentWithPrompt, runSingleTask, runRetryTask moved",
             "Functions exported from agent-executor.ts"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:23:45.370Z"
         },
         {
           "id": "remove-legacy-loop-9",
           "description": "Extract notifications to `orchestration/notifications.ts`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "notifyTelegram, getGitBranch moved",
             "Functions exported from notifications.ts"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:24:26.906Z"
         },
         {
           "id": "remove-legacy-loop-10",
           "description": "Verify all existing tests pass after refactor",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "bun run test passes",
             "bun run typecheck passes",
             "start.ts is under 150 lines"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:24:51.848Z"
         }
       ],
       "acceptanceCriteria": [
@@ -344,83 +349,91 @@
       "file": "specs/018-centralize-constants.md",
       "name": "Centralize Constants & Magic Strings",
       "priority": 5,
-      "status": "pending",
+      "status": "completed",
       "context": "Magic strings scattered: TASK_DONE_MARKER, TASK_BLOCKED_REGEX duplicated in start.ts and task-level-loop.test.ts. Create src/constants.ts with MARKERS, FILES, DEFAULTS objects. Add formatBlockedMarker() and parseBlockedMarker() helpers.",
       "tasks": [
         {
           "id": "centralize-constants-1",
           "description": "Create `src/constants.ts` with `MARKERS` object",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "MARKERS.TASK_DONE contains '<TASK_DONE>'",
             "MARKERS.TASK_BLOCKED_TEMPLATE contains '<TASK_BLOCKED reason=\"...\">'",
             "MARKERS.TASK_BLOCKED_REGEX contains the regex pattern"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:25:44.625Z"
         },
         {
           "id": "centralize-constants-2",
           "description": "Add `FILES` object with file name constants",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "FILES.CONFIG = 'config.json'",
             "FILES.IMPLEMENTATION = 'implementation.json'",
             "FILES.PROMPT_PLAN = 'PROMPT_plan.md'"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:26:24.532Z"
         },
         {
           "id": "centralize-constants-3",
           "description": "Add `DEFAULTS` object with default values",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "DEFAULTS.MAX_RETRIES = 3",
             "DEFAULTS.GRACEFUL_SHUTDOWN_MS = 5000",
             "DEFAULTS.DEFAULT_AGENT = 'claude'"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:27:19.101Z"
         },
         {
           "id": "centralize-constants-4",
           "description": "Add `formatBlockedMarker()` and `parseBlockedMarker()` helpers",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "formatBlockedMarker('reason') returns '<TASK_BLOCKED reason=\"reason\">'",
             "parseBlockedMarker(output) extracts reason or returns null"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:28:05.332Z"
         },
         {
           "id": "centralize-constants-5",
           "description": "Update `commands/start.ts` to import from `constants.ts`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "start.ts imports MARKERS from constants",
             "No string literal duplicates for task markers in start.ts"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:29:41.366Z"
         },
         {
           "id": "centralize-constants-6",
           "description": "Update `utils/task-prompts.ts` to use `MARKERS`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "task-prompts.ts imports MARKERS",
             "Prompt templates use MARKERS.TASK_DONE and MARKERS.TASK_BLOCKED_TEMPLATE"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:30:31.567Z"
         },
         {
           "id": "centralize-constants-7",
           "description": "Update `task-level-loop.test.ts` to import from `constants.ts`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test file imports MARKERS",
             "Duplicate TASK_BLOCKED_REGEX removed from test file"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:31:48.451Z"
         },
         {
           "id": "centralize-constants-8",
           "description": "Add unit test for `parseBlockedMarker()` helper",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Test verifies parseBlockedMarker extracts reason",
             "Test verifies parseBlockedMarker returns null for non-matching input"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:33:10.339Z"
         }
       ],
       "acceptanceCriteria": [
@@ -435,89 +448,98 @@
       "file": "specs/021-async-consistency.md",
       "name": "Fix Async/Await Consistency",
       "priority": 6,
-      "status": "pending",
+      "status": "completed",
       "context": "All 8 agents use Promise.resolve(true/false) pattern in checkInstalled() instead of async/await. This inconsistency causes cognitive overhead. Update all agents to use async keyword.",
       "tasks": [
         {
           "id": "async-consistency-1",
           "description": "Update `ClaudeAgent.checkInstalled()` to use `async`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Method uses async keyword",
             "Returns true/false directly, not Promise.resolve()"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:34:04.489Z"
         },
         {
           "id": "async-consistency-2",
           "description": "Update `AmpAgent.checkInstalled()` to use `async`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Method uses async keyword",
             "Returns true/false directly"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:34:55.257Z"
         },
         {
           "id": "async-consistency-3",
           "description": "Update `DroidAgent.checkInstalled()` to use `async`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Method uses async keyword",
             "Returns true/false directly"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:35:48.163Z"
         },
         {
           "id": "async-consistency-4",
           "description": "Update `OpenCodeAgent.checkInstalled()` to use `async`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Method uses async keyword",
             "Returns true/false directly"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:36:47.555Z"
         },
         {
           "id": "async-consistency-5",
           "description": "Update `CursorAgent.checkInstalled()` to use `async`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Method uses async keyword",
             "Returns true/false directly"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:37:52.700Z"
         },
         {
           "id": "async-consistency-6",
           "description": "Update `CodexAgent.checkInstalled()` to use `async`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Method uses async keyword",
             "Returns true/false directly"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:38:49.350Z"
         },
         {
           "id": "async-consistency-7",
           "description": "Update `GeminiAgent.checkInstalled()` to use `async`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Method uses async keyword",
             "Returns true/false directly"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:39:46.139Z"
         },
         {
           "id": "async-consistency-8",
           "description": "Update `PiAgent.checkInstalled()` to use `async`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "Method uses async keyword",
             "Returns true/false directly"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:40:38.594Z"
         },
         {
           "id": "async-consistency-9",
           "description": "Run tests and typecheck to verify no regressions",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "bun run test passes",
             "bun run typecheck passes"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:41:10.040Z"
         }
       ],
       "acceptanceCriteria": [
@@ -532,40 +554,43 @@
       "file": "specs/017-options-object-pattern.md",
       "name": "Introduce Options Object Pattern",
       "priority": 7,
-      "status": "pending",
+      "status": "in_progress",
       "context": "Functions have 10+ positional parameters making code hard to read. After spec 016 creates orchestration/, refactor to use LoopContext and named options objects. Depends on: spec 016 (remove-legacy-loop).",
       "tasks": [
         {
           "id": "options-object-pattern-1",
           "description": "Define `LoopContext` interface in `src/orchestration/types.ts`",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "LoopContext contains: projectPath, config, session, agent, log, verbose",
             "Interface is exported from orchestration/types.ts"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:42:01.420Z"
         },
         {
           "id": "options-object-pattern-2",
           "description": "Define `ExecuteAgentOptions` interface",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "ExecuteAgentOptions contains: prompt, onSpawn",
             "Interface is exported"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:42:52.266Z"
         },
         {
           "id": "options-object-pattern-3",
           "description": "Define `RetryOptions` interface",
-          "status": "pending",
+          "status": "completed",
           "acceptanceCriteria": [
             "RetryOptions contains: spec, task, failedGates, retryCount",
             "Interface is exported"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:43:40.499Z"
         },
         {
           "id": "options-object-pattern-4",
           "description": "Refactor `executeAgentWithPrompt()` to use options object",
-          "status": "pending",
+          "status": "in_progress",
           "acceptanceCriteria": [
             "Function signature uses ExecuteAgentOptions",
             "Call sites updated with named parameters"
@@ -710,7 +735,9 @@
           "id": "unit-tests-init-command-1",
           "description": "Create `src/commands/__tests__/` directory",
           "status": "pending",
-          "acceptanceCriteria": ["Directory exists"]
+          "acceptanceCriteria": [
+            "Directory exists"
+          ]
         },
         {
           "id": "unit-tests-init-command-2",
@@ -801,7 +828,9 @@
           "id": "domain-objects-1",
           "description": "Create `src/domain/` directory",
           "status": "pending",
-          "acceptanceCriteria": ["Directory exists"]
+          "acceptanceCriteria": [
+            "Directory exists"
+          ]
         },
         {
           "id": "domain-objects-2",

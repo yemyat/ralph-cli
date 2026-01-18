@@ -35,6 +35,7 @@ import {
   handleGatesPassed,
   type TaskLoopContext,
 } from "./task-handlers";
+import type { LoopContext } from "./types";
 
 export interface TaskLoopOptions {
   maxRetries?: number;
@@ -149,6 +150,15 @@ export async function runTaskLevelLoop(
   process.on("SIGINT", handleSignal);
   process.on("SIGTERM", handleSignal);
 
+  const loopContext: LoopContext = {
+    projectPath,
+    config,
+    session,
+    agent: agentInstance,
+    log,
+    verbose,
+  };
+
   const ctx: TaskLoopContext = {
     projectPath,
     config,
@@ -162,15 +172,11 @@ export async function runTaskLevelLoop(
     },
     runRetryTask: async (spec, task, failedGates, retryCount) => {
       await runRetryTask(
-        projectPath,
+        loopContext,
         spec,
         task,
         failedGates,
         retryCount,
-        agentInstance,
-        session,
-        log,
-        verbose,
         ctx.setCurrentChild
       );
     },
@@ -207,13 +213,9 @@ export async function runTaskLevelLoop(
 
       // Run the task
       const result = await runSingleTask(
-        projectPath,
+        loopContext,
         spec,
         task,
-        agentInstance,
-        session,
-        log,
-        verbose,
         ctx.setCurrentChild
       );
 
