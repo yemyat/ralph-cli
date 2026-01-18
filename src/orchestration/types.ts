@@ -1,0 +1,26 @@
+/**
+ * Orchestration types.
+ * Shared interfaces for the orchestration module.
+ */
+
+import type { BaseAgent } from "../agents/base";
+import type { RalphConfig, RalphSession } from "../types";
+
+/**
+ * Core context object for loop operations.
+ * Contains the essential dependencies needed throughout the orchestration flow.
+ */
+export interface LoopContext {
+  /** Path to the project root directory */
+  projectPath: string;
+  /** Ralph configuration */
+  config: RalphConfig;
+  /** Current session state */
+  session: RalphSession;
+  /** Agent instance for executing tasks */
+  agent: BaseAgent;
+  /** Logger function */
+  log: (msg: string) => void;
+  /** Enable verbose output */
+  verbose?: boolean;
+}
