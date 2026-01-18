@@ -30,3 +30,17 @@ export const FILES = {
   /** Planning mode prompt template */
   PROMPT_PLAN: "PROMPT_plan.md",
 } as const;
+
+/**
+ * Default configuration values for Ralph CLI.
+ */
+export const DEFAULTS = {
+  /** Maximum retry attempts for failed tasks */
+  MAX_RETRIES: 3,
+
+  /** Timeout in ms for graceful shutdown */
+  GRACEFUL_SHUTDOWN_MS: 5000,
+
+  /** Default agent to use when not specified */
+  DEFAULT_AGENT: "claude",
+} as const;
