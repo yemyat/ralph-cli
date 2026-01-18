@@ -2,7 +2,6 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import fse from "fs-extra";
-import ora from "ora";
 import pc from "picocolors";
 import { getAgent } from "../agents/index";
 import { getProjectConfig, getProjectSessions, saveSession } from "../config";
@@ -148,22 +147,9 @@ export async function startCommand(
         verbose: options.verbose,
       }
     );
-  } else {
-    // Use legacy spec-level orchestration
-    await runRalphLoop(
-      projectPath,
-      config,
-      session,
-      logFile,
-      promptPath,
-      agentInstance,
-      maxIterations,
-      options.verbose
-    );
   }
 }
 
-const DONE_MARKER = "<STATUS>DONE</STATUS>";
 const TASK_DONE_MARKER = "<TASK_DONE>";
 const TASK_BLOCKED_REGEX = /<TASK_BLOCKED\s+reason="([^"]+)">/;
 
@@ -208,181 +194,6 @@ async function notifyTelegram(
     log(`Telegram notification sent: ${status}`);
   } else {
     log(`Telegram notification failed: ${status}`);
-  }
-}
-
-async function runRalphLoop(
-  projectPath: string,
-  config: RalphConfig,
-  session: RalphSession,
-  logFile: string,
-  promptPath: string,
-  agentInstance: ReturnType<typeof getAgent>,
-  maxIterations: number,
-  verbose?: boolean
-): Promise<void> {
-  let iteration = 0;
-  let doneDetected = false;
-  let currentChild: ReturnType<typeof spawn> | null = null;
-  const logStream = fse.createWriteStream(logFile, { flags: "a" });
-
-  const log = (msg: string) => {
-    const timestamp = new Date().toISOString();
-    logStream.write(`[${timestamp}] ${msg}\n`);
-    if (verbose) {
-      console.log(pc.gray(`[${timestamp}]`), msg);
-    }
-  };
-
-  log(`Starting Ralph loop - Session ${session.id}`);
-
-  // Send loop started notification
-  await notifyTelegram(config, session, "loop_started", log);
-
-  const handleSignal = async () => {
-    console.log(pc.yellow("\n\nStopping Ralph loop..."));
-
-    if (currentChild && !currentChild.killed) {
-      currentChild.kill("SIGTERM");
-      console.log(pc.gray("Terminated agent process"));
-    }
-
-    session.status = "stopped";
-    session.stoppedAt = new Date().toISOString();
-    await saveSession(projectPath, session);
-    log(`Loop stopped by user after ${iteration} iterations`);
-
-    // Send stopped notification
-    await notifyTelegram(config, session, "loop_stopped", log);
-
-    logStream.close();
-    process.exit(0);
-  };
-
-  process.on("SIGINT", handleSignal);
-  process.on("SIGTERM", handleSignal);
-
-  try {
-    while (true) {
-      if (maxIterations > 0 && iteration >= maxIterations) {
-        console.log(pc.green(`\n✓ Reached max iterations: ${maxIterations}`));
-        break;
-      }
-
-      iteration++;
-      session.iteration = iteration;
-      await saveSession(projectPath, session);
-
-      const spinner = ora(`Iteration ${iteration}`).start();
-      log(`Starting iteration ${iteration}`);
-
-      try {
-        const promptContent = await fse.readFile(promptPath, "utf-8");
-
-        const cmdOptions = agentInstance.buildCommand({
-          model: session.model,
-          promptFile: promptPath,
-          verbose,
-        });
-
-        await new Promise<void>((resolve, reject) => {
-          let stdoutBuffer = "";
-
-          currentChild = spawn(cmdOptions.command, cmdOptions.args, {
-            cwd: process.cwd(),
-            stdio: ["pipe", "pipe", "pipe"],
-            env: { ...process.env, ...cmdOptions.env },
-          });
-
-          currentChild.stdin?.write(promptContent);
-          currentChild.stdin?.end();
-
-          currentChild.stdout?.on("data", (data) => {
-            const output = data.toString();
-            log(`[stdout] ${output}`);
-            if (verbose) {
-              process.stdout.write(output);
-            }
-            stdoutBuffer += output;
-          });
-
-          currentChild.stderr?.on("data", (data) => {
-            const output = data.toString();
-            log(`[stderr] ${output}`);
-            if (verbose) {
-              process.stderr.write(output);
-            }
-          });
-
-          currentChild.on("error", (err) => {
-            log(`Error: ${err.message}`);
-            reject(err);
-          });
-
-          currentChild.on("close", (code) => {
-            log(`Iteration ${iteration} completed with exit code ${code}`);
-
-            const tailOutput = stdoutBuffer.slice(-2000);
-            if (tailOutput.includes(DONE_MARKER)) {
-              doneDetected = true;
-              log("Detected DONE marker in output tail");
-            }
-
-            if (code === 0) {
-              resolve();
-            } else {
-              reject(new Error(`Process exited with code ${code}`));
-            }
-          });
-
-          session.pid = currentChild.pid;
-          saveSession(projectPath, session);
-        });
-
-        spinner.succeed(`Iteration ${iteration} completed`);
-
-        if (doneDetected) {
-          // Send loop completed notification
-          await notifyTelegram(config, session, "loop_completed", log);
-          console.log(
-            pc.green("\n✓ All tasks completed! Agent signaled DONE.")
-          );
-          break;
-        }
-
-        // Send iteration success notification
-        await notifyTelegram(config, session, "iteration_success", log);
-
-        if (session.mode === "build") {
-          try {
-            const { execSync } = await import("node:child_process");
-            const branch = execSync("git branch --show-current", {
-              encoding: "utf-8",
-            }).trim();
-            execSync(`git push origin ${branch}`, { stdio: "pipe" });
-            log(`Pushed to origin/${branch}`);
-          } catch (e) {
-            log(`Git push skipped or failed: ${e}`);
-          }
-        }
-      } catch (err) {
-        spinner.fail(`Iteration ${iteration} failed`);
-        log(`Iteration ${iteration} failed: ${err}`);
-
-        // Send iteration failure notification
-        await notifyTelegram(config, session, "iteration_failure", log);
-      }
-
-      console.log(
-        pc.gray(`\n${"=".repeat(20)} LOOP ${iteration} ${"=".repeat(20)}\n`)
-      );
-    }
-
-    session.status = "completed";
-    await saveSession(projectPath, session);
-    log(`Loop completed after ${iteration} iterations`);
-  } finally {
-    logStream.close();
   }
 }
 
