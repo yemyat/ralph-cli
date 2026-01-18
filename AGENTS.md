@@ -42,6 +42,7 @@ src/
 │   ├── claude.ts     # Claude Code agent
 │   ├── amp.ts        # Amp Code agent
 │   ├── droid.ts      # Factory Droid agent
+│   ├── pi.ts         # Pi agent
 │   └── index.ts      # Agent registry
 ├── commands/         # CLI command implementations
 │   ├── init.ts       # ralph-wiggum-cli init
@@ -86,6 +87,28 @@ droid exec --auto high -o stream-json -m <model>
 
 # Autonomy levels: low, medium, high
 # Docs: https://docs.factory.ai/reference/cli-reference
+```
+
+### Pi (Anthropic)
+
+```bash
+# CLI command format
+pi --print --mode json --thinking high --model <model> --provider <provider>
+
+# Flags:
+#   --print          Print mode (non-interactive)
+#   --mode json      Structured JSON output
+#   --thinking high  High thinking mode for complex reasoning
+#   --model          Optional model selection
+#   --provider       Optional provider selection
+
+# Environment variables:
+#   ANTHROPIC_API_KEY  API key for authentication
+
+# Installation:
+#   bun install -g @anthropic-ai/pi
+#   # or
+#   npm install -g @anthropic-ai/pi
 ```
 
 ## Adding a New Agent
