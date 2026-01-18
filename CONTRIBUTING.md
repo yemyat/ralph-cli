@@ -36,6 +36,25 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/). 
 
 Commits are enforced via commitlint + husky.
 
+## Git Workflow
+
+```
+feature branch → PR to dev → merge to dev
+                                  ↓
+                    (when ready to release)
+                                  ↓
+              dev → PR to main → merge to main
+                                  ↓
+                    semantic-release runs
+                    (version bump + npm publish)
+```
+
+### Branch Strategy
+
+- **`main`** - Production branch. Merges trigger releases.
+- **`dev`** - Development branch. All feature PRs target this branch.
+- **Feature branches** - Create from `dev`, name like `feat/my-feature` or `fix/my-fix`.
+
 ## Pull Request Process
 
 1. Fork the repo and create your branch from `dev`
@@ -43,6 +62,13 @@ Commits are enforced via commitlint + husky.
 3. Ensure all checks pass: `bun run lint && bun run typecheck`
 4. Submit a PR to `dev` branch
 5. PRs are squash-merged to keep history clean
+
+### Creating a Release
+
+Maintainers can trigger a release by:
+1. Go to **Actions** → **Create Release PR**
+2. Click **Run workflow**
+3. Merge the generated PR from `dev` → `main`
 
 ## Code Style
 
