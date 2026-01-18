@@ -196,19 +196,19 @@ export interface NotificationContext {
   sessionId: string;
 }
 
-export type LogFn = (msg: string) => void;
+import type { LoggerService } from "./services/logger-service";
 
 export interface NotificationServiceOptions {
   config: NotificationsConfig | undefined;
   context: NotificationContext;
-  log: LogFn;
+  logger?: LoggerService | null;
 }
 
 export interface AgentRunnerOptions {
   agent: BaseAgent;
   model?: string;
   verbose?: boolean;
-  log: LogFn;
+  logger?: LoggerService | null;
 }
 
 export interface RunOptions {

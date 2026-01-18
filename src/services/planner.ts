@@ -7,13 +7,13 @@ import { FILES } from "../constants";
 import { Session } from "../domain/session";
 import { Workspace } from "../domain/workspace";
 import type { PlanOptions } from "../types";
-import { getRalphDir, getSessionLogFile } from "../utils/paths";
+import { getRalphDir } from "../utils/paths";
 import { AgentRunner } from "./agent-runner";
+import { LoggerService } from "./logger-service";
 
 interface PlannerState {
   workspace: Workspace;
   session: Session;
-  logFile: string;
   prompt: string;
 }
 
@@ -21,20 +21,12 @@ export class Planner {
   private state: PlannerState | null = null;
   private readonly verbose: boolean;
 
-  private logStream: fse.WriteStream | null = null;
+  private logger: LoggerService | null = null;
   private currentChild: ChildProcess | null = null;
   private agentRunner: AgentRunner | null = null;
 
   constructor(options: { verbose?: boolean } = {}) {
     this.verbose = options.verbose ?? false;
-  }
-
-  private log(msg: string): void {
-    const timestamp = new Date().toISOString();
-    this.logStream?.write(`[${timestamp}] ${msg}\n`);
-    if (this.verbose) {
-      console.log(pc.gray(`[${timestamp}]`), msg);
-    }
   }
 
   private async validate(
@@ -74,13 +66,12 @@ export class Planner {
 
     const prompt = await fse.readFile(promptPath, "utf-8");
     const session = Session.create({ mode: "plan", agent: agentType, model });
-    const logFile = getSessionLogFile(session.id);
 
-    return { workspace, session, logFile, prompt };
+    return { workspace, session, prompt };
   }
 
   private printBanner(state: PlannerState): void {
-    const { session, logFile } = state;
+    const { session } = state;
     const agent = getAgent(session.agent);
 
     console.log(pc.green("\n🚀 Starting Ralph plan mode...\n"));
@@ -88,19 +79,22 @@ export class Planner {
     console.log(`  Agent:   ${pc.cyan(agent.name)}`);
     console.log(`  Model:   ${pc.cyan(session.model || "default")}`);
     console.log(`  Prompt:  ${pc.cyan(FILES.PROMPT_PLAN)}`);
-    console.log(`  Log:     ${pc.gray(logFile)}`);
+    if (this.logger?.logFile) {
+      console.log(`  Log:     ${pc.gray(this.logger.logFile)}`);
+    }
     console.log(pc.gray("\nPress Ctrl+C to stop.\n"));
   }
 
   private setupServices(state: PlannerState): void {
-    this.logStream = fse.createWriteStream(state.logFile, { flags: "a" });
+    this.logger = new LoggerService({ verbose: this.verbose });
+    this.logger.startSessionLog(state.session.id);
     const agent = getAgent(state.session.agent);
 
     this.agentRunner = new AgentRunner({
       agent,
       model: state.session.model,
       verbose: this.verbose,
-      log: (msg) => this.log(msg),
+      logger: this.logger,
     });
   }
 
@@ -116,8 +110,8 @@ export class Planner {
       this.state.session.markStopped();
       this.state.workspace.sessionManager.update(this.state.session);
       await this.state.workspace.save();
-      this.log("Plan mode stopped by user");
-      this.logStream?.close();
+      this.logger?.log("Plan mode stopped by user");
+      this.logger?.close();
       process.exit(0);
     };
 
@@ -141,14 +135,14 @@ export class Planner {
     }
 
     this.state = result;
-    this.printBanner(this.state);
     this.setupServices(this.state);
+    this.printBanner(this.state);
     this.setupSignalHandlers();
 
     this.state.workspace.sessionManager.add(this.state.session);
     await this.state.workspace.save();
 
-    this.log(`Starting plan mode - Session ${this.state.session.id}`);
+    this.logger?.log(`Starting plan mode - Session ${this.state.session.id}`);
 
     try {
       const runResult = await this.agentRunner?.run({
@@ -173,9 +167,9 @@ export class Planner {
       }
 
       await this.updateSessionState();
-      this.log("Plan mode completed");
+      this.logger?.log("Plan mode completed");
     } finally {
-      this.logStream?.close();
+      this.logger?.close();
     }
   }
 }

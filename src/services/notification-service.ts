@@ -6,16 +6,17 @@ import type {
   NotificationsConfig,
 } from "../types";
 import { sendTelegramNotification } from "../utils/telegram";
+import type { LoggerService } from "./logger-service";
 
 export class NotificationService {
   private readonly config: NotificationsConfig | undefined;
   private readonly context: NotificationContext;
-  private readonly log: (msg: string) => void;
+  private readonly logger: LoggerService | null;
 
   constructor(options: NotificationServiceOptions) {
     this.config = options.config;
     this.context = options.context;
-    this.log = options.log;
+    this.logger = options.logger ?? null;
   }
 
   async notify(
@@ -40,7 +41,7 @@ export class NotificationService {
     try {
       await sendTelegramNotification(telegram, payload);
     } catch (err) {
-      this.log(`Telegram notification failed: ${err}`);
+      this.logger?.log(`Telegram notification failed: ${err}`);
     }
   }
 }

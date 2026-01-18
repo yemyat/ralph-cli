@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import type { BaseAgent } from "../agents/base";
 import { MARKERS } from "../constants";
 import type { AgentRunnerOptions, RunOptions, TaskResult } from "../types";
+import type { LoggerService } from "./logger-service";
 
 const TASK_BLOCKED_REGEX = /<TASK_BLOCKED\s+reason="([^"]+)">/;
 
@@ -9,13 +10,13 @@ export class AgentRunner {
   private readonly agent: BaseAgent;
   private readonly model?: string;
   private readonly verbose: boolean;
-  private readonly log: (msg: string) => void;
+  private readonly logger: LoggerService | null;
 
   constructor(options: AgentRunnerOptions) {
     this.agent = options.agent;
     this.model = options.model;
     this.verbose = options.verbose ?? false;
-    this.log = options.log;
+    this.logger = options.logger ?? null;
   }
 
   run(options: RunOptions): Promise<TaskResult> {
@@ -41,7 +42,7 @@ export class AgentRunner {
 
       child.stdout?.on("data", (data) => {
         const output = data.toString();
-        this.log(`[stdout] ${output}`);
+        this.logger?.log(`[stdout] ${output}`);
         if (this.verbose) {
           process.stdout.write(output);
         }
@@ -50,29 +51,29 @@ export class AgentRunner {
 
       child.stderr?.on("data", (data) => {
         const output = data.toString();
-        this.log(`[stderr] ${output}`);
+        this.logger?.log(`[stderr] ${output}`);
         if (this.verbose) {
           process.stderr.write(output);
         }
       });
 
       child.on("error", (err) => {
-        this.log(`Error: ${err.message}`);
+        this.logger?.log(`Error: ${err.message}`);
         resolve({ status: "error", output: stdoutBuffer, reason: err.message });
       });
 
       child.on("close", (code) => {
-        this.log(`Agent exited with code ${code}`);
+        this.logger?.log(`Agent exited with code ${code}`);
 
         if (stdoutBuffer.includes(MARKERS.TASK_DONE)) {
-          this.log("Detected TASK_DONE marker");
+          this.logger?.log("Detected TASK_DONE marker");
           resolve({ status: "done", output: stdoutBuffer });
           return;
         }
 
         const blockedMatch = stdoutBuffer.match(TASK_BLOCKED_REGEX);
         if (blockedMatch) {
-          this.log(`Detected TASK_BLOCKED marker: ${blockedMatch[1]}`);
+          this.logger?.log(`Detected TASK_BLOCKED marker: ${blockedMatch[1]}`);
           resolve({
             status: "blocked",
             output: stdoutBuffer,

@@ -17,10 +17,6 @@ export function getLogsDir(): string {
   return join(getRalphDir(), RALPH_LOGS_DIR);
 }
 
-export function getSessionLogFile(sessionId: string): string {
-  return join(getLogsDir(), `${sessionId}.log`);
-}
-
 export function getSpecsDir(): string {
   return join(getRalphDir(), "specs");
 }

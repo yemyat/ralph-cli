@@ -1,5 +1,4 @@
 import type { ChildProcess } from "node:child_process";
-import fse from "fs-extra";
 import Mustache from "mustache";
 import pc from "picocolors";
 import { getAgent } from "../agents/index";
@@ -8,8 +7,8 @@ import { Session } from "../domain/session";
 import { Workspace } from "../domain/workspace";
 import { PROMPT_BUILD } from "../templates/prompts";
 import type { BuildOptions, RalphConfig, SpecLike, TaskLike } from "../types";
-import { getSessionLogFile } from "../utils/paths";
 import { AgentRunner } from "./agent-runner";
+import { LoggerService } from "./logger-service";
 import { NotificationService } from "./notification-service";
 
 function generateTaskPrompt(spec: SpecLike, task: TaskLike): string {
@@ -29,28 +28,19 @@ interface BuilderState {
   config: RalphConfig;
   workspace: Workspace;
   session: Session;
-  logFile: string;
 }
 
 export class Builder {
   private state: BuilderState | null = null;
   private readonly verbose: boolean;
 
-  private logStream: fse.WriteStream | null = null;
+  private logger: LoggerService | null = null;
   private currentChild: ChildProcess | null = null;
   private agentRunner: AgentRunner | null = null;
   private notificationService: NotificationService | null = null;
 
   constructor(options: { verbose?: boolean } = {}) {
     this.verbose = options.verbose ?? false;
-  }
-
-  private log(msg: string): void {
-    const timestamp = new Date().toISOString();
-    this.logStream?.write(`[${timestamp}] ${msg}\n`);
-    if (this.verbose) {
-      console.log(pc.gray(`[${timestamp}]`), msg);
-    }
   }
 
   private async validate(
@@ -90,32 +80,30 @@ export class Builder {
     }
 
     const session = Session.create({ mode: "build", agent: agentType, model });
-    const logFile = getSessionLogFile(session.id);
 
-    return { config: workspace.config, workspace, session, logFile };
+    return { config: workspace.config, workspace, session };
   }
 
   private printBanner(state: BuilderState): void {
-    const { session, logFile } = state;
+    const { session } = state;
     const agent = getAgent(session.agent);
 
     console.log(pc.green("\n🚀 Starting Ralph build loop...\n"));
     console.log(`  Session: ${pc.cyan(session.id)}`);
     console.log(`  Agent:   ${pc.cyan(agent.name)}`);
     console.log(`  Model:   ${pc.cyan(session.model || "default")}`);
-    console.log(`  Log:     ${pc.gray(logFile)}`);
     console.log(pc.gray("\nPress Ctrl+C to stop.\n"));
   }
 
   private setupServices(state: BuilderState): void {
-    this.logStream = fse.createWriteStream(state.logFile, { flags: "a" });
+    this.logger = new LoggerService({ verbose: this.verbose });
     const agent = getAgent(state.session.agent);
 
     this.agentRunner = new AgentRunner({
       agent,
       model: state.session.model,
       verbose: this.verbose,
-      log: (msg) => this.log(msg),
+      logger: this.logger,
     });
 
     this.notificationService = new NotificationService({
@@ -125,7 +113,7 @@ export class Builder {
         mode: state.session.mode,
         sessionId: state.session.id,
       },
-      log: (msg) => this.log(msg),
+      logger: this.logger,
     });
   }
 
@@ -142,12 +130,12 @@ export class Builder {
       this.state.session.markStopped();
       this.state.workspace.sessionManager.update(this.state.session);
       await this.state.workspace.save();
-      this.log("Loop stopped by user");
+      this.logger?.log("Loop stopped by user");
       await this.notificationService?.notify(
         "loop_stopped",
         this.state.session.iteration
       );
-      this.logStream?.close();
+      this.logger?.close();
       process.exit(0);
     };
 
@@ -171,14 +159,14 @@ export class Builder {
     }
 
     this.state = result;
-    this.printBanner(this.state);
     this.setupServices(this.state);
+    this.printBanner(this.state);
     this.setupSignalHandlers();
 
     this.state.workspace.sessionManager.add(this.state.session);
     await this.state.workspace.save();
 
-    this.log(`Starting build loop - Session ${this.state.session.id}`);
+    this.logger?.log(`Starting build loop - Session ${this.state.session.id}`);
     await this.notificationService?.notify(
       "loop_started",
       this.state.session.iteration
@@ -188,9 +176,9 @@ export class Builder {
       await this.runLoop();
       this.state.session.markCompleted();
       await this.updateSessionState();
-      this.log("Build loop completed");
+      this.logger?.log("Build loop completed");
     } finally {
-      this.logStream?.close();
+      this.logger?.close();
     }
   }
 
@@ -219,13 +207,18 @@ export class Builder {
       this.state.session.incrementIteration();
       await this.updateSessionState();
 
+      this.logger?.startTaskLog(task.id);
+
       console.log(
         pc.cyan(
           `\n📋 Task ${this.state.session.iteration}: ${task.description}`
         )
       );
       console.log(pc.gray(`   Spec: ${spec.name}`));
-      this.log(`Starting task: ${task.id} - ${task.description}`);
+      if (this.logger?.logFile) {
+        console.log(pc.gray(`   Log:  ${this.logger.logFile}`));
+      }
+      this.logger?.log(`Starting task: ${task.id} - ${task.description}`);
 
       task.markInProgress();
       await impl.save();
@@ -251,7 +244,7 @@ export class Builder {
 
       if (result.status === "blocked") {
         console.log(pc.yellow(`  ⚠ Task blocked: ${result.reason}`));
-        this.log(`Task blocked: ${result.reason}`);
+        this.logger?.log(`Task blocked: ${result.reason}`);
         task.block(result.reason || "Unknown");
         await impl.save();
         continue;
@@ -259,7 +252,7 @@ export class Builder {
 
       if (result.status === "done") {
         console.log(pc.green("  ✓ Task completed"));
-        this.log(`Task completed: ${task.id}`);
+        this.logger?.log(`Task completed: ${task.id}`);
         task.complete();
         await impl.save();
         await this.notificationService?.notify(
@@ -269,11 +262,11 @@ export class Builder {
         );
         if (spec.isCompleted) {
           console.log(pc.green(`\n✓ Spec completed: ${spec.name}`));
-          this.log(`Spec completed: ${spec.name}`);
+          this.logger?.log(`Spec completed: ${spec.name}`);
         }
       } else {
         console.log(pc.red("  ✗ Task failed"));
-        this.log(`Task failed: ${task.id}`);
+        this.logger?.log(`Task failed: ${task.id}`);
         task.fail();
         await impl.save();
         await this.notificationService?.notify(
