@@ -1,6 +1,7 @@
 // src/utils/task-prompts.ts
 // Generate focused task prompts for task-level orchestration
 
+import { MARKERS } from "../constants";
 import { PROMPT_BUILD } from "../templates/prompts";
 import type { QualityGateResult, SpecEntry, TaskEntry } from "../types";
 import { getCompletedTasks } from "./implementation";
@@ -66,8 +67,8 @@ ${formatAcceptanceCriteria(task.acceptanceCriteria)}
 
 ## Completion
 
-When done, output exactly: <TASK_DONE>
-If blocked, output: <TASK_BLOCKED reason="...">
+When done, output exactly: ${MARKERS.TASK_DONE}
+If blocked, output: ${MARKERS.TASK_BLOCKED_TEMPLATE}
 `;
 }
 
@@ -137,8 +138,8 @@ This task was previously blocked with the following reason:
 
 ## Options
 
-1. If you can now resolve the blocker, fix the issue and output: <TASK_DONE>
-2. If still blocked, output: <TASK_BLOCKED reason="...">
+1. If you can now resolve the blocker, fix the issue and output: ${MARKERS.TASK_DONE}
+2. If still blocked, output: ${MARKERS.TASK_BLOCKED_TEMPLATE}
 3. If the task should be skipped, output: <TASK_SKIP reason="...">
 
 ## Rules
