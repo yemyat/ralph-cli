@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T14:50:22.055Z",
+  "updatedAt": "2026-01-18T14:54:35.701Z",
   "updatedBy": "build-mode",
   "specs": [
     {
@@ -37,7 +37,9 @@
           "id": "pi-agent-support-3",
           "description": "Add `\"pi\"` to `AgentType` union in `src/types.ts`",
           "status": "completed",
-          "acceptanceCriteria": ["AgentType includes 'pi' as valid option"],
+          "acceptanceCriteria": [
+            "AgentType includes 'pi' as valid option"
+          ],
           "completedAt": "2026-01-18T07:31:12.312Z"
         },
         {
@@ -740,7 +742,9 @@
           "id": "unit-tests-init-command-1",
           "description": "Create `src/commands/__tests__/` directory",
           "status": "completed",
-          "acceptanceCriteria": ["Directory exists"],
+          "acceptanceCriteria": [
+            "Directory exists"
+          ],
           "completedAt": "2026-01-18T09:37:06.551Z"
         },
         {
@@ -833,14 +837,16 @@
       "file": "specs/022-domain-objects.md",
       "name": "Introduce Domain Objects for Task & Spec",
       "priority": 10,
-      "status": "pending",
+      "status": "completed",
       "tasks": [
         {
           "id": "domain-objects-1",
           "description": "Create `src/domain/` directory",
           "status": "completed",
-          "acceptanceCriteria": ["Directory exists"],
-          "completedAt": "2026-01-18T14:38:27.241Z"
+          "acceptanceCriteria": [
+            "Directory exists"
+          ],
+          "completedAt": "2026-01-18T14:54:35.701Z"
         },
         {
           "id": "domain-objects-2",
