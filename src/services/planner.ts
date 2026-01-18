@@ -1,30 +1,31 @@
 import type { ChildProcess } from "node:child_process";
+import { join } from "node:path";
 import fse from "fs-extra";
 import pc from "picocolors";
-import type { BaseAgent } from "../agents/base";
-import type { Session } from "../domain/session";
-import type { Workspace } from "../domain/workspace";
-import type { PlannerOptions } from "../types";
+import { getAgent } from "../agents/index";
+import { FILES } from "../constants";
+import { Session } from "../domain/session";
+import { Workspace } from "../domain/workspace";
+import type { PlanOptions } from "../types";
+import { getRalphDir, getSessionLogFile } from "../utils/paths";
 import { AgentRunner } from "./agent-runner";
 
+interface PlannerState {
+  workspace: Workspace;
+  session: Session;
+  logFile: string;
+  prompt: string;
+}
+
 export class Planner {
-  private readonly workspace: Workspace;
-  private readonly session: Session;
-  private readonly logFile: string;
-  private readonly agent: BaseAgent;
-  private readonly prompt: string;
+  private state: PlannerState | null = null;
   private readonly verbose: boolean;
 
   private logStream: fse.WriteStream | null = null;
   private currentChild: ChildProcess | null = null;
   private agentRunner: AgentRunner | null = null;
 
-  constructor(options: PlannerOptions) {
-    this.workspace = options.workspace;
-    this.session = options.session;
-    this.logFile = options.logFile;
-    this.agent = options.agent;
-    this.prompt = options.prompt;
+  constructor(options: { verbose?: boolean } = {}) {
     this.verbose = options.verbose ?? false;
   }
 
@@ -36,12 +37,68 @@ export class Planner {
     }
   }
 
-  private setupServices(): void {
-    this.logStream = fse.createWriteStream(this.logFile, { flags: "a" });
+  private async validate(
+    options: PlanOptions
+  ): Promise<PlannerState | { error: string }> {
+    const workspace = await Workspace.load();
+    if (!workspace) {
+      return {
+        error: "Ralph is not initialized. Run `ralph-wiggum-cli init` first.",
+      };
+    }
+
+    const runningSession = workspace.sessionManager.running[0];
+    if (runningSession) {
+      return {
+        error: `Already running session: ${runningSession.id}. Use \`ralph-wiggum-cli stop\` to stop it first.`,
+      };
+    }
+
+    const modeConfig = workspace.config.agents.plan;
+    const agentType = options.agent || modeConfig.agent;
+    const model = options.model || modeConfig.model;
+    const agent = getAgent(agentType);
+
+    if (!(await agent.checkInstalled())) {
+      return {
+        error: `${agent.name} is not installed.\n${agent.getInstallInstructions()}`,
+      };
+    }
+
+    const promptPath = join(getRalphDir(), FILES.PROMPT_PLAN);
+    if (!(await fse.pathExists(promptPath))) {
+      return {
+        error: `Prompt file not found: ${FILES.PROMPT_PLAN}. Run \`ralph-wiggum-cli init\` to create it.`,
+      };
+    }
+
+    const prompt = await fse.readFile(promptPath, "utf-8");
+    const session = Session.create({ mode: "plan", agent: agentType, model });
+    const logFile = getSessionLogFile(session.id);
+
+    return { workspace, session, logFile, prompt };
+  }
+
+  private printBanner(state: PlannerState): void {
+    const { session, logFile } = state;
+    const agent = getAgent(session.agent);
+
+    console.log(pc.green("\n🚀 Starting Ralph plan mode...\n"));
+    console.log(`  Session: ${pc.cyan(session.id)}`);
+    console.log(`  Agent:   ${pc.cyan(agent.name)}`);
+    console.log(`  Model:   ${pc.cyan(session.model || "default")}`);
+    console.log(`  Prompt:  ${pc.cyan(FILES.PROMPT_PLAN)}`);
+    console.log(`  Log:     ${pc.gray(logFile)}`);
+    console.log(pc.gray("\nPress Ctrl+C to stop.\n"));
+  }
+
+  private setupServices(state: PlannerState): void {
+    this.logStream = fse.createWriteStream(state.logFile, { flags: "a" });
+    const agent = getAgent(state.session.agent);
 
     this.agentRunner = new AgentRunner({
-      agent: this.agent,
-      model: this.session.model,
+      agent,
+      model: state.session.model,
       verbose: this.verbose,
       log: (msg) => this.log(msg),
     });
@@ -49,13 +106,16 @@ export class Planner {
 
   private setupSignalHandlers(): void {
     const handleSignal = async () => {
+      if (!this.state) {
+        return;
+      }
       console.log(pc.yellow("\n\nStopping..."));
       if (this.currentChild && !this.currentChild.killed) {
         this.currentChild.kill("SIGTERM");
       }
-      this.session.markStopped();
-      this.workspace.sessionManager.update(this.session);
-      await this.workspace.save();
+      this.state.session.markStopped();
+      this.state.workspace.sessionManager.update(this.state.session);
+      await this.state.workspace.save();
       this.log("Plan mode stopped by user");
       this.logStream?.close();
       process.exit(0);
@@ -66,23 +126,37 @@ export class Planner {
   }
 
   private async updateSessionState(): Promise<void> {
-    this.workspace.sessionManager.update(this.session);
-    await this.workspace.save();
+    if (!this.state) {
+      return;
+    }
+    this.state.workspace.sessionManager.update(this.state.session);
+    await this.state.workspace.save();
   }
 
-  async run(): Promise<void> {
-    this.setupServices();
+  async run(options: PlanOptions): Promise<void> {
+    const result = await this.validate(options);
+    if ("error" in result) {
+      console.log(pc.red(result.error));
+      return;
+    }
+
+    this.state = result;
+    this.printBanner(this.state);
+    this.setupServices(this.state);
     this.setupSignalHandlers();
 
-    this.log(`Starting plan mode - Session ${this.session.id}`);
+    this.state.workspace.sessionManager.add(this.state.session);
+    await this.state.workspace.save();
+
+    this.log(`Starting plan mode - Session ${this.state.session.id}`);
 
     try {
-      const result = await this.agentRunner?.run({
-        prompt: this.prompt,
+      const runResult = await this.agentRunner?.run({
+        prompt: this.state.prompt,
         onSpawn: (child) => {
           this.currentChild = child;
-          if (child.pid) {
-            this.session.setPid(child.pid);
+          if (child.pid && this.state) {
+            this.state.session.setPid(child.pid);
           }
           this.updateSessionState().catch(() => {
             // fire-and-forget
@@ -90,11 +164,11 @@ export class Planner {
         },
       });
 
-      if (result?.status === "done") {
-        this.session.markCompleted();
+      if (runResult?.status === "done") {
+        this.state.session.markCompleted();
         console.log(pc.green("\n✓ Plan mode completed"));
       } else {
-        this.session.markStopped();
+        this.state.session.markStopped();
         console.log(pc.yellow("\n⚠ Plan mode stopped"));
       }
 

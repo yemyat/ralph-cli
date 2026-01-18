@@ -1,7 +1,5 @@
 import type { ChildProcess } from "node:child_process";
 import type { BaseAgent } from "./agents/base";
-import type { Session } from "./domain/session";
-import type { Workspace } from "./domain/workspace";
 
 export type AgentType =
   | "claude"
@@ -138,12 +136,6 @@ export interface BuildOptions {
   verbose?: boolean;
 }
 
-export interface ResolveContextOptions {
-  mode: "plan" | "build";
-  agentOverride?: AgentType;
-  modelOverride?: string;
-}
-
 export interface InitProjectOptions {
   planAgent: AgentType;
   planModel?: string;
@@ -222,22 +214,4 @@ export interface AgentRunnerOptions {
 export interface RunOptions {
   prompt: string;
   onSpawn?: (child: ChildProcess) => void;
-}
-
-export interface PlannerOptions {
-  workspace: Workspace;
-  session: Session;
-  logFile: string;
-  agent: BaseAgent;
-  prompt: string;
-  verbose?: boolean;
-}
-
-export interface BuilderOptions {
-  config: RalphConfig;
-  workspace: Workspace;
-  session: Session;
-  logFile: string;
-  agent: BaseAgent;
-  verbose?: boolean;
 }
