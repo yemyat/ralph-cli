@@ -84,30 +84,38 @@ If you discover project-specific rules that should be enforced, add them to the 
 
 COMPLETION: When all specs are audited, have clear tasks/acceptance criteria, and implementation.json is created/updated, output exactly: <STATUS>DONE</STATUS>`;
 
-export const PROMPT_BUILD = `# Build Mode (Task-Level)
+export const PROMPT_BUILD = `# Build Mode
 
-You are an autonomous coding agent. Complete one task at a time.
+## Context (Read First)
 
-## Context
+You are working on a specific task that is mentioned below. The task is part of a large spec. You have been iterating step by step on tasks from within that spec.
 
-The task prompt will be injected dynamically by Ralph when spawning each task.
-Read @.ralph-wiggum/GUARDRAILS.md for compliance rules.
+### Larger Spec Context
+{{spec_name}}
+
+You can find the full specs in the file: {{full_specs_file}}
+
+### Task Description
+{{task_context}}
+
+- Read \`.ralph-wiggum/PROGRESS.md\` — context from previous runs
+- Read @.ralph-wiggum/GUARDRAILS.md for compliance rules.
 
 ## Rules
-- Complete ONLY the assigned task
-- Do NOT assume code is missing — search codebase first
+- Do NOT assume code is missing — search first using subagents (up to 500 for reads, 1 for builds)
 - No placeholders or stubs — implement completely
-- Do NOT commit — Ralph handles commits externally
-- Do NOT run quality gates — Ralph runs them externally after you finish
+- Single sources of truth — no migrations or adapters
+- If unrelated tests fail, fix them as part of your work
 
 ## Workflow
 
-### 1. Read Assignment
-The task prompt includes:
-- Spec name and context
-- Completed tasks (for reference)
-- Your specific task description
-- Acceptance criteria for the task
+### 1. Pre-Flight (Guardrails Check)
+- Read \`.ralph-wiggum/GUARDRAILS.md\` completely
+- Verify you understand the "Before Making Changes" rules
+- Create an implementation plan around the task according to the following acceptance criteria
+<acceptanceCriteria>
+{{acceptance_criteria}}
+</acceptanceCriteria>
 
 ### 2. Understand Current State
 - Search codebase before making changes
@@ -117,13 +125,70 @@ The task prompt includes:
 ### 3. Implement
 - Complete the assigned task only
 - Follow existing code conventions
-- Make all changes needed for the task to pass its acceptance criteria
+- Make all changes needed for the task to pass its acceptance criteria mentioned earlier
 
-### 4. Commit the code changes
-- Commit the code changes to the repository based on any commit message guidelines.
-- If no guidelines are provided, use "git log" to inspect existing commits and learn patterns from there.
+### 4. Post-Flight (Guardrails Check)
+- Verify ALL items in \`.ralph-wiggum/GUARDRAILS.md\` "After Making Changes":
+- Check off acceptance criteria in the spec: \`- [x] AC\`
 
-### 4. Signal Completion
+### 5. Frontend Testing (Required for UI Changes)
+If the spec involves UI changes, you MUST verify in the browser:
+1. Load the \`agent-browser\` skill
+2. Navigate to the relevant page
+3. Verify the UI works as expected
+4. Take a screenshot for the progress log
+
+A frontend spec is NOT complete until browser verification passes.
+
+### 6. Backend Testing (Required for API/Service Changes)
+If the spec involves backend changes, you MUST run all relevant tests:
+1. Unit tests — test individual functions/modules in isolation
+2. Integration tests — test interactions between components
+3. E2E tests — test complete workflows end-to-end
+
+Adjust commands based on project (check package.json or AGENTS.md for available test scripts).
+
+A backend spec is NOT complete until all relevant test suites pass.
+
+### 7. Update Plan
+- Move spec from "In Progress" to "Completed" in \`.ralph-wiggum/implementation.json\`
+- Check off the task in the spec: \`- [x] AC\`
+- Add any discovered issues as new specs if needed
+
+### 8. Commit & Push
+\`\`\`bash
+git add -A
+git commit -m "feat: <spec name completed>"
+git push
+\`\`\`
+
+### 9. Log Progress (Append to \`.ralph-wiggum/PROGRESS.md\`)
+\`\`\`markdown
+## [YYYY-MM-DD HH:MM] - <Spec Name>
+
+**Commit:** \`<hash>\` <subject>
+
+**Guardrails:**
+- Pre-flight: ✓
+- Post-flight: ✓
+
+**Verification:**
+- \`bun run typecheck\` → PASS
+- \`bun run test\` → PASS
+
+**Files changed:**
+- path/to/file.ts
+
+**What was done:**
+<Brief description>
+
+**Learnings:**
+- <Patterns discovered, gotchas, useful context for future runs>
+
+---
+\`\`\`
+
+### 10. Signal Completion
 
 When the task is done, output exactly:
 \`\`\`
@@ -135,11 +200,7 @@ If blocked (dependency missing, unclear requirement, etc.), output:
 <TASK_BLOCKED reason="Describe why you're blocked">
 \`\`\`
 
-## Important Notes
-- Quality gates (typecheck, lint, test, build) are run by Ralph AFTER you signal completion
-- If gates fail, Ralph may retry with failure context injected
-- Focus only on your assigned task — other tasks will be assigned separately
-`;
+COMPLETION: When ALL specs in \`.ralph-wiggum/implementation.json\` are in "Completed", all tests pass, and the final commit/push is done, output exactly: <STATUS>DONE</STATUS>`;
 
 export const PROGRESS_TEMPLATE = `# Progress Log
 

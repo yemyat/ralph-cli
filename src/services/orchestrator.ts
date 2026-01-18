@@ -1,8 +1,8 @@
 import type { ChildProcess } from "node:child_process";
 import fse from "fs-extra";
+import Mustache from "mustache";
 import pc from "picocolors";
 import type { BaseAgent } from "../agents/base";
-import { MARKERS } from "../constants";
 import { Implementation } from "../domain/implementation";
 import type { Session } from "../domain/session";
 import type { Workspace } from "../domain/workspace";
@@ -17,51 +17,16 @@ import { AgentRunner } from "./agent-runner";
 import { NotificationService } from "./notification-service";
 
 function generateTaskPrompt(spec: SpecLike, task: TaskLike): string {
-  const completedTasks = spec.tasks
-    .filter((t) => t.status === "completed")
-    .map((t) => `- [x] ${t.description}`)
-    .join("\n");
-
   const acceptanceCriteria = task.acceptanceCriteria?.length
     ? task.acceptanceCriteria.map((ac) => `- [ ] ${ac}`).join("\n")
     : "_No specific acceptance criteria._";
 
-  return `${PROMPT_BUILD}
-
----
-
-# Task: ${task.description}
-
-## Spec Context
-
-You are working on: **${spec.name}**
-${spec.context || "_No additional context provided._"}
-
-## Completed Tasks
-
-${completedTasks || "_No tasks completed yet._"}
-
-## Your Assignment
-
-Complete ONLY this task:
-
-> ${task.description}
-
-## Acceptance Criteria
-
-${acceptanceCriteria}
-
-## Rules
-
-- Do NOT work on other tasks
-- Do NOT commit (Ralph handles commits)
-- Search codebase first — don't assume code is missing
-
-## Completion
-
-When done, output exactly: ${MARKERS.TASK_DONE}
-If blocked, output: ${MARKERS.TASK_BLOCKED_TEMPLATE}
-`;
+  return Mustache.render(PROMPT_BUILD, {
+    spec_name: spec.name,
+    full_specs_file: spec.file,
+    task_context: task.description,
+    acceptance_criteria: acceptanceCriteria,
+  });
 }
 
 export class Orchestrator {

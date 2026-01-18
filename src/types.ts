@@ -163,6 +163,7 @@ export interface TaskLike {
 
 export interface SpecLike {
   readonly name: string;
+  readonly file: string;
   readonly context?: string;
   readonly tasks: readonly TaskLike[];
 }
