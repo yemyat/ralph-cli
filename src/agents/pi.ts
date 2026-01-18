@@ -1,6 +1,9 @@
-import { execSync } from "node:child_process";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import type { AgentCommand } from "../types";
 import { type AgentOptions, BaseAgent } from "./base";
+
+const execAsync = promisify(exec);
 
 export class PiAgent extends BaseAgent {
   readonly type = "pi" as const;
@@ -29,12 +32,12 @@ export class PiAgent extends BaseAgent {
     };
   }
 
-  checkInstalled(): Promise<boolean> {
+  async checkInstalled(): Promise<boolean> {
     try {
-      execSync("which pi", { stdio: "pipe" });
-      return Promise.resolve(true);
+      await execAsync("which pi");
+      return true;
     } catch {
-      return Promise.resolve(false);
+      return false;
     }
   }
 
