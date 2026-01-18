@@ -44,3 +44,22 @@ export const DEFAULTS = {
   /** Default agent to use when not specified */
   DEFAULT_AGENT: "claude",
 } as const;
+
+/**
+ * Formats a blocked marker with the given reason.
+ * @param reason - The reason why the task is blocked
+ * @returns The formatted blocked marker string
+ */
+export function formatBlockedMarker(reason: string): string {
+  return `<TASK_BLOCKED reason="${reason}">`;
+}
+
+/**
+ * Parses a blocked marker from agent output and extracts the reason.
+ * @param output - The agent output to parse
+ * @returns The extracted reason, or null if no blocked marker found
+ */
+export function parseBlockedMarker(output: string): string | null {
+  const match = output.match(MARKERS.TASK_BLOCKED_REGEX);
+  return match ? match[1] : null;
+}
