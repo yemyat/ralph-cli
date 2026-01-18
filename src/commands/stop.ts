@@ -1,17 +1,15 @@
 import pc from "picocolors";
-import { getProjectConfig, getProjectSessions, saveSession } from "../config";
+import { Workspace } from "../domain/workspace";
 
 export async function stopCommand(): Promise<void> {
-  const projectPath = process.cwd();
-  const config = await getProjectConfig(projectPath);
+  const workspace = await Workspace.load();
 
-  if (!config) {
+  if (!workspace) {
     console.log(pc.red("Ralph is not initialized for this project."));
     return;
   }
 
-  const sessions = await getProjectSessions(projectPath);
-  const runningSessions = sessions.filter((s) => s.status === "running");
+  const runningSessions = workspace.runningSessions;
 
   if (runningSessions.length === 0) {
     console.log(pc.yellow("No running Ralph sessions found for this project."));
@@ -34,7 +32,7 @@ export async function stopCommand(): Promise<void> {
 
     session.status = "stopped";
     session.stoppedAt = new Date().toISOString();
-    await saveSession(projectPath, session);
+    await workspace.updateSession(session);
   }
 
   console.log(pc.green(`\n✓ Stopped ${runningSessions.length} session(s).`));

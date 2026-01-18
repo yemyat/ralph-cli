@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import fse from "fs-extra";
 import pc from "picocolors";
-import { saveSession } from "../config";
 import { FILES } from "../constants";
 import type { PlanOptions, RalphSession } from "../types";
 import { getRalphDir, getSessionLogFile } from "../utils/paths";
@@ -61,7 +60,7 @@ export async function planCommand(options: PlanOptions): Promise<void> {
   });
 
   session.pid = child.pid;
-  await saveSession(ctx.projectPath, session);
+  await ctx.workspace.addSession(session);
 
   child.stdin?.write(prompt);
   child.stdin?.end();
@@ -89,7 +88,7 @@ export async function planCommand(options: PlanOptions): Promise<void> {
     }
     session.status = "stopped";
     session.stoppedAt = new Date().toISOString();
-    await saveSession(ctx.projectPath, session);
+    await ctx.workspace.updateSession(session);
     logStream.close();
     process.exit(0);
   };
@@ -100,7 +99,7 @@ export async function planCommand(options: PlanOptions): Promise<void> {
   child.on("close", async (code) => {
     session.status = code === 0 ? "completed" : "stopped";
     session.stoppedAt = new Date().toISOString();
-    await saveSession(ctx.projectPath, session);
+    await ctx.workspace.updateSession(session);
     logStream.close();
     console.log(pc.green(`\n✓ Plan mode completed (exit code: ${code})`));
   });

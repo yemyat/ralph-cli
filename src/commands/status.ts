@@ -1,6 +1,6 @@
 import pc from "picocolors";
 import { getAgent } from "../agents/index";
-import { getProjectConfig, getProjectSessions } from "../config";
+import { Workspace } from "../domain/workspace";
 import type { RalphSession } from "../types";
 
 function getStatusColor(status: RalphSession["status"]): typeof pc.green {
@@ -17,15 +17,15 @@ function getStatusColor(status: RalphSession["status"]): typeof pc.green {
 }
 
 export async function statusCommand(): Promise<void> {
-  const projectPath = process.cwd();
-  const config = await getProjectConfig(projectPath);
+  const workspace = await Workspace.load();
 
-  if (!config) {
+  if (!workspace) {
     console.log(pc.red("Ralph is not initialized for this project."));
     console.log(`Run ${pc.cyan("ralph-wiggum-cli init")} first.`);
     return;
   }
 
+  const { config, sessions } = workspace;
   const planAgent = getAgent(config.agents.plan.agent);
   const buildAgent = getAgent(config.agents.build.agent);
 
@@ -39,14 +39,12 @@ export async function statusCommand(): Promise<void> {
   );
   console.log(`  Created:     ${pc.gray(config.createdAt)}`);
 
-  const sessions = await getProjectSessions(projectPath);
-
   if (sessions.length === 0) {
     console.log(pc.gray("\n  No sessions yet."));
   } else {
     console.log(pc.bold("\n📊 Sessions:\n"));
 
-    const sortedSessions = sessions.sort(
+    const sortedSessions = sessions.toSorted(
       (a, b) =>
         new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
     );

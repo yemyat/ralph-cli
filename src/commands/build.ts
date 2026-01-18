@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import pc from "picocolors";
-import { Implementation } from "../domain";
+import { Implementation } from "../domain/implementation";
 import { runBuildLoop } from "../orchestrator";
 import type { BuildOptions, RalphSession } from "../types";
 import { getSessionLogFile } from "../utils/paths";
@@ -43,9 +43,12 @@ export async function buildCommand(options: BuildOptions): Promise<void> {
   console.log(`  Log:     ${pc.gray(logFile)}`);
   console.log(pc.gray("\nPress Ctrl+C to stop.\n"));
 
+  await ctx.workspace.addSession(session);
+
   await runBuildLoop({
     projectPath: ctx.projectPath,
     config: ctx.config,
+    workspace: ctx.workspace,
     session,
     logFile,
     agent: ctx.agent,

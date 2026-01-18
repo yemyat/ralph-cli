@@ -2,9 +2,11 @@ import { type ChildProcess, spawn } from "node:child_process";
 import fse from "fs-extra";
 import pc from "picocolors";
 import type { BaseAgent } from "./agents/base";
-import { saveSession } from "./config";
 import { MARKERS } from "./constants";
-import { Implementation, type Spec, type Task } from "./domain";
+import { Implementation } from "./domain/implementation";
+import type { Spec } from "./domain/spec";
+import type { Task } from "./domain/task";
+import type { Workspace } from "./domain/workspace";
 import type {
   QualityGateResult,
   RalphConfig,
@@ -22,6 +24,7 @@ import { sendTelegramNotification } from "./utils/telegram";
 export interface LoopContext {
   projectPath: string;
   config: RalphConfig;
+  workspace: Workspace;
   session: RalphSession;
   agent: BaseAgent;
   log: (msg: string) => void;
@@ -31,6 +34,7 @@ export interface LoopContext {
 export interface BuildLoopOptions {
   projectPath: string;
   config: RalphConfig;
+  workspace: Workspace;
   session: RalphSession;
   logFile: string;
   agent: BaseAgent;
@@ -59,7 +63,9 @@ function executeAgent(
 
     onSpawn?.(child);
     session.pid = child.pid;
-    saveSession(projectPath, session);
+    ctx.workspace.updateSession(session).catch(() => {
+      // fire-and-forget
+    });
 
     child.stdin?.write(prompt);
     child.stdin?.end();
@@ -250,6 +256,7 @@ export async function runBuildLoop(options: BuildLoopOptions): Promise<void> {
   const {
     projectPath,
     config,
+    workspace,
     session,
     logFile,
     agent,
@@ -271,6 +278,7 @@ export async function runBuildLoop(options: BuildLoopOptions): Promise<void> {
   const ctx: LoopContext = {
     projectPath,
     config,
+    workspace,
     session,
     agent,
     log,
@@ -288,7 +296,7 @@ export async function runBuildLoop(options: BuildLoopOptions): Promise<void> {
     }
     session.status = "stopped";
     session.stoppedAt = new Date().toISOString();
-    await saveSession(projectPath, session);
+    await workspace.updateSession(session);
     ctx.log("Loop stopped by user");
     await notify(ctx, "loop_stopped");
     logStream.close();
@@ -315,7 +323,7 @@ export async function runBuildLoop(options: BuildLoopOptions): Promise<void> {
 
       const { spec, task } = next;
       session.iteration++;
-      await saveSession(projectPath, session);
+      await workspace.updateSession(session);
 
       console.log(
         pc.cyan(`\n📋 Task ${session.iteration}: ${task.description}`)
@@ -360,7 +368,7 @@ export async function runBuildLoop(options: BuildLoopOptions): Promise<void> {
     }
 
     session.status = "completed";
-    await saveSession(projectPath, session);
+    await workspace.updateSession(session);
     ctx.log("Build loop completed");
   } finally {
     logStream.close();
