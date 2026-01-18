@@ -1,6 +1,7 @@
 import type {
   NotificationContext,
   NotificationPayload,
+  NotificationServiceOptions,
   NotificationStatus,
   NotificationsConfig,
 } from "../types";
@@ -11,11 +12,7 @@ export class NotificationService {
   private readonly context: NotificationContext;
   private readonly log: (msg: string) => void;
 
-  constructor(options: {
-    config: NotificationsConfig | undefined;
-    context: NotificationContext;
-    log: (msg: string) => void;
-  }) {
+  constructor(options: NotificationServiceOptions) {
     this.config = options.config;
     this.context = options.context;
     this.log = options.log;

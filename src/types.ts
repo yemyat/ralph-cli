@@ -1,3 +1,8 @@
+import type { ChildProcess } from "node:child_process";
+import type { BaseAgent } from "./agents/base";
+import type { Session } from "./domain/session";
+import type { Workspace } from "./domain/workspace";
+
 export type AgentType =
   | "claude"
   | "amp"
@@ -199,3 +204,30 @@ export interface NotificationContext {
 }
 
 export type LogFn = (msg: string) => void;
+
+export interface NotificationServiceOptions {
+  config: NotificationsConfig | undefined;
+  context: NotificationContext;
+  log: LogFn;
+}
+
+export interface AgentRunnerOptions {
+  agent: BaseAgent;
+  model?: string;
+  verbose?: boolean;
+  log: LogFn;
+}
+
+export interface RunOptions {
+  prompt: string;
+  onSpawn?: (child: ChildProcess) => void;
+}
+
+export interface OrchestratorOptions {
+  config: RalphConfig;
+  workspace: Workspace;
+  session: Session;
+  logFile: string;
+  agent: BaseAgent;
+  verbose?: boolean;
+}

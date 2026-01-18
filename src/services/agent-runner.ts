@@ -1,21 +1,9 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import type { BaseAgent } from "../agents/base";
 import { MARKERS } from "../constants";
-import type { TaskResult } from "../types";
+import type { AgentRunnerOptions, RunOptions, TaskResult } from "../types";
 
 const TASK_BLOCKED_REGEX = /<TASK_BLOCKED\s+reason="([^"]+)">/;
-
-export interface AgentRunnerOptions {
-  agent: BaseAgent;
-  model?: string;
-  verbose?: boolean;
-  log: (msg: string) => void;
-}
-
-export interface RunOptions {
-  prompt: string;
-  onSpawn?: (child: ChildProcess) => void;
-}
 
 export class AgentRunner {
   private readonly agent: BaseAgent;

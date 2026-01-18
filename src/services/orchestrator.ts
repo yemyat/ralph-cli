@@ -2,21 +2,66 @@ import type { ChildProcess } from "node:child_process";
 import fse from "fs-extra";
 import pc from "picocolors";
 import type { BaseAgent } from "../agents/base";
+import { MARKERS } from "../constants";
 import { Implementation } from "../domain/implementation";
 import type { Session } from "../domain/session";
 import type { Workspace } from "../domain/workspace";
-import type { RalphConfig } from "../types";
-import { generateTaskPrompt } from "../utils/task-prompts";
+import { PROMPT_BUILD } from "../templates/prompts";
+import type {
+  OrchestratorOptions,
+  RalphConfig,
+  SpecLike,
+  TaskLike,
+} from "../types";
 import { AgentRunner } from "./agent-runner";
 import { NotificationService } from "./notification-service";
 
-export interface OrchestratorOptions {
-  config: RalphConfig;
-  workspace: Workspace;
-  session: Session;
-  logFile: string;
-  agent: BaseAgent;
-  verbose?: boolean;
+function generateTaskPrompt(spec: SpecLike, task: TaskLike): string {
+  const completedTasks = spec.tasks
+    .filter((t) => t.status === "completed")
+    .map((t) => `- [x] ${t.description}`)
+    .join("\n");
+
+  const acceptanceCriteria = task.acceptanceCriteria?.length
+    ? task.acceptanceCriteria.map((ac) => `- [ ] ${ac}`).join("\n")
+    : "_No specific acceptance criteria._";
+
+  return `${PROMPT_BUILD}
+
+---
+
+# Task: ${task.description}
+
+## Spec Context
+
+You are working on: **${spec.name}**
+${spec.context || "_No additional context provided._"}
+
+## Completed Tasks
+
+${completedTasks || "_No tasks completed yet._"}
+
+## Your Assignment
+
+Complete ONLY this task:
+
+> ${task.description}
+
+## Acceptance Criteria
+
+${acceptanceCriteria}
+
+## Rules
+
+- Do NOT work on other tasks
+- Do NOT commit (Ralph handles commits)
+- Search codebase first — don't assume code is missing
+
+## Completion
+
+When done, output exactly: ${MARKERS.TASK_DONE}
+If blocked, output: ${MARKERS.TASK_BLOCKED_TEMPLATE}
+`;
 }
 
 export class Orchestrator {
