@@ -87,15 +87,22 @@ export async function startCommand(
 
   const ralphDir = getRalphDir(projectPath);
 
-  // Check if we should use task-level orchestration for build mode
-  const impl = mode === "build" ? await parseImplementation(projectPath) : null;
-  const useTaskLevel = mode === "build" && impl && impl.specs.length > 0;
+  // Build mode requires implementation.json with specs
+  if (mode === "build") {
+    const impl = await parseImplementation(projectPath);
+    if (!impl || impl.specs.length === 0) {
+      console.log(pc.red("No specs found in implementation.json"));
+      console.log(
+        `Run ${pc.cyan("ralph-wiggum-cli plan")} first to create specs.`
+      );
+      return;
+    }
+  }
 
-  // Only check for prompt file if needed (plan mode or legacy build mode)
-  const promptFile = mode === "plan" ? "PROMPT_plan.md" : "PROMPT_build.md";
+  // Plan mode requires PROMPT_plan.md
+  const promptFile = "PROMPT_plan.md";
   const promptPath = join(ralphDir, promptFile);
 
-  // Plan mode always needs PROMPT_plan.md; build mode only needs file for legacy mode
   if (mode === "plan" && !(await fse.pathExists(promptPath))) {
     console.log(pc.red(`Prompt file not found: ${promptFile}`));
     console.log(`Run ${pc.cyan("ralph-wiggum-cli init")} to create it.`);
@@ -122,7 +129,7 @@ export async function startCommand(
   console.log(`  Session ID: ${pc.cyan(sessionId)}`);
   console.log(`  Agent:      ${pc.cyan(agentInstance.name)}`);
   console.log(`  Model:      ${pc.cyan(model || "default")}`);
-  if (useTaskLevel) {
+  if (mode === "build") {
     console.log(`  Mode:       ${pc.cyan("task-level orchestration")}`);
   } else {
     console.log(`  Prompt:     ${pc.cyan(promptFile)}`);
@@ -134,8 +141,7 @@ export async function startCommand(
   console.log();
   console.log(pc.gray("Press Ctrl+C to stop the loop.\n"));
 
-  if (useTaskLevel) {
-    // Use task-level orchestration for build mode
+  if (mode === "build") {
     await runTaskLevelLoop(
       projectPath,
       config,
