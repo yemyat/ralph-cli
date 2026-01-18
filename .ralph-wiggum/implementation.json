@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T10:01:48.539Z",
+  "updatedAt": "2026-01-18T10:11:38.423Z",
   "updatedBy": "build-mode",
   "qualityGates": [
     "bun run typecheck",
@@ -839,7 +839,7 @@
       "file": "specs/022-domain-objects.md",
       "name": "Introduce Domain Objects for Task & Spec",
       "priority": 10,
-      "status": "in_progress",
+      "status": "completed",
       "context": "Replace procedural task/spec manipulation with rich domain objects. Create src/domain/ with Task, Spec, Implementation classes. Task.complete(), Spec.checkCompletion(), impl.save(). Benefits from spec 016 but can be done independently.",
       "tasks": [
         {
@@ -933,11 +933,12 @@
         {
           "id": "domain-objects-9",
           "description": "Update orchestration layer to use domain objects (optional)",
-          "status": "in_progress",
+          "status": "completed",
           "acceptanceCriteria": [
             "task-loop.ts uses Implementation.load()",
             "Handlers use task.complete() instead of utility functions"
-          ]
+          ],
+          "completedAt": "2026-01-18T10:11:38.423Z"
         }
       ],
       "acceptanceCriteria": [
