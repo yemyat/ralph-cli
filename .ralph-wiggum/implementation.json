@@ -703,9 +703,7 @@
           "id": "unit-tests-init-command-1",
           "description": "Create `src/commands/__tests__/` directory",
           "status": "pending",
-          "acceptanceCriteria": [
-            "Directory exists"
-          ]
+          "acceptanceCriteria": ["Directory exists"]
         },
         {
           "id": "unit-tests-init-command-2",
@@ -796,9 +794,7 @@
           "id": "domain-objects-1",
           "description": "Create `src/domain/` directory",
           "status": "pending",
-          "acceptanceCriteria": [
-            "Directory exists"
-          ]
+          "acceptanceCriteria": ["Directory exists"]
         },
         {
           "id": "domain-objects-2",
