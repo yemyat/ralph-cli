@@ -5,20 +5,16 @@ import { Spec } from "./spec";
 import type { Task } from "./task";
 
 export class Implementation {
-  private readonly _projectPath: string;
   private readonly _specs: Spec[];
   private readonly _version: number;
   private _updatedAt: string;
   private _updatedBy: "plan-mode" | "build-mode" | "user";
-  private readonly _qualityGates: string[];
 
-  constructor(projectPath: string, data: ImplementationData) {
-    this._projectPath = projectPath;
+  constructor(data: ImplementationData) {
     this._version = data.version;
     this._updatedAt = data.updatedAt;
     this._updatedBy = data.updatedBy;
     this._specs = data.specs.map((s) => Spec.fromEntry(s));
-    this._qualityGates = data.qualityGates ?? [];
   }
 
   get specs(): Spec[] {
@@ -35,14 +31,6 @@ export class Implementation {
 
   get updatedBy(): "plan-mode" | "build-mode" | "user" {
     return this._updatedBy;
-  }
-
-  get qualityGates(): string[] {
-    return this._qualityGates;
-  }
-
-  get projectPath(): string {
-    return this._projectPath;
   }
 
   /**
@@ -120,34 +108,27 @@ export class Implementation {
     this._updatedBy = updatedBy;
     this._updatedAt = new Date().toISOString();
 
-    const implPath = getImplementationFile(this._projectPath);
-    await fse.writeJson(implPath, this.toJSON(), { spaces: 2 });
+    await fse.writeJson(getImplementationFile(), this.toJSON(), { spaces: 2 });
   }
 
   /**
    * Convert to plain JSON object matching the Implementation interface.
    */
   toJSON(): ImplementationData {
-    const data: ImplementationData = {
+    return {
       version: this._version,
       updatedAt: this._updatedAt,
       updatedBy: this._updatedBy,
       specs: this._specs.map((s) => s.toJSON()),
     };
-
-    if (this._qualityGates.length > 0) {
-      data.qualityGates = this._qualityGates;
-    }
-
-    return data;
   }
 
   /**
    * Load implementation from disk.
    * Returns null if implementation.json doesn't exist.
    */
-  static async load(projectPath: string): Promise<Implementation | null> {
-    const implPath = getImplementationFile(projectPath);
+  static async load(): Promise<Implementation | null> {
+    const implPath = getImplementationFile();
 
     if (!(await fse.pathExists(implPath))) {
       return null;
@@ -155,7 +136,7 @@ export class Implementation {
 
     try {
       const content = await fse.readJson(implPath);
-      return new Implementation(projectPath, content as ImplementationData);
+      return new Implementation(content as ImplementationData);
     } catch {
       return null;
     }
@@ -164,18 +145,12 @@ export class Implementation {
   /**
    * Create an empty implementation.
    */
-  static createEmpty(projectPath: string): Implementation {
-    return new Implementation(projectPath, {
+  static createEmpty(): Implementation {
+    return new Implementation({
       version: 1,
       updatedAt: new Date().toISOString(),
       updatedBy: "user",
       specs: [],
-      qualityGates: [
-        "bun run typecheck",
-        "bun run lint",
-        "bun run test",
-        "bun run build",
-      ],
     });
   }
 }

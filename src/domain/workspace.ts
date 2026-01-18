@@ -18,18 +18,12 @@ import { Implementation } from "./implementation";
 import { SessionManager } from "./session-manager";
 
 export class Workspace {
-  private readonly _projectPath: string;
   private readonly _config: RalphConfig;
   private readonly _sessionManager: SessionManager;
 
-  private constructor(projectPath: string, state: ProjectState) {
-    this._projectPath = projectPath;
+  private constructor(state: ProjectState) {
     this._config = state.config;
     this._sessionManager = new SessionManager(state.sessions);
-  }
-
-  get projectPath(): string {
-    return this._projectPath;
   }
 
   get config(): RalphConfig {
@@ -41,7 +35,7 @@ export class Workspace {
   }
 
   loadImplementation(): Promise<Implementation | null> {
-    return Implementation.load(this._projectPath);
+    return Implementation.load();
   }
 
   async save(): Promise<void> {
@@ -50,12 +44,12 @@ export class Workspace {
       config: this._config,
       sessions: this._sessionManager.toData(),
     };
-    await fse.writeJson(getConfigFile(this._projectPath), state, { spaces: 2 });
+    await fse.writeJson(getConfigFile(), state, { spaces: 2 });
   }
 
   async ensureProjectFiles(): Promise<void> {
-    const ralphDir = getRalphDir(this._projectPath);
-    const specsDir = getSpecsDir(this._projectPath);
+    const ralphDir = getRalphDir();
+    const specsDir = getSpecsDir();
 
     const ensureFile = async (path: string, content: string) => {
       if (!(await fse.pathExists(path))) {
@@ -69,7 +63,7 @@ export class Workspace {
 
     const impl = await this.loadImplementation();
     if (!impl) {
-      const newImpl = Implementation.createEmpty(this._projectPath);
+      const newImpl = Implementation.createEmpty();
       await newImpl.save("user");
     }
 
@@ -82,7 +76,7 @@ export class Workspace {
   }
 
   private async updateGitignore(): Promise<void> {
-    const gitignorePath = join(this._projectPath, ".gitignore");
+    const gitignorePath = join(process.cwd(), ".gitignore");
     const logsPattern = `.ralph-wiggum/${RALPH_LOGS_DIR}/`;
 
     let gitignore = "";
@@ -100,32 +94,30 @@ export class Workspace {
   }
 
   static async load(): Promise<Workspace | null> {
-    const projectPath = process.cwd();
-    const configFile = getConfigFile(projectPath);
+    const configFile = getConfigFile();
     if (!(await fse.pathExists(configFile))) {
       return null;
     }
 
     try {
       const state = await fse.readJson(configFile);
-      return new Workspace(projectPath, state as ProjectState);
+      return new Workspace(state as ProjectState);
     } catch {
       return null;
     }
   }
 
   static async init(options: InitProjectOptions): Promise<Workspace> {
-    const projectPath = process.cwd();
-    const ralphDir = getRalphDir(projectPath);
-    const logsDir = getLogsDir(projectPath);
-    const specsDir = getSpecsDir(projectPath);
+    const ralphDir = getRalphDir();
+    const logsDir = getLogsDir();
+    const specsDir = getSpecsDir();
 
     await fse.ensureDir(ralphDir);
     await fse.ensureDir(logsDir);
     await fse.ensureDir(specsDir);
 
     const config: RalphConfig = {
-      projectName: basename(projectPath),
+      projectName: basename(process.cwd()),
       agents: {
         plan: {
           agent: options.planAgent,
@@ -146,7 +138,7 @@ export class Workspace {
       sessions: [],
     };
 
-    const workspace = new Workspace(projectPath, state);
+    const workspace = new Workspace(state);
     await workspace.save();
 
     return workspace;

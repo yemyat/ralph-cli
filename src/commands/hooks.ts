@@ -5,7 +5,6 @@ import { Workspace } from "../domain/workspace";
 import type { AgentType, RalphConfig, ResolveContextOptions } from "../types";
 
 export interface CommandContext {
-  projectPath: string;
   config: RalphConfig;
   workspace: Workspace;
   agent: BaseAgent;
@@ -44,7 +43,6 @@ export async function resolveContext(
   }
 
   return {
-    projectPath: workspace.projectPath,
     config,
     workspace,
     agent,

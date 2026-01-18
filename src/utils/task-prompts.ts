@@ -1,6 +1,6 @@
 import { MARKERS } from "../constants";
 import { PROMPT_BUILD } from "../templates/prompts";
-import type { QualityGateResult, SpecLike, TaskLike } from "../types";
+import type { SpecLike, TaskLike } from "../types";
 
 /**
  * Get completed tasks from a spec-like object.
@@ -75,54 +75,6 @@ ${formatAcceptanceCriteria(task.acceptanceCriteria)}
 When done, output exactly: ${MARKERS.TASK_DONE}
 If blocked, output: ${MARKERS.TASK_BLOCKED_TEMPLATE}
 `;
-}
-
-/**
- * Generate a retry prompt that includes previous failure context.
- * Used when quality gates fail and we want to retry with error info.
- */
-export function generateRetryPrompt(
-  spec: SpecLike,
-  task: TaskLike,
-  failedGates: QualityGateResult[],
-  previousAttempt: number
-): string {
-  const basePrompt = generateTaskPrompt(spec, task);
-
-  const failureDetails = failedGates
-    .map(
-      (gate) =>
-        `### ${gate.name} (exit code ${gate.exitCode})\n\`\`\`\n${truncateOutput(gate.output, 1000)}\n\`\`\``
-    )
-    .join("\n\n");
-
-  return `${basePrompt}
-
----
-
-## ⚠️ Previous Attempt Failed
-
-This is retry attempt #${previousAttempt + 1}. The previous attempt failed quality gates:
-
-${failureDetails}
-
-Please fix the issues and complete the task.
-`;
-}
-
-/**
- * Truncate output to a maximum length, keeping the most relevant parts.
- */
-function truncateOutput(output: string, maxLength: number): string {
-  if (output.length <= maxLength) {
-    return output;
-  }
-
-  const halfLength = Math.floor(maxLength / 2) - 20;
-  const start = output.slice(0, halfLength);
-  const end = output.slice(-halfLength);
-
-  return `${start}\n\n... (truncated ${output.length - maxLength} chars) ...\n\n${end}`;
 }
 
 /**

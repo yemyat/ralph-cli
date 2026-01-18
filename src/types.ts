@@ -98,20 +98,6 @@ export interface Implementation {
   updatedAt: string;
   updatedBy: "plan-mode" | "build-mode" | "user";
   specs: SpecEntry[];
-  qualityGates?: string[];
-}
-
-export interface QualityGate {
-  name: string;
-  command: string;
-  required: boolean;
-}
-
-export interface QualityGateResult {
-  name: string;
-  passed: boolean;
-  output: string;
-  exitCode: number;
 }
 
 // Agent options
@@ -203,3 +189,13 @@ export interface TaskResult {
   reason?: string;
   output: string;
 }
+
+// Service types
+
+export interface NotificationContext {
+  projectName: string;
+  mode: "plan" | "build";
+  sessionId: string;
+}
+
+export type LogFn = (msg: string) => void;

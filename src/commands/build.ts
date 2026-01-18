@@ -1,7 +1,7 @@
 import pc from "picocolors";
 import { Implementation } from "../domain/implementation";
 import { Session } from "../domain/session";
-import { runBuildLoop } from "../orchestrator";
+import { Orchestrator } from "../services/orchestrator";
 import type { BuildOptions } from "../types";
 import { getSessionLogFile } from "../utils/paths";
 import { resolveContext } from "./hooks";
@@ -16,7 +16,7 @@ export async function buildCommand(options: BuildOptions): Promise<void> {
     return;
   }
 
-  const impl = await Implementation.load(ctx.projectPath);
+  const impl = await Implementation.load();
   if (!impl || impl.specs.length === 0) {
     console.log(pc.red("No specs found in implementation.json"));
     console.log(`Run ${pc.cyan("ralph-wiggum-cli plan")} first.`);
@@ -28,7 +28,7 @@ export async function buildCommand(options: BuildOptions): Promise<void> {
     agent: ctx.agentType,
     model: ctx.model,
   });
-  const logFile = getSessionLogFile(ctx.projectPath, session.id);
+  const logFile = getSessionLogFile(session.id);
 
   console.log(pc.green("\n🚀 Starting Ralph build loop...\n"));
   console.log(`  Session: ${pc.cyan(session.id)}`);
@@ -40,14 +40,14 @@ export async function buildCommand(options: BuildOptions): Promise<void> {
   ctx.workspace.sessionManager.add(session);
   await ctx.workspace.save();
 
-  await runBuildLoop({
-    projectPath: ctx.projectPath,
+  const orchestrator = new Orchestrator({
     config: ctx.config,
     workspace: ctx.workspace,
     session,
     logFile,
     agent: ctx.agent,
-    maxRetries: 3,
     verbose: options.verbose,
   });
+
+  await orchestrator.run();
 }

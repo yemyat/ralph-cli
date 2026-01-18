@@ -18,7 +18,7 @@ export async function planCommand(options: PlanOptions): Promise<void> {
     return;
   }
 
-  const promptPath = join(getRalphDir(ctx.projectPath), FILES.PROMPT_PLAN);
+  const promptPath = join(getRalphDir(), FILES.PROMPT_PLAN);
   if (!(await fse.pathExists(promptPath))) {
     console.log(pc.red(`Prompt file not found: ${FILES.PROMPT_PLAN}`));
     console.log(`Run ${pc.cyan("ralph-wiggum-cli init")} to create it.`);
@@ -30,7 +30,7 @@ export async function planCommand(options: PlanOptions): Promise<void> {
     agent: ctx.agentType,
     model: ctx.model,
   });
-  const logFile = getSessionLogFile(ctx.projectPath, session.id);
+  const logFile = getSessionLogFile(session.id);
 
   console.log(pc.green("\n🚀 Starting Ralph plan mode...\n"));
   console.log(`  Session: ${pc.cyan(session.id)}`);
@@ -48,7 +48,7 @@ export async function planCommand(options: PlanOptions): Promise<void> {
   const logStream = fse.createWriteStream(logFile, { flags: "a" });
 
   const child = spawn(cmdOptions.command, cmdOptions.args, {
-    cwd: ctx.projectPath,
+    cwd: process.cwd(),
     stdio: ["pipe", "pipe", "pipe"],
     env: { ...process.env, ...cmdOptions.env },
   });
