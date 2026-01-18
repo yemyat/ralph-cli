@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-01-18T08:18:25.168Z",
+  "updatedAt": "2026-01-18T08:21:28.124Z",
   "updatedBy": "build-mode",
   "qualityGates": [
     "bun run typecheck",
@@ -295,16 +295,17 @@
         {
           "id": "remove-legacy-loop-7",
           "description": "Extract handler functions to `orchestration/task-handlers.ts`",
-          "status": "in_progress",
+          "status": "completed",
           "acceptanceCriteria": [
             "handleBlockedTask, handleGatesPassed, handleGatesFailed moved",
             "Handlers exported from task-handlers.ts"
-          ]
+          ],
+          "completedAt": "2026-01-18T08:21:27.704Z"
         },
         {
           "id": "remove-legacy-loop-8",
           "description": "Extract agent execution to `orchestration/agent-executor.ts`",
-          "status": "pending",
+          "status": "in_progress",
           "acceptanceCriteria": [
             "executeAgentWithPrompt, runSingleTask, runRetryTask moved",
             "Functions exported from agent-executor.ts"
