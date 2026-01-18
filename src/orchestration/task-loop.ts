@@ -135,27 +135,7 @@ export async function runTaskLevelLoop(
     }
   };
 
-  log(`Starting task-level loop - Session ${session.id}`);
-  await notifyTelegram(config, session, "loop_started", log);
-
-  const handleSignal = async () => {
-    console.log(pc.yellow("\n\nStopping Ralph loop..."));
-    if (currentChild && !currentChild.killed) {
-      currentChild.kill("SIGTERM");
-      console.log(pc.gray("Terminated agent process"));
-    }
-    session.status = "stopped";
-    session.stoppedAt = new Date().toISOString();
-    await saveSession(projectPath, session);
-    log("Loop stopped by user");
-    await notifyTelegram(config, session, "loop_stopped", log);
-    logStream.close();
-    process.exit(0);
-  };
-
-  process.on("SIGINT", handleSignal);
-  process.on("SIGTERM", handleSignal);
-
+  // Create loop context at entry - used by all sub-functions
   const loopContext: LoopContext = {
     projectPath,
     config,
@@ -164,6 +144,39 @@ export async function runTaskLevelLoop(
     log,
     verbose,
   };
+
+  loopContext.log(
+    `Starting task-level loop - Session ${loopContext.session.id}`
+  );
+  await notifyTelegram(
+    loopContext.config,
+    loopContext.session,
+    "loop_started",
+    loopContext.log
+  );
+
+  const handleSignal = async () => {
+    console.log(pc.yellow("\n\nStopping Ralph loop..."));
+    if (currentChild && !currentChild.killed) {
+      currentChild.kill("SIGTERM");
+      console.log(pc.gray("Terminated agent process"));
+    }
+    loopContext.session.status = "stopped";
+    loopContext.session.stoppedAt = new Date().toISOString();
+    await saveSession(loopContext.projectPath, loopContext.session);
+    loopContext.log("Loop stopped by user");
+    await notifyTelegram(
+      loopContext.config,
+      loopContext.session,
+      "loop_stopped",
+      loopContext.log
+    );
+    logStream.close();
+    process.exit(0);
+  };
+
+  process.on("SIGINT", handleSignal);
+  process.on("SIGTERM", handleSignal);
 
   const setCurrentChild = (child: ReturnType<typeof spawn>) => {
     currentChild = child;
@@ -184,7 +197,7 @@ export async function runTaskLevelLoop(
 
   try {
     while (true) {
-      const impl = await parseImplementation(projectPath);
+      const impl = await parseImplementation(loopContext.projectPath);
       if (!impl) {
         console.log(pc.red("No implementation.json found."));
         break;
@@ -193,23 +206,30 @@ export async function runTaskLevelLoop(
       const next = getNextPendingTask(impl);
       if (!next) {
         console.log(pc.green("\n✓ All tasks completed!"));
-        await notifyTelegram(config, session, "loop_completed", log);
+        await notifyTelegram(
+          loopContext.config,
+          loopContext.session,
+          "loop_completed",
+          loopContext.log
+        );
         break;
       }
 
       const { spec, task } = next;
-      session.iteration++;
-      await saveSession(projectPath, session);
+      loopContext.session.iteration++;
+      await saveSession(loopContext.projectPath, loopContext.session);
 
       console.log(
-        pc.cyan(`\n📋 Task ${session.iteration}: ${task.description}`)
+        pc.cyan(
+          `\n📋 Task ${loopContext.session.iteration}: ${task.description}`
+        )
       );
       console.log(pc.gray(`   Spec: ${spec.name}`));
-      log(`Starting task: ${task.id} - ${task.description}`);
+      loopContext.log(`Starting task: ${task.id} - ${task.description}`);
 
       // Mark task as in progress
       markTaskInProgress(impl, spec.id, task.id);
-      await saveImplementation(projectPath, impl);
+      await saveImplementation(loopContext.projectPath, impl);
 
       // Run the task
       const result = await runSingleTask(loopContext, {
@@ -239,9 +259,9 @@ export async function runTaskLevelLoop(
       console.log(pc.gray(`\n${"=".repeat(50)}\n`));
     }
 
-    session.status = "completed";
-    await saveSession(projectPath, session);
-    log("Task-level loop completed");
+    loopContext.session.status = "completed";
+    await saveSession(loopContext.projectPath, loopContext.session);
+    loopContext.log("Task-level loop completed");
   } finally {
     logStream.close();
   }
