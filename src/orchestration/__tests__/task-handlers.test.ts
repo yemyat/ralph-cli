@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { join } from "node:path";
+import fse from "fs-extra";
 import type { BaseAgent } from "../../agents/base";
 import type {
   Implementation,
@@ -15,10 +17,87 @@ import {
 import type { LoopContext, TaskContext } from "../types";
 
 // Mock the modules
-const mockSaveImplementation = mock(() => Promise.resolve());
+const mockSaveImplementation = mock(
+  (_projectPath: string, _impl: Implementation) => Promise.resolve()
+);
 const mockNotifyTelegram = mock(() => Promise.resolve());
 
+// Mock implementation module - MUST include all exports since mock.module replaces entire module
 mock.module("../../utils/implementation", () => ({
+  // Real implementations for functions used by other modules (e.g., file-operations.ts)
+  createEmptyImplementation: (): Implementation => ({
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    updatedBy: "user",
+    specs: [],
+    qualityGates: [
+      "bun run typecheck",
+      "bun run lint",
+      "bun run test",
+      "bun run build",
+    ],
+  }),
+  parseImplementation: async (
+    projectPath: string
+  ): Promise<Implementation | null> => {
+    const implPath = join(projectPath, ".ralph-wiggum", "implementation.json");
+    try {
+      if (!(await fse.pathExists(implPath))) {
+        return null;
+      }
+      return await fse.readJson(implPath);
+    } catch {
+      return null;
+    }
+  },
+  saveImplementation: async (
+    projectPath: string,
+    impl: Implementation,
+    updatedBy: "plan-mode" | "build-mode" | "user" = "build-mode"
+  ): Promise<void> => {
+    // For task-handler tests, use the mock (in-memory only)
+    mockSaveImplementation(projectPath, impl);
+    // Update timestamps in-memory
+    impl.updatedAt = new Date().toISOString();
+    impl.updatedBy = updatedBy;
+    // Write to disk only if the directory exists (for file-operations tests)
+    const implPath = join(projectPath, ".ralph-wiggum", "implementation.json");
+    if (await fse.pathExists(join(projectPath, ".ralph-wiggum"))) {
+      await fse.writeJson(implPath, impl, { spaces: 2 });
+    }
+  },
+  getNextPendingTask: (
+    impl: Implementation
+  ): { spec: SpecEntry; task: TaskEntry } | null => {
+    let activeSpec = impl.specs.find((s) => s.status === "in_progress");
+    if (!activeSpec) {
+      activeSpec = impl.specs.find((s) => s.status === "pending");
+      if (activeSpec) {
+        activeSpec.status = "in_progress";
+      }
+    }
+    if (!activeSpec) {
+      return null;
+    }
+    const pendingTask = activeSpec.tasks.find((t) => t.status === "pending");
+    if (!pendingTask) {
+      return null;
+    }
+    return { spec: activeSpec, task: pendingTask };
+  },
+  markTaskInProgress: (
+    impl: Implementation,
+    specId: string,
+    taskId: string
+  ) => {
+    const spec = impl.specs.find((s) => s.id === specId);
+    if (spec) {
+      const task = spec.tasks.find((t) => t.id === taskId);
+      if (task) {
+        task.status = "in_progress";
+      }
+    }
+  },
   markTaskBlocked: (
     impl: Implementation,
     specId: string,
@@ -71,7 +150,52 @@ mock.module("../../utils/implementation", () => ({
       }
     }
   },
-  saveImplementation: mockSaveImplementation,
+  getCompletedTasks: (spec: SpecEntry): TaskEntry[] => {
+    return spec.tasks.filter((t) => t.status === "completed");
+  },
+  getSpecProgress: (spec: SpecEntry) => {
+    const completed = spec.tasks.filter((t) => t.status === "completed").length;
+    const total = spec.tasks.length;
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { completed, total, percentage };
+  },
+  getImplementationProgress: (impl: Implementation) => {
+    const completedSpecs = impl.specs.filter(
+      (s) => s.status === "completed"
+    ).length;
+    const totalSpecs = impl.specs.length;
+    let completedTasks = 0;
+    let totalTasks = 0;
+    for (const spec of impl.specs) {
+      totalTasks += spec.tasks.length;
+      completedTasks += spec.tasks.filter(
+        (t) => t.status === "completed"
+      ).length;
+    }
+    return { completedSpecs, totalSpecs, completedTasks, totalTasks };
+  },
+  getCurrentSpecId: async (projectPath: string): Promise<string | null> => {
+    const implPath = join(projectPath, ".ralph-wiggum", "implementation.json");
+    try {
+      if (!(await fse.pathExists(implPath))) {
+        return null;
+      }
+      const impl = await fse.readJson(implPath);
+      const inProgress = impl.specs.find(
+        (s: SpecEntry) => s.status === "in_progress"
+      );
+      if (inProgress) {
+        return inProgress.id;
+      }
+      const pending = impl.specs.find((s: SpecEntry) => s.status === "pending");
+      if (pending) {
+        return pending.id;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
 }));
 
 mock.module("../notifications", () => ({
