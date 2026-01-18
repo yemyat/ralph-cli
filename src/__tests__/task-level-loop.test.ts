@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { MARKERS } from "../constants";
 import type { Implementation, QualityGateResult, TaskEntry } from "../types";
 import {
   getNextPendingTask,
@@ -58,9 +59,6 @@ function createMockImplementation(taskDescriptions: string[]): Implementation {
   };
 }
 
-// Regex to extract blocked reason from agent output (matches start.ts pattern)
-const TASK_BLOCKED_REGEX = /<TASK_BLOCKED\s+reason="([^"]+)">/;
-
 interface MockAgentOptions {
   response?: "done" | "blocked";
   blockedReason?: string;
@@ -111,7 +109,7 @@ function executeMockAgent(
         resolve({ status: "done", output: stdoutBuffer });
       } else if (stdoutBuffer.includes("<TASK_BLOCKED")) {
         // Extract reason from blocked marker (same regex as start.ts)
-        const blockedMatch = stdoutBuffer.match(TASK_BLOCKED_REGEX);
+        const blockedMatch = stdoutBuffer.match(MARKERS.TASK_BLOCKED_REGEX);
         resolve({
           status: "blocked",
           output: stdoutBuffer,
