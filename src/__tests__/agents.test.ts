@@ -8,6 +8,7 @@ import { DroidAgent } from "../agents/droid";
 import { GeminiAgent } from "../agents/gemini";
 import { getAgent, getAllAgents } from "../agents/index";
 import { OpenCodeAgent } from "../agents/opencode";
+import { PiAgent } from "../agents/pi";
 
 describe("Agent Module", () => {
   describe("Agent Registry", () => {
@@ -60,12 +61,19 @@ describe("Agent Module", () => {
         expect(agent.type).toBe("gemini");
         expect(agent.name).toBe("Gemini CLI");
       });
+
+      it("returns PiAgent for 'pi'", () => {
+        const agent = getAgent("pi");
+        expect(agent).toBeInstanceOf(PiAgent);
+        expect(agent.type).toBe("pi");
+        expect(agent.name).toBe("Pi");
+      });
     });
 
     describe("getAllAgents()", () => {
-      it("returns all seven agents", () => {
+      it("returns all eight agents", () => {
         const agents = getAllAgents();
-        expect(agents.length).toBe(7);
+        expect(agents.length).toBe(8);
 
         const types = agents.map((a) => a.type);
         expect(types).toContain("claude");
@@ -75,6 +83,7 @@ describe("Agent Module", () => {
         expect(types).toContain("cursor");
         expect(types).toContain("codex");
         expect(types).toContain("gemini");
+        expect(types).toContain("pi");
       });
     });
   });
@@ -342,6 +351,53 @@ describe("Agent Module", () => {
     });
   });
 
+  describe("PiAgent", () => {
+    const agent = new PiAgent();
+    const baseOptions: AgentOptions = {
+      promptFile: "/path/to/prompt.md",
+    };
+
+    describe("buildCommand()", () => {
+      it("generates correct base CLI args with --print --mode json --thinking high", () => {
+        const cmd = agent.buildCommand(baseOptions);
+
+        expect(cmd.command).toBe("pi");
+        expect(cmd.args).toContain("--print");
+        expect(cmd.args).toContain("--mode");
+        expect(cmd.args).toContain("json");
+        expect(cmd.args).toContain("--thinking");
+        expect(cmd.args).toContain("high");
+      });
+
+      it("includes model flag when specified", () => {
+        const cmd = agent.buildCommand({
+          ...baseOptions,
+          model: "claude-sonnet-4",
+        });
+
+        expect(cmd.args).toContain("--model");
+        expect(cmd.args).toContain("claude-sonnet-4");
+      });
+
+      it("includes provider flag when specified", () => {
+        const cmd = agent.buildCommand({
+          ...baseOptions,
+          provider: "anthropic",
+        });
+
+        expect(cmd.args).toContain("--provider");
+        expect(cmd.args).toContain("anthropic");
+      });
+    });
+
+    it("getInstallInstructions() returns non-empty string", () => {
+      const instructions = agent.getInstallInstructions();
+      expect(typeof instructions).toBe("string");
+      expect(instructions.length).toBeGreaterThan(0);
+      expect(instructions).toContain("pi");
+    });
+  });
+
   describe("checkInstalled()", () => {
     // Note: These tests check the actual installed state of agents on the system
     // In a CI environment, these may all return false, which is still valid behavior
@@ -384,6 +440,12 @@ describe("Agent Module", () => {
 
     it("GeminiAgent.checkInstalled() returns boolean", async () => {
       const agent = new GeminiAgent();
+      const result = await agent.checkInstalled();
+      expect(typeof result).toBe("boolean");
+    });
+
+    it("PiAgent.checkInstalled() returns boolean", async () => {
+      const agent = new PiAgent();
       const result = await agent.checkInstalled();
       expect(typeof result).toBe("boolean");
     });
