@@ -14,7 +14,7 @@ const program = new Command();
 program
   .name("ralph-wiggum-cli")
   .description("CLI for managing Ralph Wiggum AI development workflows")
-  .version("1.0.6");
+  .version("1.0.8");
 
 program
   .command("init")

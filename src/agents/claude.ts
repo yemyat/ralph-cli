@@ -12,6 +12,7 @@ export class ClaudeAgent extends BaseAgent {
   buildCommand(options: AgentOptions): AgentCommand {
     const args = [
       "-p", // print mode (non-interactive)
+      "--verbose",
       "--dangerously-skip-permissions", // auto-approve all tool calls
       "--output-format=stream-json", // structured output
     ];
