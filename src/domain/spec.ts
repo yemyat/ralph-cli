@@ -1,4 +1,4 @@
-import type { SpecEntry } from "../types";
+import type { SpecEntry, TaskStatusType } from "../types";
 import { Task } from "./task";
 
 export class Spec {
@@ -6,6 +6,7 @@ export class Spec {
   private readonly _file: string;
   private readonly _name: string;
   private readonly _priority: number;
+  private readonly _status: TaskStatusType;
   private readonly _context?: string;
   private readonly _dependsOn: string[];
   private readonly _pointsBudget?: number;
@@ -17,6 +18,7 @@ export class Spec {
     this._file = entry.file;
     this._name = entry.name;
     this._priority = entry.priority;
+    this._status = entry.status;
     this._context = entry.context;
     this._dependsOn = entry.dependsOn ?? [];
     this._pointsBudget = entry.pointsBudget;
@@ -38,6 +40,10 @@ export class Spec {
 
   get priority(): number {
     return this._priority;
+  }
+
+  get status(): TaskStatusType {
+    return this._status;
   }
 
   get context(): string | undefined {
@@ -73,10 +79,11 @@ export class Spec {
   }
 
   get isCompleted(): boolean {
-    return (
-      this._tasks.length > 0 &&
-      this._tasks.every((t) => t.status === "completed")
-    );
+    if (this._tasks.length === 0) {
+      return this._status === "completed";
+    }
+
+    return this._tasks.every((t) => t.status === "completed");
   }
 
   get nextPendingTask(): Task | undefined {
