@@ -13,17 +13,37 @@ You are an autonomous planning agent. Analyze specs and create a structured impl
 - Plan only — do NOT implement anything
 - Do NOT assume functionality is missing — confirm with code search first
 - Each spec should have clear tasks and acceptance criteria
-- Treat \`src/lib\` as shared utilities — prefer consolidation over duplication
+- Prefer consolidation over duplication (shared code usually lives in \`src/utils\`, \`src/services\`, \`src/domain\`)
+
+## Task Granularity (Critical)
+A "task" is the unit of work for one build-loop iteration (read context → implement → verify). Optimize for fewer, larger tasks.
+- Target 3–10 tasks per spec (rarely > 12)
+- Each task should represent a meaningful deliverable slice and be finishable in one iteration
+- Do NOT split into separate tasks for tiny edits (e.g., adding a few constants, renaming exports, wiring imports, updating a couple call sites)
+- Split tasks only at real dependency/risk boundaries (e.g., new public API, schema change, multi-step rollout, complex UI flow)
+- Do NOT create tasks that are only "run tests/typecheck/lint" — baseline verification already happens every loop; only add testing tasks when new/changed tests need to be written
+
+## Estimation (Story Points)
+Estimate each task using story points: 1, 2, 3, 5, 8.
+- Target task size: 2–5 points
+- 1-point tasks should be merged into a nearby task unless there is a hard dependency boundary
+- 8-point tasks must be split (too much context/verification for one loop)
+- Specs can be large; the key is that each task stays loop-sized. Use \`pointsBudget\` as an optional milestone target (e.g., 20 points per phase), not a hard cap.
 
 ## Workflow
 
 ### 1. Audit Specs
 - Read all specs in \`.ralph-wiggum/specs/*\`
 - For each spec, verify tasks and acceptance criteria are clear and complete
-- If a spec is missing details, update it with specific tasks and acceptance criteria
+- If a spec is missing details, update it with clear milestone-level tasks and acceptance criteria (avoid micro-tasks)
 
 ### 2. Audit Codebase
-- Use up to 500 parallel subagents to search the source code
+- Subagents are for code exploration and context gathering only (facts, file locations, existing patterns).
+- Subagent budget:
+  - 1 “map” pass: identify likely entrypoints + relevant files
+  - Up to 8 “area” passes: one subagent per code area (CLI, commands, services, domain, agents, utils)
+  - Up to 4 “verification” passes: locate relevant scripts, test locations, linters, and guardrails
+  - Hard cap: 13 subagents total
 - Compare implementation against specs
 - Look for: TODOs, placeholders, skipped tests, incomplete features, inconsistent patterns
 
@@ -44,17 +64,23 @@ Create or update @.ralph-wiggum/implementation.json with this structure:
       "priority": 1,
       "status": "pending",
       "context": "Brief context for this spec. Reference existing code locations.",
+      "dependsOn": ["other-spec-id"],
+      "pointsBudget": 20,
       "tasks": [
         {
           "id": "spec-id-1",
           "description": "First task description",
           "status": "pending",
+          "dependsOn": ["other-spec-id-1"],
+          "points": 3,
           "acceptanceCriteria": ["Criteria 1", "Criteria 2"]
         },
         {
           "id": "spec-id-2",
           "description": "Second task description",
-          "status": "pending"
+          "status": "pending",
+          "dependsOn": ["spec-id-1"],
+          "points": 2
         }
       ],
       "acceptanceCriteria": ["Spec-level AC 1", "Spec-level AC 2"]
@@ -69,6 +95,11 @@ Create or update @.ralph-wiggum/implementation.json with this structure:
 - \`priority\`: Lower number = higher priority (1 = first to implement)
 - \`status\`: "pending" for unstarted, "in_progress" for active, "completed" for done
 - \`context\`: Include relevant code paths, dependencies, or notes for the build agent
+- \`dependsOn\`: Optional list of spec IDs that must be completed before this spec is runnable
+- \`dependsOn\` (tasks): Optional list of task IDs that must be completed before this task is runnable
+- \`points\`: 1, 2, 3, 5, 8 story points for task sizing
+- \`pointsBudget\`: Optional milestone target (not a cap)
+- Make tasks coarse enough to justify a full build-loop iteration; merge trivial steps into their parent task rather than creating a new task
 - Make sure to copy / paste relevant acceptance criteria from the spec file for each task. Some tasks may share the same acceptance criteria.
 
 ### 4. Create Missing Specs
@@ -248,6 +279,9 @@ Example: "The user should be able to use the UI/API to <perform a specific task>
 <!-- How are we going to solve the problem? Include the user journey. -->
 
 ## Tasks
+<!-- Keep tasks milestone-level: aim for 3–10 tasks that are each "one build-loop" sized.
+Avoid micro-tasks like "add 3 constants" or "rename an export" — list those as notes instead.
+Optional: Add a coarse estimate prefix like "(SP:3)" to help planning. -->
 - [ ] Task 1
 - [ ] Task 2
 - [ ] Task 3
@@ -261,10 +295,12 @@ Example: "The user should be able to use the UI/API to <perform a specific task>
 ## Success Metrics
 <!-- How will we know this feature is successful? Define measurable outcomes. -->
 
-## Testing Requirements
-- [ ] Unit test changes
-- [ ] Integration test changes
-- [ ] End-to-end test changes
+## Verification
+<!-- Baseline verification is already part of the build loop (typecheck/tests/build).
+Only list additional verification here when it's truly extra (new tests, manual QA steps, migrations, deployments). -->
+- [ ] Baseline: \`bun run typecheck\`, \`bun run test\`, \`bun run build\`
+- [ ] Frontend (UI changes): Use \`agent-browser\` to navigate to the relevant screen, exercise the full user flow, and capture a screenshot for \`.ralph-wiggum/PROGRESS.md\` (example: "Open Settings → toggle X → verify Y updates")
+- [ ] Backend (service/API changes): Add/update unit tests in \`src/__tests__/\` (example: "Task parsing returns expected JSON"); add integration tests when cross-module behavior changes (example: "CLI command runs end-to-end against a temp workspace"); run \`bun run test\`
 
 ## Notes
 <!-- Implementation notes, edge cases, dependencies, security considerations -->

@@ -7,6 +7,8 @@ export class Spec {
   private readonly _name: string;
   private readonly _priority: number;
   private readonly _context?: string;
+  private readonly _dependsOn: string[];
+  private readonly _pointsBudget?: number;
   private readonly _tasks: Task[];
   private readonly _acceptanceCriteria: string[];
 
@@ -16,6 +18,8 @@ export class Spec {
     this._name = entry.name;
     this._priority = entry.priority;
     this._context = entry.context;
+    this._dependsOn = entry.dependsOn ?? [];
+    this._pointsBudget = entry.pointsBudget;
     this._tasks = entry.tasks.map((t) => Task.fromEntry(t));
     this._acceptanceCriteria = entry.acceptanceCriteria ?? [];
   }
@@ -40,6 +44,26 @@ export class Spec {
     return this._context;
   }
 
+  get dependsOn(): string[] {
+    return this._dependsOn;
+  }
+
+  get pointsBudget(): number | undefined {
+    return this._pointsBudget;
+  }
+
+  get pointsTotal(): number | undefined {
+    let total = 0;
+    let sawAny = false;
+    for (const task of this._tasks) {
+      if (task.points !== undefined) {
+        total += task.points;
+        sawAny = true;
+      }
+    }
+    return sawAny ? total : undefined;
+  }
+
   get tasks(): Task[] {
     return this._tasks;
   }
@@ -59,6 +83,14 @@ export class Spec {
     return this._tasks.find((t) => t.status === "pending");
   }
 
+  nextRunnablePendingTask(
+    completedTaskIds: ReadonlySet<string>
+  ): Task | undefined {
+    return this._tasks.find(
+      (t) => t.status === "pending" && t.dependenciesSatisfied(completedTaskIds)
+    );
+  }
+
   get completedTasks(): Task[] {
     return this._tasks.filter((t) => t.status === "completed");
   }
@@ -68,6 +100,13 @@ export class Spec {
     const completed = this.completedTasks.length;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { completed, total, percentage };
+  }
+
+  dependenciesSatisfied(completedSpecIds: ReadonlySet<string>): boolean {
+    if (this._dependsOn.length === 0) {
+      return true;
+    }
+    return this._dependsOn.every((id) => completedSpecIds.has(id));
   }
 
   /**
@@ -104,6 +143,19 @@ export class Spec {
 
     if (this._context !== undefined) {
       entry.context = this._context;
+    }
+
+    if (this._dependsOn.length > 0) {
+      entry.dependsOn = this._dependsOn;
+    }
+
+    if (this._pointsBudget !== undefined) {
+      entry.pointsBudget = this._pointsBudget;
+    }
+
+    const pointsTotal = this.pointsTotal;
+    if (pointsTotal !== undefined) {
+      entry.pointsTotal = pointsTotal;
     }
 
     if (this._acceptanceCriteria.length > 0) {

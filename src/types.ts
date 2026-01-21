@@ -68,6 +68,8 @@ export interface AgentCommand {
 
 // Task-level orchestration types
 
+export type StoryPoints = 1 | 2 | 3 | 5 | 8;
+
 export type TaskStatusType =
   | "pending"
   | "in_progress"
@@ -80,6 +82,8 @@ export interface TaskEntry {
   description: string;
   status: TaskStatusType;
   acceptanceCriteria?: string[];
+  dependsOn?: string[];
+  points?: StoryPoints;
   blockedReason?: string;
   retryCount?: number;
   completedAt?: string;
@@ -92,6 +96,9 @@ export interface SpecEntry {
   priority: number;
   status: TaskStatusType;
   context?: string;
+  dependsOn?: string[];
+  pointsBudget?: number;
+  pointsTotal?: number;
   tasks: TaskEntry[];
   acceptanceCriteria?: string[];
 }
