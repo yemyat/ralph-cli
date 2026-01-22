@@ -185,97 +185,206 @@ export class Builder {
     }
   }
 
+  private async loadImplementation(): Promise<Implementation | null> {
+    const impl = await Implementation.load();
+    if (!impl) {
+      console.log(pc.red("No implementation.json found."));
+      return null;
+    }
+    return impl;
+  }
+
+  private getCompletedTaskIds(impl: Implementation): Set<string> {
+    const completedTaskIds = new Set<string>();
+    for (const spec of impl.specs) {
+      for (const task of spec.tasks) {
+        if (task.status === "completed") {
+          completedTaskIds.add(task.id);
+        }
+      }
+    }
+    return completedTaskIds;
+  }
+
+  private reportBlockedSpecs(
+    impl: Implementation,
+    completedSpecIds: ReadonlySet<string>
+  ): void {
+    const blockedSpecs = impl.specs
+      .filter((s) => !s.isCompleted)
+      .filter((s) => s.nextPendingTask)
+      .filter((s) => !s.dependenciesSatisfied(completedSpecIds))
+      .map(
+        (s) =>
+          `${s.id} (missing: ${s.dependsOn.filter((d) => !completedSpecIds.has(d)).join(", ")})`
+      );
+
+    if (blockedSpecs.length === 0) {
+      return;
+    }
+
+    console.log(pc.yellow("Pending specs blocked by spec dependencies:"));
+    for (const line of blockedSpecs) {
+      console.log(pc.gray(`- ${line}`));
+    }
+  }
+
+  private reportBlockedTasks(
+    impl: Implementation,
+    completedTaskIds: ReadonlySet<string>
+  ): void {
+    const blockedTasks = impl.specs
+      .filter((s) => !s.isCompleted)
+      .flatMap((s) =>
+        s.tasks
+          .filter((t) => t.status === "pending")
+          .filter((t) => !t.dependenciesSatisfied(completedTaskIds))
+          .map((t) => ({
+            specId: s.id,
+            taskId: t.id,
+            missing: t.dependsOn.filter((d) => !completedTaskIds.has(d)),
+          }))
+      )
+      .map((t) => `${t.specId}:${t.taskId} (missing: ${t.missing.join(", ")})`);
+
+    if (blockedTasks.length === 0) {
+      return;
+    }
+
+    console.log(pc.yellow("Pending tasks blocked by task dependencies:"));
+    for (const line of blockedTasks) {
+      console.log(pc.gray(`- ${line}`));
+    }
+  }
+
+  private async handleNoRunnableTasks(impl: Implementation): Promise<void> {
+    if (impl.isCompleted) {
+      await this.hooks?.emit("onLoopCompleted", this.buildPayload());
+      return;
+    }
+
+    if (!impl.hasPendingTasks) {
+      console.log(
+        pc.yellow(
+          "No runnable tasks found (all remaining tasks are blocked or failed)."
+        )
+      );
+      return;
+    }
+
+    const completedSpecIds = new Set(impl.completedSpecs.map((s) => s.id));
+    const completedTaskIds = this.getCompletedTaskIds(impl);
+
+    console.log(pc.yellow("No runnable pending tasks."));
+    this.reportBlockedSpecs(impl, completedSpecIds);
+    this.reportBlockedTasks(impl, completedTaskIds);
+  }
+
+  private async runTaskIteration(
+    impl: Implementation,
+    spec: Spec,
+    task: Task
+  ): Promise<"continue" | "stop"> {
+    if (!this.state) {
+      return "stop";
+    }
+
+    this.state.session.incrementIteration();
+    await this.updateSessionState();
+
+    this.logger?.startTaskLog(task.id);
+
+    await this.hooks?.emit(
+      "onIterationStarted",
+      this.buildPayload({
+        taskDescription: task.description,
+        specName: spec.name,
+        logFile: this.logger?.logFile ?? undefined,
+      })
+    );
+    this.logger?.log(`Starting task: ${task.id} - ${task.description}`);
+
+    task.markInProgress();
+    await impl.save();
+
+    const taskPrompt = generateTaskPrompt(spec, task);
+    const result = await this.agentRunner?.run({
+      prompt: taskPrompt,
+      onSpawn: (child) => {
+        this.currentChild = child;
+        if (child.pid && this.state) {
+          this.state.session.setPid(child.pid);
+        }
+        this.updateSessionState().catch(() => {
+          // fire-and-forget
+        });
+      },
+    });
+
+    if (!result) {
+      console.log(pc.red("  ✗ Agent runner not initialized"));
+      return "stop";
+    }
+
+    if (result.status === "blocked") {
+      await this.hooks?.emit(
+        "onTaskBlocked",
+        this.buildPayload({ taskDescription: result.reason })
+      );
+      this.logger?.log(`Task blocked: ${result.reason}`);
+      task.block(result.reason || "Unknown");
+      await impl.save();
+      return "continue";
+    }
+
+    if (result.status === "done") {
+      await this.hooks?.emit(
+        "onIterationSuccess",
+        this.buildPayload({ taskDescription: task.description })
+      );
+      this.logger?.log(`Task completed: ${task.id}`);
+      task.complete();
+      await impl.save();
+      if (spec.isCompleted) {
+        await this.hooks?.emit(
+          "onSpecCompleted",
+          this.buildPayload({ specName: spec.name })
+        );
+        this.logger?.log(`Spec completed: ${spec.name}`);
+      }
+      return "continue";
+    }
+
+    await this.hooks?.emit(
+      "onIterationFailure",
+      this.buildPayload({ taskDescription: task.description })
+    );
+    this.logger?.log(`Task failed: ${task.id}`);
+    task.fail();
+    await impl.save();
+    return "continue";
+  }
+
   private async runLoop(): Promise<void> {
     if (!this.state) {
       return;
     }
     while (true) {
-      const impl = await Implementation.load();
+      const impl = await this.loadImplementation();
       if (!impl) {
-        console.log(pc.red("No implementation.json found."));
-        break;
+        return;
       }
-
       const next = impl.nextPendingTask;
       if (!next) {
-        await this.hooks?.emit("onLoopCompleted", this.buildPayload());
-        break;
+        await this.handleNoRunnableTasks(impl);
+        return;
       }
 
       const { spec, task } = next;
-      this.state.session.incrementIteration();
-      await this.updateSessionState();
-
-      this.logger?.startTaskLog(task.id);
-
-      await this.hooks?.emit(
-        "onIterationStarted",
-        this.buildPayload({
-          taskDescription: task.description,
-          specName: spec.name,
-          logFile: this.logger?.logFile ?? undefined,
-        })
-      );
-      this.logger?.log(`Starting task: ${task.id} - ${task.description}`);
-
-      task.markInProgress();
-      await impl.save();
-
-      const taskPrompt = generateTaskPrompt(spec, task);
-      const result = await this.agentRunner?.run({
-        prompt: taskPrompt,
-        onSpawn: (child) => {
-          this.currentChild = child;
-          if (child.pid && this.state) {
-            this.state.session.setPid(child.pid);
-          }
-          this.updateSessionState().catch(() => {
-            // fire-and-forget
-          });
-        },
-      });
-
-      if (!result) {
-        console.log(pc.red("  ✗ Agent runner not initialized"));
-        break;
+      const result = await this.runTaskIteration(impl, spec, task);
+      if (result === "stop") {
+        return;
       }
-
-      if (result.status === "blocked") {
-        await this.hooks?.emit(
-          "onTaskBlocked",
-          this.buildPayload({ taskDescription: result.reason })
-        );
-        this.logger?.log(`Task blocked: ${result.reason}`);
-        task.block(result.reason || "Unknown");
-        await impl.save();
-        continue;
-      }
-
-      if (result.status === "done") {
-        await this.hooks?.emit(
-          "onIterationSuccess",
-          this.buildPayload({ taskDescription: task.description })
-        );
-        this.logger?.log(`Task completed: ${task.id}`);
-        task.complete();
-        await impl.save();
-        if (spec.isCompleted) {
-          await this.hooks?.emit(
-            "onSpecCompleted",
-            this.buildPayload({ specName: spec.name })
-          );
-          this.logger?.log(`Spec completed: ${spec.name}`);
-        }
-      } else {
-        await this.hooks?.emit(
-          "onIterationFailure",
-          this.buildPayload({ taskDescription: task.description })
-        );
-        this.logger?.log(`Task failed: ${task.id}`);
-        task.fail();
-        await impl.save();
-      }
-
       console.log(pc.gray(`\n${"=".repeat(50)}\n`));
     }
   }
