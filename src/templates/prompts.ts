@@ -63,7 +63,6 @@ Create or update @.ralph-wiggum/implementation.json with this structure:
       "name": "Human Readable Name",
       "priority": 1,
       "status": "pending",
-      "context": "Brief context for this spec. Reference existing code locations.",
       "dependsOn": ["other-spec-id"],
       "pointsBudget": 20,
       "tasks": [
@@ -94,12 +93,10 @@ Create or update @.ralph-wiggum/implementation.json with this structure:
 - Tasks get sequential IDs like \`{spec-id}-1\`, \`{spec-id}-2\`, etc.
 - \`priority\`: Lower number = higher priority (1 = first to implement)
 - \`status\`: "pending" for unstarted, "in_progress" for active, "completed" for done
-- \`context\`: Include relevant code paths, dependencies, or notes for the build agent
 - \`dependsOn\`: Optional list of spec IDs that must be completed before this spec is runnable
-- \`dependsOn\` (tasks): Optional list of task IDs that must be completed before this task is runnable
 - \`points\`: 1, 2, 3, 5, 8 story points for task sizing
 - \`pointsBudget\`: Optional milestone target (not a cap)
-- Make tasks coarse enough to justify a full build-loop iteration; merge trivial steps into their parent task rather than creating a new task
+- Make tasks coarse enough to justify a full build-loop iteration; merge trivial steps into their a single task rather than creating a new task
 - Make sure to copy / paste relevant acceptance criteria from the spec file for each task. Some tasks may share the same acceptance criteria.
 
 ### 4. Create Missing Specs
