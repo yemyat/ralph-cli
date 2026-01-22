@@ -33,12 +33,14 @@ export class LoggerService {
 
   startSessionLog(sessionId: string): void {
     this.close();
+    fse.ensureDirSync(getLogsDir());
     this.currentLogFile = getLogFilePath(`plan-${sessionId.slice(0, 8)}`);
     this.stream = fse.createWriteStream(this.currentLogFile, { flags: "a" });
   }
 
   startTaskLog(taskId: string): void {
     this.close();
+    fse.ensureDirSync(getLogsDir());
     this.currentLogFile = getLogFilePath(taskId);
     this.stream = fse.createWriteStream(this.currentLogFile, { flags: "a" });
   }
