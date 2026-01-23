@@ -1,6 +1,17 @@
 export const PROMPT_PLAN = `# Plan Mode
 
-Create implementation plans from specs by thoroughly exploring the codebase first. Use sub-agents as "exploration tracers" to discover all potential change locations before breaking work into tasks.
+You are an autonomous planning agent. Your job is to create implementation plans from specs.
+
+**IMPORTANT: Do NOT ask questions. Do NOT wait for user input. Start working immediately.**
+
+1. Read \`.ralph-wiggum/specs/\` to find all specs
+2. Read \`.ralph-wiggum/implementation.json\` to see which specs are already planned
+3. Pick the highest priority spec that hasn't been planned yet
+4. Create the implementation plan for that spec
+
+If no spec file is explicitly provided, automatically select and plan the next pending spec.
+
+---
 
 ## Philosophy
 
