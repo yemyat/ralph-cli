@@ -80,6 +80,12 @@ export interface TaskEntry {
   description: string;
   status: TaskStatusType;
   acceptanceCriteria?: string[];
+  /** File paths with line numbers and what to change, e.g., "src/file.ts:42 - add newField" */
+  potentialChangeLocations?: string[];
+  /** Story points: 1, 2, 3, or 5 (based on LOC and complexity) */
+  points?: number;
+  /** Task IDs that must complete before this task */
+  dependsOn?: string[];
   blockedReason?: string;
   retryCount?: number;
   completedAt?: string;
@@ -92,6 +98,10 @@ export interface SpecEntry {
   priority: number;
   status: TaskStatusType;
   context?: string;
+  /** Total points budget for this spec */
+  pointsBudget?: number;
+  /** Spec IDs that must complete before this spec */
+  dependsOn?: string[];
   tasks: TaskEntry[];
   acceptanceCriteria?: string[];
 }

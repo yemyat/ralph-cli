@@ -5,6 +5,9 @@ export class Task {
   private readonly _description: string;
   private _status: TaskStatusType;
   private readonly _acceptanceCriteria: string[];
+  private readonly _potentialChangeLocations: string[];
+  private readonly _points?: number;
+  private readonly _dependsOn: string[];
   private _blockedReason?: string;
   private _retryCount: number;
   private _completedAt?: string;
@@ -14,6 +17,9 @@ export class Task {
     this._description = entry.description;
     this._status = entry.status;
     this._acceptanceCriteria = entry.acceptanceCriteria ?? [];
+    this._potentialChangeLocations = entry.potentialChangeLocations ?? [];
+    this._points = entry.points;
+    this._dependsOn = entry.dependsOn ?? [];
     this._blockedReason = entry.blockedReason;
     this._retryCount = entry.retryCount ?? 0;
     this._completedAt = entry.completedAt;
@@ -33,6 +39,18 @@ export class Task {
 
   get acceptanceCriteria(): string[] {
     return this._acceptanceCriteria;
+  }
+
+  get potentialChangeLocations(): string[] {
+    return this._potentialChangeLocations;
+  }
+
+  get points(): number | undefined {
+    return this._points;
+  }
+
+  get dependsOn(): string[] {
+    return this._dependsOn;
   }
 
   get blockedReason(): string | undefined {
@@ -82,6 +100,18 @@ export class Task {
 
     if (this._acceptanceCriteria.length > 0) {
       entry.acceptanceCriteria = this._acceptanceCriteria;
+    }
+
+    if (this._potentialChangeLocations.length > 0) {
+      entry.potentialChangeLocations = this._potentialChangeLocations;
+    }
+
+    if (this._points !== undefined) {
+      entry.points = this._points;
+    }
+
+    if (this._dependsOn.length > 0) {
+      entry.dependsOn = this._dependsOn;
     }
 
     if (this._blockedReason !== undefined) {
