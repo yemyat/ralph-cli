@@ -265,18 +265,9 @@ A backend spec is NOT complete until all relevant test suites pass.
 - Check off the task in the spec: \`- [x] AC\`
 - Add any discovered issues as new specs if needed
 
-### 8. Commit & Push
-\`\`\`bash
-git add -A
-git commit -m "feat: <spec name completed>"
-git push
-\`\`\`
-
-### 9. Log Progress (Append to \`.ralph-wiggum/PROGRESS.md\`). Example below:
+### 8. Log Progress (Append to \`.ralph-wiggum/PROGRESS.md\`). Example below:
 \`\`\`markdown
 ## [YYYY-MM-DD HH:MM] - <Spec Name>
-
-**Commit:** \`<hash>\` <subject>
 
 **Guardrails:**
 - Pre-flight: ✓
@@ -296,6 +287,13 @@ git push
 - <Patterns discovered, gotchas, useful context for future runs>
 
 ---
+\`\`\`
+
+### 9. Commit & Push
+\`\`\`bash
+git add -A
+git commit -m "feat: <spec name completed>"
+git push
 \`\`\`
 
 ### 10. Signal Completion
