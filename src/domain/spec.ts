@@ -7,6 +7,8 @@ export class Spec {
   private readonly _name: string;
   private readonly _priority: number;
   private readonly _context?: string;
+  private readonly _pointsBudget?: number;
+  private readonly _dependsOn: string[];
   private readonly _tasks: Task[];
   private readonly _acceptanceCriteria: string[];
 
@@ -16,6 +18,8 @@ export class Spec {
     this._name = entry.name;
     this._priority = entry.priority;
     this._context = entry.context;
+    this._pointsBudget = entry.pointsBudget;
+    this._dependsOn = entry.dependsOn ?? [];
     this._tasks = entry.tasks.map((t) => Task.fromEntry(t));
     this._acceptanceCriteria = entry.acceptanceCriteria ?? [];
   }
@@ -40,6 +44,14 @@ export class Spec {
     return this._context;
   }
 
+  get pointsBudget(): number | undefined {
+    return this._pointsBudget;
+  }
+
+  get dependsOn(): string[] {
+    return this._dependsOn;
+  }
+
   get tasks(): Task[] {
     return this._tasks;
   }
@@ -56,7 +68,19 @@ export class Spec {
   }
 
   get nextPendingTask(): Task | undefined {
-    return this._tasks.find((t) => t.status === "pending");
+    const completedTaskIds = new Set(
+      this._tasks.filter((t) => t.status === "completed").map((t) => t.id)
+    );
+
+    return this._tasks.find((t) => {
+      if (t.status !== "pending") {
+        return false;
+      }
+      if (t.dependsOn.length === 0) {
+        return true;
+      }
+      return t.dependsOn.every((depId) => completedTaskIds.has(depId));
+    });
   }
 
   get completedTasks(): Task[] {
@@ -104,6 +128,14 @@ export class Spec {
 
     if (this._context !== undefined) {
       entry.context = this._context;
+    }
+
+    if (this._pointsBudget !== undefined) {
+      entry.pointsBudget = this._pointsBudget;
+    }
+
+    if (this._dependsOn.length > 0) {
+      entry.dependsOn = this._dependsOn;
     }
 
     if (this._acceptanceCriteria.length > 0) {

@@ -20,10 +20,19 @@ function generateTaskPrompt(spec: Spec, task: Task): string {
     ? task.acceptanceCriteria.map((ac) => `- [ ] ${ac}`).join("\n")
     : "_No specific acceptance criteria._";
 
+  const potentialChangeLocations = task.potentialChangeLocations?.length
+    ? task.potentialChangeLocations.map((loc) => `- ${loc}`).join("\n")
+    : "_No specific locations identified during planning._";
+
+  const dependsOn = task.dependsOn?.length ? task.dependsOn.join(", ") : "";
+
   return Mustache.render(PROMPT_BUILD, {
     spec_name: spec.name,
     full_specs_file: spec.file,
-    task_context: task.description,
+    task_description: task.description,
+    task_points: task.points ?? "unestimated",
+    task_depends_on: dependsOn || undefined,
+    potential_change_locations: potentialChangeLocations,
     acceptance_criteria: acceptanceCriteria,
   });
 }
