@@ -1,5 +1,4 @@
-export const PROMPT_PLAN = `
-You are an autonomous planning agent. Your job is to create implementation plans from specs.
+export const PROMPT_PLAN = `You are an autonomous planning agent. Your job is to create implementation plans from specs.
 
 **IMPORTANT: Do NOT ask questions. Do NOT wait for user input. Start working immediately.**
 
@@ -197,15 +196,13 @@ their queries.ts and mutations.ts? Report the patterns so we can follow them.
 
 COMPLETION: When the spec has been fully explored and tasks created, output exactly: <STATUS>DONE</STATUS>`;
 
-export const PROMPT_BUILD = `# Build Mode
-
-## Context (Read First)
-
-You are working on a specific task that is mentioned below. The task is part of a larger spec. You have been iterating step by step on tasks from within that spec.
+export const PROMPT_BUILD = `You are working on a specific task that is mentioned below. The task is part of a larger spec. You have been iterating step by step on tasks from within that spec.
 
 ### Spec Context
 **Spec:** {{spec_name}}
 **Spec File:** {{full_specs_file}}
+
+You don't really need to read this full file unless you need further context on the product requirements beyond what is described below.
 
 ### Task
 **Description:** {{task_description}}
@@ -236,23 +233,18 @@ These locations were identified during planning—use them as your starting poin
 ### 1. Pre-Flight (Guardrails Check)
 - Read \`.ralph-wiggum/GUARDRAILS.md\` completely
 - Verify you understand the "Before Making Changes" rules
-- Review the potential change locations and acceptance criteria above
+- Review the potential change locations based on context provided to you above and acceptance criteria above
 
-### 2. Understand Current State
-- Search codebase before making changes
-- Use subagents for complex reasoning if needed
-- Don't assume anything is missing — confirm with code search
-
-### 3. Implement
+### 2. Implement
 - Complete the assigned task only
 - Follow existing code conventions
 - Make all changes needed for the task to pass its acceptance criteria mentioned earlier
 
-### 4. Post-Flight (Guardrails Check)
+### 3. Post-Flight (Guardrails Check)
 - Verify ALL items in \`.ralph-wiggum/GUARDRAILS.md\` "After Making Changes":
 - Check off acceptance criteria in the spec: \`- [x] AC\`
 
-### 5. Frontend Testing (Required for UI Changes)
+### 4. Frontend Testing (Required for UI Changes)
 If the spec involves UI changes, you MUST verify in the browser:
 1. Load the \`agent-browser\` skill
 2. Navigate to the relevant page
@@ -261,7 +253,7 @@ If the spec involves UI changes, you MUST verify in the browser:
 
 A frontend spec is NOT complete until browser verification passes.
 
-### 6. Backend Testing (Required for API/Service Changes)
+### 5. Backend Testing (Required for API/Service Changes)
 If the spec involves backend changes, you MUST run all relevant tests:
 1. Unit tests — test individual functions/modules in isolation
 2. Integration tests — test interactions between components
@@ -271,12 +263,12 @@ Adjust commands based on project (check package.json or AGENTS.md for available 
 
 A backend spec is NOT complete until all relevant test suites pass.
 
-### 7. Update Plan
+### 6. Update Plan
 - Move spec from "In Progress" to "Completed" in \`.ralph-wiggum/implementation.json\`
 - Check off the task in the spec: \`- [x] AC\`
 - Add any discovered issues as new specs if needed
 
-### 8. Log Progress (Append to \`.ralph-wiggum/PROGRESS.md\`). Example below:
+### 7. Log Progress (Append to \`.ralph-wiggum/PROGRESS.md\`). Example below:
 \`\`\`markdown
 ## [YYYY-MM-DD HH:MM] - <Spec Name>
 
@@ -288,9 +280,6 @@ A backend spec is NOT complete until all relevant test suites pass.
 - \`bun run typecheck\` → PASS
 - \`bun run test\` → PASS
 
-**Files changed:**
-- path/to/file.ts
-
 **What was done:**
 <Brief description>
 
@@ -300,14 +289,14 @@ A backend spec is NOT complete until all relevant test suites pass.
 ---
 \`\`\`
 
-### 9. Commit & Push
+### 8. Commit & Push
 \`\`\`bash
 git add -A
 git commit -m "feat: <spec name completed>"
 git push
 \`\`\`
 
-### 10. Signal Completion
+### 9. Signal Completion
 
 When the task is done, output exactly:
 \`\`\`
