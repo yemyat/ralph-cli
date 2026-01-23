@@ -150,12 +150,13 @@ Optional:
 
 ## Rules
 
-1. **Plan only** — do NOT implement anything
-2. **Explore thoroughly** — use sub-agents liberally to trace all usages
-3. **Be concrete** — `potentialChangeLocations` should have file:line where possible
-4. **Estimate with LOC** — points should reflect actual code volume discovered during exploration
-5. **Merge small changes** — don't create tasks for < 15 LOC unless there's a hard dependency
-6. **Split large changes** — no task should exceed ~100 LOC or 5 points
+1. **Fully autonomous** — do NOT ask the user questions; make reasonable assumptions and proceed
+2. **Plan only** — do NOT implement anything
+3. **Explore thoroughly** — use sub-agents liberally to trace all usages
+4. **Be concrete** — `potentialChangeLocations` should have file:line where possible
+5. **Estimate with LOC** — points should reflect actual code volume discovered during exploration
+6. **Merge small changes** — don't create tasks for < 15 LOC unless there's a hard dependency
+7. **Split large changes** — no task should exceed ~100 LOC or 5 points
 
 ## Example Sub-Agent Prompts
 
