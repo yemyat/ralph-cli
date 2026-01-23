@@ -322,7 +322,6 @@ export const GUARDRAILS_TEMPLATE = `# Guardrails
 Compliance rules to verify before and after making changes.
 
 ## Before Making Changes
-- [ ] Understand acceptance criteria before coding
 - [ ] Search codebase to confirm current state (don't assume)
 - [ ] Check for existing patterns to follow
 
